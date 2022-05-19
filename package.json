@@ -1,0 +1,36 @@
+{
+  "name": "nadesiko3core",
+  "version": "1.0.0",
+  "description": "[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![npm version](https://badge.fury.io/js/nadesiko3.svg)](https://www.npmjs.com/package/nadesiko3) ![Node.js CI](https://github.com/kujirahand/nadesiko3/workflows/Node.js%20CI/badge.svg)",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha",
+    "tsc": "tsc --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kujirahand/nadesiko3core.git"
+  },
+  "keywords": [],
+  "author": "kujirahand",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kujirahand/nadesiko3core/issues"
+  },
+  "homepage": "https://github.com/kujirahand/nadesiko3core#readme",
+  "devDependencies": {
+    "@types/node": "^17.0.34",
+    "@typescript-eslint/eslint-plugin": "^4.33.0",
+    "chai": "^4.3.6",
+    "eslint": "^7.32.0",
+    "eslint-config-standard-with-typescript": "^21.0.1",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^5.2.0",
+    "mocha": "^10.0.0",
+    "typescript": "^4.6.4"
+  },
+  "dependencies": {
+    "csv-lite-js": "^1.1.0"
+  }
+}
