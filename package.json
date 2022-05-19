@@ -1,11 +1,12 @@
 {
   "name": "nadesiko3core",
-  "version": "1.0.0",
-  "description": "[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![npm version](https://badge.fury.io/js/nadesiko3.svg)](https://www.npmjs.com/package/nadesiko3) ![Node.js CI](https://github.com/kujirahand/nadesiko3/workflows/Node.js%20CI/badge.svg)",
+  "version": "3.3.18",
+  "description": "Japanese Programming Language Nadesiko v3 core",
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "tsc": "tsc --watch"
+    "tsc": "tsc --watch",
+    "build": "cnako3 batch/build_nako_version.nako3 && tsc"
   },
   "repository": {
     "type": "git",
