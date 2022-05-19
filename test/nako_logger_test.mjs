@@ -27,61 +27,50 @@ describe('nako_logger_test', () => {
             file: 'main.nako3'
         });
     });
-    it('複数のテスト1', () => {
+    it('複数のリスナーのテスト1', () => {
         const logger = new NakoLogger();
-        let numInfo = 0, numError = 0, num = 0;
-        logger.addListener('info', (data) => {
-            numInfo++;
-            num++;
-        });
-        logger.addListener('error', (data) => {
-            numError++;
-            num++;
-        });
-        logger.addListener('stdout', (data) => {
-            num++;
-        });
+        let logStr = '';
+        logger.addListener('info', (data) => { logStr += 'i'; });
+        logger.addListener('error', (data) => { logStr += 'e'; });
+        logger.addListener('stdout', (data) => { logStr += 's'; });
         logger.error('foo', { startOffset: 0, endOffset: 0, line: 1, file: 'main.nako3' });
-        assert.strictEqual(num, 1);
-        assert.strictEqual(numInfo, 0);
-        assert.strictEqual(numError, 1);
+        assert.strictEqual(logStr, 'ie');
     });
     it('複数リスナーのテスト2', () => {
         const logger = new NakoLogger();
-        let numInfo = 0, numError = 0, num = 0;
-        logger.addListener('info', (data) => {
-            numInfo++;
-            num++;
-        });
-        logger.addListener('error', (data) => {
-            numError++;
-            num++;
-        });
-        logger.addListener('stdout', (data) => {
-            num++;
-        });
+        let logStr = '';
+        logger.addListener('info', (data) => { logStr += 'i'; });
+        logger.addListener('error', (data) => { logStr += 'e'; });
+        logger.addListener('stdout', (data) => { logStr += 's'; });
         logger.info('foo', { startOffset: 0, endOffset: 0, line: 1, file: 'main.nako3' });
-        assert.strictEqual(num, 2);
-        assert.strictEqual(numInfo, 1);
-        assert.strictEqual(numError, 1);
+        assert.strictEqual(logStr, 'i');
     });
     it('複数リスナーのテスト3', () => {
         const logger = new NakoLogger();
-        let numInfo = 0, numError = 0, num = 0;
-        logger.addListener('info', (data) => {
-            numInfo++;
-            num++;
-        });
-        logger.addListener('error', (data) => {
-            numError++;
-            num++;
-        });
-        logger.addListener('stdout', (data) => {
-            num++;
-        });
+        let logStr = '';
+        logger.addListener('info', (data) => { logStr += 'i'; });
+        logger.addListener('error', (data) => { logStr += 'e'; });
+        logger.addListener('stdout', (data) => { logStr += 's'; });
         logger.stdout('foo', { startOffset: 0, endOffset: 0, line: 1, file: 'main.nako3' });
-        assert.strictEqual(num, 3);
-        assert.strictEqual(numInfo, 1);
-        assert.strictEqual(numError, 1);
+        assert.strictEqual(logStr, 'ies');
+    });
+    it('複数リスナーのテスト4', () => {
+        const logger = new NakoLogger();
+        let logStr = '';
+        logger.addListener('info', (data) => { logStr += 'i'; });
+        logger.addListener('error', (data) => { logStr += 'e'; });
+        logger.addListener('stdout', (data) => { logStr += 's'; });
+        logger.stdout('foo', { startOffset: 0, endOffset: 0, line: 1, file: 'main.nako3' });
+        assert.strictEqual(logStr, 'ies');
+    });
+    it('複数リスナーのテスト5', () => {
+        const logger = new NakoLogger();
+        let logStr = '';
+        logger.addListener('all', (data) => { logStr += 'a'; });
+        logger.addListener('info', (data) => { logStr += 'i'; });
+        logger.addListener('error', (data) => { logStr += 'e'; });
+        logger.addListener('stdout', (data) => { logStr += 's'; });
+        logger.info('foo', { startOffset: 0, endOffset: 0, line: 1, file: 'main.nako3' });
+        assert.strictEqual(logStr, 'ai');
     });
 });

@@ -7,6 +7,9 @@ export class LogLevel {
     static fromS(levelStr) {
         let level = LogLevel.trace;
         switch (levelStr) {
+            case 'all':
+                level = LogLevel.all;
+                break;
             case 'trace':
                 level = LogLevel.trace;
                 break;
@@ -31,17 +34,18 @@ export class LogLevel {
         return level;
     }
     static toString(level) {
-        const levels = ['___', 'trace', 'debug', 'info', 'warn', 'error', 'stdout'];
+        const levels = ['all', 'trace', 'debug', 'info', 'warn', 'error', 'stdout'];
         return levels[level];
     }
 }
 // level no
-LogLevel.stdout = 0;
+LogLevel.all = 0;
 LogLevel.trace = 1;
-LogLevel.debug = 3;
+LogLevel.debug = 2;
 LogLevel.info = 3;
 LogLevel.warn = 4;
 LogLevel.error = 5;
+LogLevel.stdout = 6;
 /**
  * エラー位置を日本語で表示する。
  * たとえば `stringifyPosition({ file: "foo.txt", line: 5 })` は `"foo.txt(6行目):"` を出力する。
@@ -156,7 +160,7 @@ export class NakoLogger {
         };
         // 登録したリスナーに通知する
         for (const l of this.listeners) {
-            if (l.level >= level) {
+            if (l.level <= level) {
                 const data = makeData();
                 l.callback(data);
             }

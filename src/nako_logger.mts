@@ -7,16 +7,19 @@ import { Token, Ast } from './nako_types.mjs'
 
 export class LogLevel {
   // level no
-  public static stdout = 0;
-  public static trace = 1;
-  public static debug = 3;
-  public static info = 3;
-  public static warn = 4;
-  public static error = 5;
+  public static all = 0
+  public static trace = 1
+  public static debug = 2
+  public static info = 3
+  public static warn = 4
+  public static error = 5
+  public static stdout = 6
+
   // string to level no
   public static fromS (levelStr: string): number {
     let level: number = LogLevel.trace
     switch (levelStr) {
+      case 'all': level = LogLevel.all; break
       case 'trace': level = LogLevel.trace; break
       case 'debug': level = LogLevel.debug; break
       case 'info': level = LogLevel.info; break
@@ -30,7 +33,7 @@ export class LogLevel {
   }
 
   public static toString (level: number): string {
-    const levels: string[] = ['___', 'trace', 'debug', 'info', 'warn', 'error', 'stdout']
+    const levels: string[] = ['all', 'trace', 'debug', 'info', 'warn', 'error', 'stdout']
     return levels[level]
   }
 }
@@ -188,7 +191,7 @@ export class NakoLogger {
     }
     // 登録したリスナーに通知する
     for (const l of this.listeners) {
-      if (l.level >= level) {
+      if (l.level <= level) {
         const data = makeData()
         l.callback(data)
       }
