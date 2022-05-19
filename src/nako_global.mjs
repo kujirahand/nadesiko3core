@@ -77,7 +77,7 @@ export class NakoGlobal {
             text += `${NakoColors.color.green}成功 ${pass}件`;
         }
         this.numFailures = numFailures;
-        this.logger.log(text);
+        this.logger.stdout(text);
     }
     /**
      * 毎プラグインの「!クリア」関数を実行

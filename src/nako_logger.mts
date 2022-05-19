@@ -7,12 +7,12 @@ import { Token, Ast } from './nako_types.mjs'
 
 export class LogLevel {
   // level no
+  public static stdout = 0;
   public static trace = 1;
   public static debug = 3;
   public static info = 3;
   public static warn = 4;
   public static error = 5;
-  public static stdout = 6;
   // string to level no
   public static fromS (levelStr: string): number {
     let level: number = LogLevel.trace
@@ -23,6 +23,8 @@ export class LogLevel {
       case 'warn': level = LogLevel.warn; break
       case 'error': level = LogLevel.error; break
       case 'stdout': level = LogLevel.stdout; break
+      default:
+        throw new Error('[NakoLogger] unknown logger level:' + levelStr)
     }
     return level
   }
@@ -149,11 +151,11 @@ export class NakoLogger {
       position)
   }
 
-  /** ユーザープログラムのデバッグ情報（重要なもの）
+  /** ユーザープログラムのデバッグ情報（すべて)
    * @param {string} message
    * @param {Position | null} position
    */
-  public log (message: string, position: PositionOrNull = null):void {
+  public stdout (message: string, position: PositionOrNull = null): void {
     this.sendI(LogLevel.stdout, `${message}`, position)
   }
 
@@ -186,7 +188,7 @@ export class NakoLogger {
     }
     // 登録したリスナーに通知する
     for (const l of this.listeners) {
-      if (l.level <= level) {
+      if (l.level >= level) {
         const data = makeData()
         l.callback(data)
       }

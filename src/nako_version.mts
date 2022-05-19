@@ -1,4 +1,7 @@
-/** なでしこバージョン */
+/** 
+ * なでしこのバージョン情報
+ * package.json から自動的に作成されます。このファイルを編集しないでください。
+ */
 // 型定義
 export interface NakoVersion {
     version: string;
@@ -6,11 +9,11 @@ export interface NakoVersion {
     minor: number;
     patch: number;
 }
-// 実際のバージョン定義
+// 実際のバージョン定義 (自動生成されるので以下を編集しない)
 const nako3version: NakoVersion = {
-  version: '3.3.19',
+  version: '3.3.20',
   major: 3,
   minor: 3,
-  patch: 19
+  patch: 20
 }
 export default nako3version

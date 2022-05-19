@@ -25,6 +25,8 @@ export class LogLevel {
             case 'stdout':
                 level = LogLevel.stdout;
                 break;
+            default:
+                throw new Error('[NakoLogger] unknown logger level:' + levelStr);
         }
         return level;
     }
@@ -34,12 +36,12 @@ export class LogLevel {
     }
 }
 // level no
+LogLevel.stdout = 0;
 LogLevel.trace = 1;
 LogLevel.debug = 3;
 LogLevel.info = 3;
 LogLevel.warn = 4;
 LogLevel.error = 5;
-LogLevel.stdout = 6;
 /**
  * エラー位置を日本語で表示する。
  * たとえば `stringifyPosition({ file: "foo.txt", line: 5 })` は `"foo.txt(6行目):"` を出力する。
@@ -119,11 +121,11 @@ export class NakoLogger {
         }
         this.sendI(LogLevel.error, `${NakoColors.color.bold}${NakoColors.color.red}[エラー]${NakoColors.color.reset}${stringifyPosition(position)}${message}`, position);
     }
-    /** ユーザープログラムのデバッグ情報（重要なもの）
+    /** ユーザープログラムのデバッグ情報（すべて)
      * @param {string} message
      * @param {Position | null} position
      */
-    log(message, position = null) {
+    stdout(message, position = null) {
         this.sendI(LogLevel.stdout, `${message}`, position);
     }
     /** 指定したlevelのlistenerにメッセージを送る。htmlやbrowserConsoleは無ければnodeConsoleから生成する。 */
@@ -154,7 +156,7 @@ export class NakoLogger {
         };
         // 登録したリスナーに通知する
         for (const l of this.listeners) {
-            if (l.level <= level) {
+            if (l.level >= level) {
                 const data = makeData();
                 l.callback(data);
             }
