@@ -8,7 +8,7 @@ export default {
     type: 'func',
     josi: [['と'], ['が']],
     pure: true,
-    fn: function (a: any, b: any) {
+    fn: function (a: any, b: any): boolean {
       if (a !== b) {
         throw new Error(`不一致 [実際]${a} [期待]${b}`)
       }

@@ -23,18 +23,6 @@ export function convertDNCL(src, filename) {
     // process.exit()
     return result;
 }
-function isIndentSyntaxEnabled(src) {
-    // プログラム冒頭に「!DNCLモード」があればDNCL構文が有効
-    const keywords = DNCL_KEYWORDS;
-    const lines = src.split('\n', 30);
-    for (const line of lines) {
-        const line2 = line.replace(/(！|💡)/, '!');
-        if (keywords.indexOf(line2) >= 0) {
-            return true;
-        }
-    }
-    return false;
-}
 /**
  * make space string
  * @param {number} n
@@ -113,7 +101,6 @@ function dncl2nako(src, filename) {
         '二進で表示': '二進表示',
         'でないならば': 'でなければ'
     };
-    const peekChar = () => src.charAt(0);
     const nextChar = () => {
         const ch = src.charAt(0);
         src = src.substring(1);

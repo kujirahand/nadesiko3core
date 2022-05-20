@@ -286,9 +286,10 @@ function makeIndent (count: number): string {
  * @param {string} line
  */
 function getIndent (line: string): string {
-  // @ts-ignore
   // eslint-disable-next-line no-irregular-whitespace
-  return /^([ 　・\t]*)/.exec(removeCommentsFromLine(line))[1]
+  const m = /^([ 　・\t]*)/.exec(removeCommentsFromLine(line))
+  if (!m) { return '' }
+  return m[1]
 }
 
 /**
@@ -456,7 +457,6 @@ export function getBlockStructure (code: string): BlockStruct {
       ? prev
       : countIndent(line2)
     result.lines.push(...Array(numLines).fill(current))
-    // @ts-ignore
     result.spaces.push(...Array(numLines).fill(getIndent(line2)))
 
     if (prev < current) {

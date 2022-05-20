@@ -253,7 +253,7 @@ export class NakoCompiler {
             throw new NakoLexerError(err.msg, map.startOffset, map.endOffset, map.line, filename);
         }
         // ソースコード上の位置に変換
-        return tokens.map((token, i) => {
+        return tokens.map((token) => {
             const dest = indentationSyntaxSourceMapping.map(tokenizationSourceMapping.map(token.preprocessedCodeOffset || 0), tokenizationSourceMapping.map((token.preprocessedCodeOffset || 0) + (token.preprocessedCodeLength || 0)));
             let line = token.line;
             let column = 0;
@@ -515,24 +515,24 @@ export class NakoCompiler {
      */
     compile(code, filename, isTest, preCode = '') {
         const ast = this.parse(code, filename, preCode);
-        const codeObj = this.generateCode(ast, isTest, preCode);
+        const codeObj = this.generateCode(ast, isTest);
         return codeObj.runtimeEnv;
     }
     /**
      * プログラムをコンパイルしてJavaScriptのコードオブジェクトを返す
      * @param {AST} ast
      * @param {boolean | string} isTest テストかどうか。stringの場合は1つのテストのみ。
-     * @param {string} [preCode]
      * @return {Object}
      */
-    generateCode(ast, isTest, preCode = '') {
+    generateCode(ast, isTest) {
         // Select Code Generator #637
         switch (ast.genMode) {
             // ノーマルモード
             case 'sync':
                 return generateJS(this, ast, isTest);
-            // 『!非同期モード』は緩やかに非推奨にする
+            // 『!非同期モード』は非推奨
             case '非同期モード':
+                this.logger.warn('『!非同期モード』の利用は非推奨です。[詳細](https://github.com/kujirahand/nadesiko3/issues/1164)');
                 return NakoGenASync.generate(this, ast, isTest);
             default:
                 throw new Error(`コードジェネレータの「${ast.genMode}」はサポートされていません。`);

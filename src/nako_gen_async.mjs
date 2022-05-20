@@ -430,13 +430,13 @@ try {
             });
             // 未参照のラベルを探す - ただし関数呼び出しは削除しない
             const usedLabels = new Set();
-            codes.forEach((code, index, list) => {
+            codes.forEach((code) => {
                 if (needToFixAddr.has(code.type)) {
                     usedLabels.add(code.value);
                 }
             });
             // 未参照のラベルを削除
-            codes = codes.filter((code, index) => {
+            codes = codes.filter((code) => {
                 if (code.type !== NakoCodeLabel) {
                     return true;
                 }
@@ -1355,10 +1355,11 @@ try {
         return '';
     }
     /**
-     * @param {Ast} node
-     * @param {boolean} isExpression
+     * @param {Ast} _node
+     * @param {boolean} _isExpression
      */
-    convSpeedMode(node, isExpression) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    convSpeedMode(_node, _isExpression) {
         return '';
     }
     /**

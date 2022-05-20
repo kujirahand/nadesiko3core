@@ -1,10 +1,10 @@
-// @ts-nocheck
+/** plugin_math */
 export default {
     '初期化': {
         type: 'func',
         josi: [],
         pure: true,
-        fn: function (_sys) {
+        fn: function () {
             // 初期化不要
         }
     },
@@ -118,6 +118,7 @@ export default {
         type: 'func',
         josi: [['の']],
         pure: false,
+        // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
         fn: function (v, sys) {
             return sys.__exec('SIGN', [v]);
         }

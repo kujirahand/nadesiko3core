@@ -2,7 +2,7 @@
 「{基本パス}/package.json」を読んでJSONデコードして、Pに代入。
 VER=P@"version"
 定数[MAJOR,MINOR,PATCH]=(VERを「.」で区切る)
-VS=「/** 
+VS=「/**
  * なでしこのバージョン情報
  * package.json から自動的に作成されます。このファイルを編集しないでください。
  */

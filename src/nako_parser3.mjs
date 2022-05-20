@@ -1025,7 +1025,7 @@ export class NakoParser extends NakoParserBase {
         if (!this.check('戻る')) {
             return null;
         }
-        const modoru = this.get(); // skip '戻る'
+        this.get(); // skip '戻る'
         const v = this.popStack(['で', 'を']);
         if (this.stack.length > 0) {
             throw NakoSyntaxError.fromNode('『戻』文の直前に未解決の引数があります。『(式)を戻す』のように式をカッコで括ってください。', map);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 export default {
     '初期化': {
         type: 'func',
@@ -34,7 +33,7 @@ export default {
         josi: [['を'], ['の', 'が', 'に']],
         pure: true,
         fn: function (callback, promise, sys) {
-            return sys.__promise.setLastPromise(promise.then(result => {
+            return sys.__promise.setLastPromise(promise.then((result) => {
                 sys.__v0['対象'] = result;
                 return callback(result);
             }));
@@ -46,10 +45,10 @@ export default {
         josi: [['を'], ['の', 'が', 'に']],
         pure: true,
         fn: function (cbFunc, promise, sys) {
-            return sys.__promise.setLastPromise(promise.then(result => {
+            return sys.__promise.setLastPromise(promise.then((result) => {
                 sys.__v0['対象'] = result;
                 return cbFunc(true, result, sys);
-            }, reason => {
+            }, (reason) => {
                 sys.__v0['対象'] = reason;
                 return cbFunc(false, reason, sys);
             }));
@@ -61,7 +60,7 @@ export default {
         josi: [['を'], ['の', 'が', 'に']],
         pure: true,
         fn: function (callback, promise, sys) {
-            return sys.__promise.setLastPromise(promise.catch(err => {
+            return sys.__promise.setLastPromise(promise.catch((err) => {
                 sys.__v0['対象'] = err;
                 return callback(err);
             }));

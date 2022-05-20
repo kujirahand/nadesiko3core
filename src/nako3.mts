@@ -13,7 +13,7 @@ import PluginMath from './plugin_math.mjs'
 import PluginPromise from './plugin_promise.mjs'
 import PluginTest from './plugin_test.mjs'
 import { SourceMappingOfTokenization, SourceMappingOfIndentSyntax, OffsetToLineColumn, subtractSourceMapByPreCodeLength } from './nako_source_mapping.mjs'
-import { NakoRuntimeError, NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError, NakoError } from './nako_errors.mjs'
+import { NakoRuntimeError, NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs'
 import { NakoLogger } from './nako_logger.mjs'
 import { NakoGlobal } from './nako_global.mjs'
 
@@ -44,14 +44,14 @@ export interface LoaderTool {
   // type: 'nako3' | 'js' | 'invalid' | 'mjs'
   resolvePath: (name: string, token: Token, fromFile: string) => { type: string, filePath: string };
   readNako3: (filePath: string, token: Token) => LoaderToolTask<string>;
-  readJs: (filePath: string, token: Token) => LoaderToolTask<object>;
+  readJs: (filePath: string, token: Token) => LoaderToolTask<any>;
 }
 
 interface DependenciesItem {
   tokens: Token[];
   alias: Set<string>;
   addPluginFile: () => void;
-  funclist: object;
+  funclist: any;
 }
 type Dependencies = { [key:string]:DependenciesItem }
 
@@ -345,7 +345,7 @@ export class NakoCompiler {
     }
 
     // ソースコード上の位置に変換
-    return tokens.map((token, i) => {
+    return tokens.map((token) => {
       const dest = indentationSyntaxSourceMapping.map(
         tokenizationSourceMapping.map(token.preprocessedCodeOffset || 0),
         tokenizationSourceMapping.map((token.preprocessedCodeOffset || 0) + (token.preprocessedCodeLength || 0))
@@ -639,7 +639,7 @@ export class NakoCompiler {
    */
   compile (code: string, filename: string, isTest: boolean, preCode = ''): string {
     const ast = this.parse(code, filename, preCode)
-    const codeObj = this.generateCode(ast, isTest, preCode)
+    const codeObj = this.generateCode(ast, isTest)
     return codeObj.runtimeEnv
   }
 
@@ -647,17 +647,17 @@ export class NakoCompiler {
    * プログラムをコンパイルしてJavaScriptのコードオブジェクトを返す
    * @param {AST} ast
    * @param {boolean | string} isTest テストかどうか。stringの場合は1つのテストのみ。
-   * @param {string} [preCode]
    * @return {Object}
    */
-  generateCode (ast: Ast, isTest: boolean, preCode = ''): NakoGenResult {
+  generateCode (ast: Ast, isTest: boolean): NakoGenResult {
     // Select Code Generator #637
     switch (ast.genMode) {
       // ノーマルモード
       case 'sync':
         return generateJS(this, ast, isTest)
-      // 『!非同期モード』は緩やかに非推奨にする
+      // 『!非同期モード』は非推奨
       case '非同期モード':
+        this.logger.warn('『!非同期モード』の利用は非推奨です。[詳細](https://github.com/kujirahand/nadesiko3/issues/1164)')
         return NakoGenASync.generate(this, ast, isTest)
       default:
         throw new Error(`コードジェネレータの「${ast.genMode}」はサポートされていません。`)

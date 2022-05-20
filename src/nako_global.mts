@@ -1,6 +1,5 @@
 import { CompilerOptions, NakoCompiler } from './nako3.mjs'
 import { NakoColors } from './nako_colors.mjs'
-import { NakoRuntimeError } from './nako_errors.mjs'
 import { NakoGen } from './nako_gen.mjs'
 import { NakoLogger } from './nako_logger.mjs'
 import { FuncList } from './nako_types.mjs'

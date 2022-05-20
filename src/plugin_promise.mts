@@ -1,13 +1,12 @@
-// @ts-nocheck
 export default {
   '初期化': {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys) {
+    fn: function (sys: any) {
       if (sys.__promise == null) {
         sys.__promise = {
-          setLastPromise: function (promise) {
+          setLastPromise: function (promise: any) {
             sys.__v0['そ'] = promise
             return promise
           }
@@ -22,7 +21,7 @@ export default {
     type: 'func',
     josi: [['を', 'で']],
     pure: true,
-    fn: function (callback, sys) {
+    fn: function (callback: any, sys: any) {
       return sys.__promise.setLastPromise(new Promise((resolve, reject) => {
         return callback(resolve, reject)
       }))
@@ -33,8 +32,8 @@ export default {
     type: 'func',
     josi: [['を'], ['の', 'が', 'に']],
     pure: true,
-    fn: function (callback, promise, sys) {
-      return sys.__promise.setLastPromise(promise.then(result => {
+    fn: function (callback: any, promise: any, sys: any) {
+      return sys.__promise.setLastPromise(promise.then((result:any) => {
         sys.__v0['対象'] = result
         return callback(result)
       }))
@@ -45,11 +44,11 @@ export default {
     type: 'func',
     josi: [['を'], ['の', 'が', 'に']],
     pure: true,
-    fn: function (cbFunc, promise, sys) {
-      return sys.__promise.setLastPromise(promise.then(result => {
+    fn: function (cbFunc: any, promise: any, sys: any): any {
+      return sys.__promise.setLastPromise(promise.then((result: any) => {
         sys.__v0['対象'] = result
         return cbFunc(true, result, sys)
-      }, reason => {
+      }, (reason: any) => {
         sys.__v0['対象'] = reason
         return cbFunc(false, reason, sys)
       }))
@@ -60,8 +59,8 @@ export default {
     type: 'func',
     josi: [['を'], ['の', 'が', 'に']],
     pure: true,
-    fn: function (callback, promise, sys) {
-      return sys.__promise.setLastPromise(promise.catch(err => {
+    fn: function (callback: any, promise: any, sys: any): any {
+      return sys.__promise.setLastPromise(promise.catch((err: any) => {
         sys.__v0['対象'] = err
         return callback(err)
       }))
@@ -72,7 +71,7 @@ export default {
     type: 'func',
     josi: [['を'], ['の', 'が', 'に']],
     pure: true,
-    fn: function (callback, promise, sys) {
+    fn: function (callback: any, promise: any, sys: any): any {
       return sys.__promise.setLastPromise(promise.finally(() => {
         return callback()
       }))
@@ -83,7 +82,7 @@ export default {
     type: 'func',
     josi: [['と', 'を']],
     pure: true,
-    fn: function (...args) {
+    fn: function (...args:any): any {
       const sys = args.pop()
       return sys.__promise.setLastPromise(Promise.all(args))
     },

@@ -280,13 +280,12 @@ export class NakoGen {
         this.__self.addFunc(key, josi, fn);
     }
     /**
-     * 関数をセットする
+     * (非推奨) 関数をセットする
      * @param key 関数名
      * @param fn 関数
      */
     setFunc(key, fn) {
-        // this.__self.setFunc(key, fn)
-        throw new Error('非推奨の関数 setFunc を使いました');
+        this.__self.setFunc(key, fn);
     }
     /**
      * プラグイン関数を参照する
@@ -749,19 +748,12 @@ export class NakoGen {
         }
         // 関数の末尾に、ローカル変数をPOP
         // 関数内で定義されたローカル変数の宣言
-        let needsVarsObject = false;
         for (const name of Array.from(this.varsSet.names.values())) {
             if (!varsDeclared.includes(name)) {
                 if (NakoGen.isValidIdentifier(name)) {
                     variableDeclarations += `  var ${name};\n`;
                 }
-                else {
-                    needsVarsObject = true;
-                }
             }
-        }
-        if (!NakoGen.isValidIdentifier('それ') && this.speedMode.invalidSore === 0) {
-            needsVarsObject = true;
         }
         if (this.speedMode.invalidSore === 0) {
             if (NakoGen.isValidIdentifier('それ')) {

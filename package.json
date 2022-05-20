@@ -7,7 +7,8 @@
   "scripts": {
     "test": "mocha",
     "tsc": "tsc --watch",
-    "build": "cnako3 batch/build_nako_version.nako3 && tsc"
+    "build": "cnako3 batch/build_nako_version.nako3 && tsc",
+    "eslint": "eslint ./src/*.mts"
   },
   "repository": {
     "type": "git",
