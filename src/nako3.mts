@@ -10,6 +10,7 @@ import NakoIndent from './nako_indent.mjs'
 import { convertDNCL } from './nako_from_dncl.mjs'
 import PluginSystem from './plugin_system.mjs'
 import PluginMath from './plugin_math.mjs'
+import PluginCSV from './plugin_csv.mjs'
 import PluginPromise from './plugin_promise.mjs'
 import PluginTest from './plugin_test.mjs'
 import { SourceMappingOfTokenization, SourceMappingOfIndentSyntax, OffsetToLineColumn, subtractSourceMapByPreCodeLength } from './nako_source_mapping.mjs'
@@ -159,6 +160,7 @@ export class NakoCompiler {
     this.addPluginObject('PluginMath', PluginMath)
     this.addPluginObject('PluginPromise', PluginPromise)
     this.addPluginObject('PluginAssert', PluginTest)
+    this.addPluginObject('PluginCSV', PluginCSV)
   }
 
   /**

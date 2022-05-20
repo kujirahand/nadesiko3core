@@ -1,6 +1,6 @@
 {
   "name": "nadesiko3core",
-  "version": "3.3.21",
+  "version": "3.3.22",
   "description": "Japanese Programming Language Nadesiko v3 core",
   "main": "index.mjs",
   "type": "module",
@@ -21,6 +21,10 @@
     "url": "https://github.com/kujirahand/nadesiko3core/issues"
   },
   "homepage": "https://github.com/kujirahand/nadesiko3core#readme",
+  "files": [
+    "src",
+    "batch"
+  ],
   "devDependencies": {
     "@types/mocha": "^9.1.1",
     "@types/node": "^17.0.34",
