@@ -5,7 +5,7 @@ const PluginCSV = {
         josi: [],
         pure: true,
         fn: function () {
-            CSV.resetEnv();
+            // 基本的に初期化不要
         }
     },
     // @CSV操作
