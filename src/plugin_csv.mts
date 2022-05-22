@@ -6,7 +6,7 @@ const PluginCSV = {
     josi: [],
     pure: true,
     fn: function (): void {
-        // 基本的に初期化不要
+      // 基本的に初期化不要
     }
   },
   // @CSV操作

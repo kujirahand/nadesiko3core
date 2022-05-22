@@ -767,7 +767,7 @@ export class NakoCompiler {
    * @param {string} [preCode]
    */
   runReset (code: string, fname = 'main.nako3', preCode = '') {
-    return this._runEx(code, fname, { resetAll: true }, preCode)
+    return this._runEx(code, fname, { resetAll: true, resetEnv: true }, preCode)
   }
 
   /**
