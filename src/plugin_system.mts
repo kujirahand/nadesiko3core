@@ -500,9 +500,9 @@ export default {
     type: 'func',
     josi: [['を', 'で']],
     pure: true,
-    // [メモ] sys は eval の中でも有効なので消さない!!
-    // https://github.com/kujirahand/nadesiko3/issues/1237
     fn: function (src: string, sys:any) {
+        // [メモ] ↑のsys は eval の中でも有効なので消さない!!
+        // https://github.com/kujirahand/nadesiko3/issues/1237
       return eval(src) // eslint-disable-line
     }
   },
