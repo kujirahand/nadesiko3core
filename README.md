@@ -1,4 +1,4 @@
-# 日本語プログラミング言語「なでしこ3」
+# 日本語プログラミング言語「なでしこ3」言語エンジン
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 [![npm version](https://badge.fury.io/js/nadesiko3core.svg)](https://www.npmjs.com/package/nadesiko3core)
@@ -12,12 +12,23 @@
 
 ## 本リポジトリについて
 
-本リポジトリは、なでしこ3の言語エンジンのみを取り出したものです。
+本リポジトリは、なでしこ3の言語エンジンのみを取り出したものです。最小限の構成となっています。
+言語機能と最小限のプラグインのみを備えています。
 
-# 使い方
+- [なでしこの基本文法(外部サイト)](https://nadesi.com/v3/doc/index.php?%E6%96%87%E6%B3%95)
+
+最小限のプラグイン構成
+
+- [plugin_system](./src/plugin_system.mts) --- 言語機能の補助など基本的な関数群
+- [plugin_math](./src/plugin_math.mts) --- 数学関数群
+- [plugin_csv](./src/plugin_csv.mts)--- CSV処理のための関数群
+- [plugin_promise](./src/plugin_promise.mts) --- プロミス機能を実現するための関数群
+- [plugin_test](./src/plugin_test.mts) --- テストを記述するための関数群
+
+# 本ライブラリの使い方
 
 例えば、`npm install nadesiko3core`でなでしこ3言語エンジンをインストールしたら、以下のプログラムを記述します。
-例えば、`hoge.mjs`という名前で保存します。そして、以下のようなプログラムを記述します。
+`hoge.mjs`という名前で保存します。そして、以下のようなプログラムを記述します。
 
 ```js
 import core from 'nadesiko3core'
