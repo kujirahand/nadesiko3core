@@ -2,7 +2,6 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 [![npm version](https://badge.fury.io/js/nadesiko3core.svg)](https://www.npmjs.com/package/nadesiko3core)
-![Node.js CI](https://github.com/kujirahand/nadesiko3core/workflows/Node.js%20CI/badge.svg)
 
 ## 「なでしこ3」とは
 
