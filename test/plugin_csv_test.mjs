@@ -1,12 +1,13 @@
+/* eslint-disable no-undef */
 import assert from 'assert'
 import { NakoCompiler } from '../src/nako3.mjs'
-import PluginCSV from '../src/plugin_csv.mjs'
 
 // eslint-disable-next-line no-undef
 describe('plugin_csv_test', () => {
   const nako = new NakoCompiler()
   // nako.logger.addListener('trace', ({ browserConsole }) => { console.log(...browserConsole) })
-  nako.addPluginObject('PluginCSV', PluginCSV)
+  // 既に、デフォルトプラグインである
+  // nako.addPluginObject('PluginCSV', PluginCSV)
 
   const cmp = (/** @type {string} */ code, /** @type {string} */ res) => {
     nako.logger.debug('code=' + code)

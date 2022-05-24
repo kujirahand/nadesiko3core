@@ -1,4 +1,4 @@
-import CSV from 'csv-lite-js';
+import { options, parse, stringify } from './nako_csv.mjs';
 const PluginCSV = {
     '初期化': {
         type: 'func',
@@ -14,8 +14,8 @@ const PluginCSV = {
         josi: [['を', 'の', 'で']],
         pure: true,
         fn: function (str) {
-            CSV.options.delimiter = ',';
-            return CSV.parse(str);
+            options.delimiter = ',';
+            return parse(str);
         }
     },
     'TSV取得': {
@@ -23,8 +23,8 @@ const PluginCSV = {
         josi: [['を', 'の', 'で']],
         pure: true,
         fn: function (str) {
-            CSV.options.delimiter = '\t';
-            return CSV.parse(str);
+            options.delimiter = '\t';
+            return parse(str);
         }
     },
     '表CSV変換': {
@@ -32,8 +32,8 @@ const PluginCSV = {
         josi: [['を']],
         pure: true,
         fn: function (a) {
-            CSV.options.delimiter = ',';
-            return CSV.stringify(a);
+            options.delimiter = ',';
+            return stringify(a);
         }
     },
     '表TSV変換': {
@@ -41,13 +41,9 @@ const PluginCSV = {
         josi: [['を']],
         pure: true,
         fn: function (a) {
-            CSV.options.delimiter = '\t';
-            return CSV.stringify(a);
+            options.delimiter = '\t';
+            return stringify(a);
         }
     }
 };
 export default PluginCSV;
-// scriptタグで取り込んだ時、自動で登録する
-if (typeof (navigator) === 'object' && typeof (navigator.nako3) === 'object') {
-    navigator.nako3.addPluginObject('PluginCSV', PluginCSV);
-}
