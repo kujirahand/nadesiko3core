@@ -14,3 +14,23 @@
 
 本リポジトリは、なでしこ3の言語エンジンのみを取り出したものです。
 
+# 使い方
+
+例えば、`npm install nadesiko3core`でなでしこ3言語エンジンをインストールしたら、以下のプログラムを記述します。
+例えば、`hoge.mjs`という名前で保存します。そして、以下のようなプログラムを記述します。
+
+```js
+import core from 'nadesiko3core'
+const com = new core.NakoCompiler()
+const g = com.run('1 + 2 * 3を表示') // ← ここになでしこのプログラム
+console.log(g.log) // ← 「表示」した内容がlogに入っている
+```
+
+プログラムを実行するには、`node hoge.mjs`と記述すれば実行できます。
+
+## コマンドラインからなでしこのプログラムを実行したい場合
+
+なお、コマンドラインからなでしこのプログラムを実行したい場合には、[nadesiko3](https://github.com/kujirahand/nadesiko3)リポジトリを利用してください。
+nadesiko3リポジトリには、コマンドライン版のなでしこが含まれています。
+
+
