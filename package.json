@@ -10,6 +10,9 @@
     "build": "cnako3 batch/build_nako_version.nako3 && tsc",
     "eslint": "eslint ./src/*.mts"
   },
+  "bin": {
+    "snako": "command/snako.mjs"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kujirahand/nadesiko3core.git"

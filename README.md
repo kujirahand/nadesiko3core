@@ -39,9 +39,17 @@ console.log(g.log) // ← 「表示」した内容がlogに入っている
 
 プログラムを実行するには、`node hoge.mjs`と記述すれば実行できます。
 
-## コマンドラインからなでしこのプログラムを実行したい場合
+## コマンドラインから実行したい場合
 
-なお、コマンドラインからなでしこのプログラムを実行したい場合には、[nadesiko3](https://github.com/kujirahand/nadesiko3)リポジトリを利用してください。
-nadesiko3リポジトリには、コマンドライン版のなでしこが含まれています。
+コマンドラインからなでしこのプログラムを実行したい場合には、[nadesiko3](https://github.com/kujirahand/nadesiko3)リポジトリを利用してください。nadesiko3リポジトリには、コマンドライン版のなでしこ(cnako3)が含まれています。
 
+なお、本リポジトリにも、[簡易版のコマンドラインツール(snako)](/command/snako.mts)を収録しています。以下は簡単な使い方です。
+
+```
+# ファイル sample/hello.nako3 を実行
+$ node command/snako.mjs sample/hello.nako3
+
+# その場でコードを実行
+$ node command/snako.mjs -e "1+2を表示"
+```
 
