@@ -70,13 +70,11 @@ type NakoVars = {[key: string]: any}
 
 /** なでしこコンパイラ */
 export class NakoCompiler {
-  private options: NakoCompilerOption;
   private nakoFuncList: FuncList;
   private funclist: FuncList;
   private logger: NakoLogger;
   private pluginFunclist: Record<string, FuncListItem>;
   private pluginfiles: Record<string, any>;
-  private isSetter: boolean;
   private commandlist: Set<string>;
   private prepare: NakoPrepare;
   private parser: NakoParser;
@@ -101,7 +99,6 @@ export class NakoCompiler {
     if (options === undefined) {
       options = { useBasicPlugin: true }
     }
-    this.options = options
     // 環境のリセット
     /** @type {Record<string, any>[]} */
     this.__varslist = [{}, {}, {}] // このオブジェクトは変更しないこと (this.gen.__varslist と共有する)
@@ -119,7 +116,6 @@ export class NakoCompiler {
     this.pluginFunclist = {} // プラグインで定義された関数
     this.funclist = {} // プラグインで定義された関数 + ユーザーが定義した関数
     this.pluginfiles = {} // 取り込んだファイル一覧
-    this.isSetter = false // 代入的関数呼び出しを管理(#290)
     this.commandlist = new Set() // プラグインで定義された定数・変数・関数の名前
     this.nakoFuncList = {} // __v1に配置するJavaScriptのコードで定義された関数
 

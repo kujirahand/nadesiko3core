@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * パーサーが生成した中間オブジェクトを実際のJavaScriptのコードに変換する。
  * なお速度優先で忠実にJavaScriptのコードを生成する。
@@ -11,14 +10,11 @@ const topOfFunction = '(function(){\n';
 const endOfFunction = '})';
 const topOfFunctionAsync = '(async function(){\n';
 /**
- * @typedef {import("./nako3.mjs").Ast} Ast
- */
-/**
  * 構文木からJSのコードを生成するクラス
  */
 export class NakoGen {
     /** constructor
-     * @param {NakoCompiler} com コンパイラのインスタンス
+     * @param com コンパイラのインスタンス
      */
     constructor(com) {
         /**
@@ -34,11 +30,11 @@ export class NakoGen {
          * プログラム内で参照された関数のリスト。プラグインの命令を含む。
          * JavaScript単体で実行するとき、このリストにある関数の定義をJavaScriptコードの先頭に付け足す。
          */
-        this.used_func = new Set();
+        this.usedFuncSet = new Set();
         /**
          * ループ時の一時変数が被らないようにIDで管理
          */
-        this.loop_id = 1;
+        this.loopId = 1;
         /**
          * 非同関数を何回使ったか
          */
@@ -172,7 +168,7 @@ export class NakoGen {
     getVarsCode() {
         let code = '';
         // プログラム中で使った関数を列挙して書き出す
-        for (const key of Array.from(this.used_func.values())) {
+        for (const key of Array.from(this.usedFuncSet.values())) {
             if (!this.__self.__varslist[0]) {
                 break;
             }
@@ -223,7 +219,7 @@ export class NakoGen {
         for (const name in this.__self.__module) {
             const initkey = `!${name}:初期化`;
             if (this.varslistSet[0].names.has(initkey)) {
-                this.used_func.add(`!${name}:初期化`);
+                this.usedFuncSet.add(`!${name}:初期化`);
                 pluginCode += `__v0["!${name}:初期化"](__self);\n`;
             }
         }
@@ -309,7 +305,7 @@ export class NakoGen {
                         throw new Error('[System Error] 関数の定義で関数名が指定されていない');
                     }
                     const name = t.name.value;
-                    this.used_func.add(name);
+                    this.usedFuncSet.add(name);
                     // eslint-disable-next-line @typescript-eslint/no-empty-function
                     this.__self.__varslist[1][name] = function () { }; // 事前に適当な値を設定
                     this.varslistSet[1].names.add(name); // global
@@ -710,7 +706,7 @@ export class NakoGen {
         }
         // 関数定義は、グローバル領域で。
         if (name) {
-            this.used_func.add(name);
+            this.usedFuncSet.add(name);
             this.varslistSet[1].names.add(name);
             if (this.nakoFuncList[name] === undefined) {
                 // 既に generate で作成済みのはず(念のため)
@@ -885,7 +881,7 @@ export class NakoGen {
             this.varsSet.names.add('dummy');
             word = this.varname('dummy');
         }
-        const idLoop = this.loop_id++;
+        const idLoop = this.loopId++;
         const varI = `$nako_i${idLoop}`;
         // ループ条件を確認
         const kara = this._convGen(node.from, true);
@@ -939,7 +935,7 @@ export class NakoGen {
             this.varsSet.names.add(node.name.value);
         }
         const block = this.convGenLoop(node.block);
-        const id = this.loop_id++;
+        const id = this.loopId++;
         const key = '__v0["対象キー"]';
         let sorePrefex = '';
         if (this.speedMode.invalidSore === 0) {
@@ -956,7 +952,7 @@ export class NakoGen {
         return this.convLineno(node, false) + code;
     }
     convRepeatTimes(node) {
-        const id = this.loop_id++;
+        const id = this.loopId++;
         const value = this._convGen(node.value, true);
         const block = this.convGenLoop(node.block);
         const kaisu = '__v0["回数"]';
@@ -1032,7 +1028,7 @@ export class NakoGen {
         return this.convLineno(node, false) + code;
     }
     convAtohantei(node) {
-        const id = this.loop_id++;
+        const id = this.loopId++;
         const varId = `$nako_i${id}`;
         const cond = this._convGen(node.cond, true);
         const block = this.convGenLoop(node.block);
@@ -1075,7 +1071,7 @@ export class NakoGen {
             `if (${expr}) {\n  ${block}\n}` + falseBlock + ';\n';
     }
     convTikuji(node) {
-        const pid = this.loop_id++;
+        const pid = this.loopId++;
         // gen tikuji blocks
         const curName = `__tikuji${pid}`;
         let code = `const ${curName} = []\n`;
@@ -1178,7 +1174,7 @@ export class NakoGen {
         const args = argsInfo[0];
         const argsOpts = argsInfo[1];
         // function
-        this.used_func.add(funcName);
+        this.usedFuncSet.add(funcName);
         // 関数呼び出しで、引数の末尾にthisを追加する-システム情報を参照するため
         args.push('__self');
         let funcDef = 'function';
@@ -1470,8 +1466,8 @@ export class NakoGen {
         let code = '';
         const vtype = node.vartype; // 変数 or 定数
         const value = (node.value === null) ? 'null' : this._convGen(node.value, true);
-        this.loop_id++;
-        const varI = `$nako_i${this.loop_id}`;
+        this.loopId++;
+        const varI = `$nako_i${this.loopId}`;
         code += `${varI}=${value}\n`;
         code += `if (!(${varI} instanceof Array)) { ${varI}=[${varI}] }\n`;
         const names = (node.names) ? node.names : [];
@@ -1517,11 +1513,14 @@ export class NakoGen {
             ';\n' +
             `${errBlock}}\n`;
     }
+    getUsedFuncSet() {
+        return this.usedFuncSet;
+    }
 }
 /**
- * @param {NakoCompiler} com
- * @param {Ast} ast
- * @param {boolean | string} isTest 文字列なら1つのテストだけを実行する
+ * @param com
+ * @param ast
+ * @param isTest
  */
 export function generateJS(com, ast, isTest) {
     const gen = new NakoGen(com);
