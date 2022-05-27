@@ -5,17 +5,17 @@ import { NakoError, NakoRuntimeError, NakoImportError } from './src/nako_errors.
 import { NakoParser } from './src/nako_parser3.mjs'
 import { NakoPrepare } from './src/nako_prepare.mjs'
 export default {
-    // version
-    version,
-    // compiler
-    NakoCompiler,
-    // loggger
-    NakoLogger,
-    // error
-    NakoError,
-    NakoRuntimeError,
-    NakoImportError,
-    // tools etc..
-    NakoParser,
-    NakoPrepare,
+  // version
+  version,
+  // compiler
+  NakoCompiler,
+  // loggger
+  NakoLogger,
+  // error
+  NakoError,
+  NakoRuntimeError,
+  NakoImportError,
+  // tools etc..
+  NakoParser,
+  NakoPrepare
 }

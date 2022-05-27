@@ -69,6 +69,9 @@ export class NakoCompiler {
             this.addBasicPlugins();
         }
     }
+    getLogger() {
+        return this.logger;
+    }
     /**
      * 基本的なプラグインを追加する
      */

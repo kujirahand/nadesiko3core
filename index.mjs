@@ -17,5 +17,5 @@ export default {
     NakoImportError,
     // tools etc..
     NakoParser,
-    NakoPrepare,
+    NakoPrepare
 };

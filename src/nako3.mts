@@ -152,6 +152,10 @@ export class NakoCompiler {
     if (options.useBasicPlugin) { this.addBasicPlugins() }
   }
 
+  getLogger (): NakoLogger {
+    return this.logger
+  }
+
   /**
    * 基本的なプラグインを追加する
    */
