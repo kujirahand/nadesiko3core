@@ -1,6 +1,7 @@
-import com from '../index.mjs';
 import fs from 'fs';
+import com from '../index.mjs';
 import { NakoCompiler } from '../src/nako3.mjs';
+/** コマンドラインオプション */
 class CommandOptions {
     constructor() {
         this.nodePath = '';
@@ -10,13 +11,9 @@ class CommandOptions {
         this.isDebug = false;
     }
 }
-function showHelp() {
-    console.log('●なでしこ(簡易版) # v.' + com.version.version);
-    console.log('[使い方] node snako.mjs [--debug|-d] (filename)');
-    console.log('[使い方] node snako.mjs [--eval|-e] (source)');
-}
+/** メイン処理 */
 function main(argvOrg) {
-    // check arguments
+    // コマンドラインオプションを確認
     const argv = [...argvOrg];
     const opt = new CommandOptions();
     opt.nodePath = argv.shift() || '';
@@ -34,25 +31,25 @@ function main(argvOrg) {
             opt.filename = arg;
         }
     }
+    // -e オプションを実行したとき
     if (opt.evalStr) {
         evalStr(opt.evalStr);
         return;
     }
+    // パラメータが空だったとき
     if (opt.filename === '') {
         showHelp();
         return;
     }
-    // compiler
+    // なでしこのコンパイラを生成
     const nako = new com.NakoCompiler();
     // set logger
     const logger = nako.getLogger();
-    // set debug
-    logger.addListener('trace', (data) => {
-        if (opt.isDebug) {
+    if (opt.isDebug) {
+        logger.addListener('trace', (data) => {
             console.log(data.nodeConsole);
-        }
-    });
-    // set stdout
+        });
+    }
     logger.addListener('stdout', (data) => {
         console.log(data.noColor);
     });
@@ -61,9 +58,17 @@ function main(argvOrg) {
     // run
     nako.run(code, opt.filename);
 }
+/** -e オプションでプログラムを直接実行する場合 */
 function evalStr(src) {
     const nako = new NakoCompiler();
     const g = nako.run(src, 'main.nako3');
     console.log(g.log);
 }
+/** 使い方を表示 */
+function showHelp() {
+    console.log('●なでしこ(簡易版) # v.' + com.version.version);
+    console.log('[使い方] node snako.mjs [--debug|-d] (filename)');
+    console.log('[使い方] node snako.mjs [--eval|-e] (source)');
+}
+// メイン処理を実行
 main(process.argv);
