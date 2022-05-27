@@ -1,19 +1,14 @@
-// @ts-nocheck
 /**
- * file: nako_gen_async.js
+ * file: nako_gen_async
  * パーサーが生成した中間オブジェクトを実際のJavaScriptのコードに変換する。
  * なお、扱いやすさ優先で、なでしこの一文を一つの関数として生成し、非同期実行する。
  */
 
-'use strict'
-
 import { NakoSyntaxError, NakoError, NakoRuntimeError } from './nako_errors.mjs'
-import nakoVersion from './nako_version.mjs'
+import nakoVersion from './nako_core_version.mjs'
 import { NakoGen } from './nako_gen.mjs'
-
-/**
- * @typedef {import("./nako3").Ast} Ast
- */
+import { Ast, Token, SourceMap, FuncList } from './nako_types.mjs'
+import { NakoCompiler } from './nako3.mjs'
 
 /**
  * なでしこのインタプリタコード
@@ -35,11 +30,15 @@ const NakoCodeTagIsFuncpoint = 0x0F
  * なでしこのインタプリタが用いる簡易コードを表現するクラス
  */
 class NakoCode {
+  type: string
+  value: string
+  no: number
+  tag: number
   /**
-   * @param {string} type
-   * @param {string} value
+   * @param type
+   * @param value
    */
-  constructor (type, value) {
+  constructor (type: string, value: string) {
     /** Codeのタイプ
      * @type {string}
      */
@@ -59,16 +58,40 @@ class NakoCode {
   }
 }
 
+interface FuncListSet {
+  isFunction: boolean
+  names: Set<unknown>
+  readonly: Set<string>
+}
+
 /**
  * 構文木からJSのコードを生成するクラス
  */
 export class NakoGenASync {
+  nakoFuncList: FuncList
+  nakoTestList: FuncList
+  usedFuncSet: Set<string>
+  loopId: number
+  flagLoop: boolean
+  codeId: number
+  codeArray: Array<NakoCode>
+  labelContinue: NakoCode | null
+  labelBreak: NakoCode | null
+  labels: { [key:string]: number }
+  genMode: string
+  lastLineNo: string | null
+  varslistSet: FuncListSet[]
+  __self: NakoCompiler
+  varsSet: FuncListSet
+  speedMode: any
+  performanceMonitor: any
+  com: NakoCompiler
   /**
-   * @param {import('./nako3')} com
+   * @param com
    * @param {Ast} ast
    * @param {boolean | string} isTest 文字列なら1つのテストだけを実行する
    */
-  static generate (com, ast, isTest) {
+  static generate (com: NakoCompiler, ast: Ast, isTest: boolean) {
     const gen = new NakoGenASync(com)
 
     // ユーザー定義関数をシステムに登録する
@@ -79,7 +102,7 @@ export class NakoGenASync {
 
     // JSコードを実行するための事前ヘッダ部分の生成
     js = gen.getDefFuncCode(isTest) + js
-    com.logger.trace('--- generate(非同期モード) ---\n' + js)
+    com.getLogger().trace('--- generate(非同期モード) ---\n' + js)
 
     // テストの実行
     if (js && isTest) {
@@ -122,27 +145,28 @@ try {
   }
 
   /**
-   * @param {import('./nako3')} com コンパイラのインスタンス
+   * @param com コンパイラのインスタンス
    */
-  constructor (com) {
+  constructor (com: NakoCompiler) {
+    this.com = com
     /**
      * 出力するJavaScriptコードのヘッダー部分で定義する必要のある関数。fnはjsのコード。
      * プラグイン関数は含まれない。
      */
-    this.nako_func = { ...com.nako_func }
+    this.nakoFuncList = { ...com.getNakoFuncList() }
 
     /**
      * なでしこで定義したテストの一覧
      * @type {Record<string, { josi: string[][], fn: string, type: 'test_func' }>}
      */
-    this.nako_test = {}
+    this.nakoTestList = {}
 
     /**
      * プログラム内で参照された関数のリスト。プラグインの命令を含む。
      * JavaScript単体で実行するとき、このリストにある関数の定義をJavaScriptコードの先頭に付け足す。
      * @type {Set<string>}
      */
-    this.used_func = new Set()
+    this.usedFuncSet = new Set()
 
     /**
      * ループ時の一時変数が被らないようにIDで管理
@@ -197,7 +221,7 @@ try {
      * スタック
      * @type {{ isFunction: boolean, names: Set<string>, readonly: Set<string> }[]}
      */
-    this.varslistSet = com.__varslist.map((v) => ({ isFunction: false, names: new Set(Object.keys(v)), readonly: new Set() }))
+    this.varslistSet = com.__varslist.map((v: any) => ({ isFunction: false, names: new Set(Object.keys(v)), readonly: new Set() }))
 
     /**
      * スタックトップ
@@ -228,7 +252,7 @@ try {
    * @param {import("./nako3").Ast} node
    * @param {boolean} forceUpdate
    */
-  convLineno (node, forceUpdate) {
+  convLineno (node: any, forceUpdate: boolean) {
     if (this.speedMode.lineNumbers > 0) { return '' }
 
     /** @type {string} */
@@ -255,7 +279,7 @@ try {
    * 基本的に取得のために利用
    * @param {string} name
    */
-  varname (name) {
+  varname (name: string) {
     const keys = JSON.stringify(name)
     return `sys.__vars[${keys}]`
   }
@@ -268,7 +292,7 @@ try {
     let code = ''
 
     // プログラム中で使った関数を列挙して書き出す
-    for (const key of Array.from(this.used_func.values())) {
+    for (const key of Array.from(this.usedFuncSet.values())) {
       const f = this.__self.__varslist[0][key]
       const name = `this.__varslist[0]["${key}"]`
       if (typeof (f) === 'function') { code += name + '=' + f.toString() + ';\n' } else { code += name + '=' + JSON.stringify(f) + ';\n' }
@@ -282,7 +306,7 @@ try {
    * @param {boolean | string} isTest テストかどうか。stringの場合は1つのテストのみ。
    * @returns {string}
    */
-  getDefFuncCode (isTest) {
+  getDefFuncCode (isTest: string | boolean) {
     let code = ''
     // よく使う変数のショートカット
     code += 'const __self = this.__self = this;\n'
@@ -295,8 +319,8 @@ try {
 
     // なでしこの関数定義を行う
     let nakoFuncCode = ''
-    for (const key in this.nako_func) {
-      const f = this.nako_func[key].fn
+    for (const key in this.nakoFuncList) {
+      const f = this.nakoFuncList[key].fn
       nakoFuncCode += '' +
         `//[DEF_FUNC name='${key}']\n` +
         `__v1["${key}"]=${f};\n;` +
@@ -309,7 +333,7 @@ try {
     for (const name in this.__self.__module) {
       const initkey = `!${name}:初期化`
       if (this.varslistSet[0].names.has(initkey)) {
-        this.used_func.add(`!${name}:初期化`)
+        this.usedFuncSet.add(`!${name}:初期化`)
         pluginCode += `__v0["!${name}:初期化"](__self);\n`
       }
     }
@@ -319,9 +343,9 @@ try {
     if (isTest) {
       let testCode = 'const __tests = [];\n'
 
-      for (const key in this.nako_test) {
+      for (const key in this.nakoTestList) {
         if (isTest === true || (typeof isTest === 'string' && isTest === key)) {
-          const f = this.nako_test[key].fn
+          const f = this.nakoTestList[key].fn
           testCode += `${f};\n;`
         }
       }
@@ -339,7 +363,7 @@ try {
    * プラグイン・オブジェクトを追加
    * @param po プラグイン・オブジェクト
    */
-  addPlugin (po) {
+  addPlugin (po: any) {
     return this.__self.addPlugin(po)
   }
 
@@ -348,7 +372,7 @@ try {
    * @param name オブジェクト名
    * @param po 関数リスト
    */
-  addPluginObject (name, po) {
+  addPluginObject (name: any, po: any) {
     this.__self.addPluginObject(name, po)
   }
 
@@ -358,7 +382,7 @@ try {
    * @param path ファイルパス
    * @param po 登録するオブジェクト
    */
-  addPluginFile (objName, path, po) {
+  addPluginFile (objName: any, path: any, po: any) {
     this.__self.addPluginFile(objName, path, po)
   }
 
@@ -368,17 +392,8 @@ try {
    * @param josi 助詞
    * @param fn 関数
    */
-  addFunc (key, josi, fn) {
+  addFunc (key: any, josi: any, fn: any) {
     this.__self.addFunc(key, josi, fn)
-  }
-
-  /**
-   * 関数をセットする
-   * @param key 関数名
-   * @param fn 関数
-   */
-  setFunc (key, fn) {
-    this.__self.setFunc(key, fn)
   }
 
   /**
@@ -386,25 +401,25 @@ try {
    * @param key プラグイン関数の関数名
    * @returns プラグイン・オブジェクト
    */
-  getFunc (key) {
+  getFunc (key: any) {
     return this.__self.getFunc(key)
   }
 
   /**
    * 関数を先に登録してしまう
    */
-  registerFunction (ast) {
+  registerFunction (ast: any) {
     if (ast.type !== 'block') { throw NakoSyntaxError.fromNode('構文解析に失敗しています。構文は必ずblockが先頭になります', ast) }
 
-    const registFunc = (node) => {
+    const registFunc = (node: { block: string | any[] }) => {
       for (let i = 0; i < node.block.length; i++) {
         const t = node.block[i]
         if (t.type === 'def_func') {
           const name = t.name.value
-          this.used_func.add(name)
+          this.usedFuncSet.add(name)
           // eslint-disable-next-line @typescript-eslint/no-empty-function
           this.__self.__varslist[1][name] = function () { } // 事前に適当な値を設定
-          this.nako_func[name] = {
+          this.nakoFuncList[name] = {
             josi: t.name.meta.josi,
             fn: '',
             type: 'func'
@@ -434,7 +449,7 @@ try {
       initialNames.add('それ')
     }
     this.varsSet = { isFunction: false, names: initialNames, readonly: new Set() }
-    this.varslistSet = this.__self.__varslist.map((v) => ({ isFunction: false, names: new Set(Object.keys(v)), readonly: new Set() }))
+    this.varslistSet = this.__self.__varslist.map(v => ({ isFunction: false, names: new Set(Object.keys(v)), readonly: new Set() }))
     this.varslistSet[2] = this.varsSet
   }
 
@@ -442,7 +457,7 @@ try {
    * @param {Ast} node
    * @param {boolean} isTest
    */
-  convGen (node, isTest) {
+  convGen (node: any, isTest: boolean) {
     // convert
     this._convGen(node, true)
 
@@ -457,18 +472,18 @@ try {
     //
     if (optimization) {
       // NOPを削除
-      codes = codes.filter(code => {
+      codes = codes.filter((code: { type: string }) => {
         return code.type !== NakoCodeNop
       })
       // 未参照のラベルを探す - ただし関数呼び出しは削除しない
       const usedLabels = new Set()
-      codes.forEach((code) => {
+      codes.forEach((code: { type: string; value: unknown }) => {
         if (needToFixAddr.has(code.type)) {
           usedLabels.add(code.value)
         }
       })
       // 未参照のラベルを削除
-      codes = codes.filter((code) => {
+      codes = codes.filter((code: { type: string; tag: number; value: unknown }) => {
         if (code.type !== NakoCodeLabel) { return true }
         if (code.tag === NakoCodeTagIsFuncpoint) { return true }
         return usedLabels.has(code.value)
@@ -485,12 +500,12 @@ try {
       this.codeArray = codes
     }
     // ラベルアドレスの解決
-    codes.forEach((code, index) => { // ラベルのアドレスを調べる
+    codes.forEach((code: { type: string; value: string | number }, index: any) => { // ラベルのアドレスを調べる
       if (code.type === NakoCodeLabel) {
         this.labels[code.value] = index
       }
     })
-    codes.forEach((code) => { // ラベルのアドレスを設定
+    codes.forEach((code: { type: string; no: number; value: string | number }) => { // ラベルのアドレスを設定
       if (needToFixAddr.has(code.type)) {
         if (code.no < 0) {
           code.no = this.labels[code.value]
@@ -499,7 +514,7 @@ try {
     })
     let result = ''
     // コードの生成
-    codes.forEach((code, index) => {
+    codes.forEach((code: { type: any; value: string; no: any }, index: any) => {
       switch (code.type) {
         case NakoCodeNop:
           result += `case ${index}: break; // [NOP] ${code.value}\n`
@@ -736,7 +751,7 @@ try {
    * @param {Ast} node
    * @param {boolean} isExpression
    */
-  _convGen (node, isExpression) {
+  _convGen (node: any | null | undefined, isExpression: boolean) {
     let code = ''
     if (node instanceof Array) {
       for (let i = 0; i < node.length; i++) {
@@ -879,7 +894,7 @@ try {
         code += this.convTryExcept(node)
         break
       case 'require':
-        this.addCodeStr(NakoGen.convRequire(node))
+        code += this.convRequire(node)
         break
       default:
         throw new Error('System Error: unknown_type=' + node.type)
@@ -887,15 +902,21 @@ try {
     return code
   }
 
+  convRequire (node: any) {
+    const gen: NakoGen = new NakoGen(this.com)
+    this.addCodeStr(gen.convRequire(node))
+    return ''
+  }
+
   /**
    * add code to array
    * @param {string} codeStr
    * @returns {string}
    */
-  addCodeStr (codeStr) {
+  addCodeStr (codeStr: string) {
     if (codeStr === '') { return '' }
     const a = codeStr.split('\n')
-    const a2 = a.map(row => '  ' + row.replace(/\s+$/, ''))
+    const a2 = a.map((row: string) => '  ' + row.replace(/\s+$/, ''))
     const c = new NakoCode(NakoCodeCode, a2.join('\n'))
     return this.addCode(c)
   }
@@ -905,7 +926,7 @@ try {
    * @param {NakoCode} code
    * @returns {string}
    */
-  addCode (code) {
+  addCode (code: NakoCode) {
     this.codeArray[this.codeId] = code
     this.codeId++
     return ''
@@ -916,7 +937,7 @@ try {
    * @param {string} name
    * @returns {NakoCode}
    */
-  makeLabel (name) {
+  makeLabel (name: string) {
     const uniqLabel = name + '_' + (this.loopId++)
     return this.makeLabelDirectly(uniqLabel)
   }
@@ -926,7 +947,7 @@ try {
    * @param {string} labelName
    * @returns {NakoCode}
    */
-  makeLabelDirectly (labelName) {
+  makeLabelDirectly (labelName: string) {
     const c = new NakoCode(NakoCodeLabel, labelName)
     this.labels[labelName] = -1
     return c
@@ -937,7 +958,7 @@ try {
    * @param {NakoCode} label
    * @returns {NakoCode}
    */
-  makeJump (label) {
+  makeJump (label: NakoCode) {
     return new NakoCode(NakoCodeJump, label.value)
   }
 
@@ -946,7 +967,7 @@ try {
    * @param {NakoCode} label
    * @returns {NakoCode}
    */
-  makeJumpIfTrue (label) {
+  makeJumpIfTrue (label: NakoCode) {
     return new NakoCode(NakoCodeJumpIfTrue, label.value)
   }
 
@@ -955,14 +976,14 @@ try {
    * @param {NakoCode} label
    * @returns {NakoCode}
    */
-  makeJumpIfFalse (label) {
+  makeJumpIfFalse (label: NakoCode) {
     return new NakoCode(NakoCodeJumpIfFalse, label.value)
   }
 
   /**
    * @param {Ast} node
    */
-  convIf (node) {
+  convIf (node: { expr: any; block: any; falseBlock: any }) {
     const labelBegin = this.makeLabel('もし:ここから')
     const labelEnd = this.makeLabel('もし:ここまで')
     const labelIfFalse = this.makeLabel('もし:違えば')
@@ -973,14 +994,14 @@ try {
     this._convGen(node.block, false)
     this.addCode(this.makeJump(labelEnd))
     this.addCode(labelIfFalse)
-    if (node.false_block) {
-      this._convGen(node.false_block, false)
+    if (node.falseBlock) {
+      this._convGen(node.falseBlock, false)
     }
     this.addCode(labelEnd)
     return ''
   }
 
-  convRepeatTimes (node) {
+  convRepeatTimes (node: { value: any; block: any }) {
     this.flagLoop = true
     this.varsSet.names.add('回数')
     this.varsSet.readonly.add('回数')
@@ -1017,7 +1038,7 @@ try {
    * @param {string} name
    * @returns {{i: number, name: string, isTop: boolean, js: string} | null}
    */
-  findVar (name) {
+  findVar (name: string) {
     // __vars ? (ローカル変数)
     if (this.varsSet.names.has(name)) {
       return { i: this.varslistSet.length - 1, name, isTop: true, js: `sys.__vars[${JSON.stringify(name)}]` }
@@ -1037,7 +1058,7 @@ try {
    * @param {string} name
    * @param {Ast} position
    */
-  genVar (name, position) {
+  genVar (name: string, position: any) {
     const res = this.findVar(name)
     const lno = position.line
     if (res === null) {
@@ -1048,7 +1069,7 @@ try {
       if (name === '引数' || name === 'それ' || name === '対象' || name === '対象キー' || name === '回数') {
         // デフォルト定義されている変数名
       } else {
-        this.__self.logger.warn(`変数『${name}』は定義されていません。`, position)
+        this.__self.getLogger().warn(`変数『${name}』は定義されていません。`, position)
       }
       this.varsSet.names.add(name)
       return this.varname(name)
@@ -1057,10 +1078,11 @@ try {
     const i = res.i
     // システム関数・変数の場合
     if (i === 0) {
-      const pv = this.__self.funclist[name]
+      const pv = this.__self.getFunc(name)
       if (!pv) { return `${res.js}/*err:${lno}*/` }
       if (pv.type === 'const' || pv.type === 'var') { return res.js }
       if (pv.type === 'func') {
+        if (!pv.josi) { throw new Error('[System Error]') }
         if (pv.josi.length === 0) { return `(${res.js}())` }
 
         throw NakoSyntaxError.fromNode(`『${name}』が複文で使われました。単文で記述してください。(v1非互換)`, position)
@@ -1070,7 +1092,7 @@ try {
     return res.js
   }
 
-  convGetVar (node) {
+  convGetVar (node: { value: any }) {
     const name = node.value
     let varName = `sys.__vars[${JSON.stringify(name)}]`
     const o = this.findVar(name)
@@ -1078,7 +1100,7 @@ try {
     this.addCodeStr(`sys.__stack.push(${varName});`)
   }
 
-  convComment (node) {
+  convComment (node: { value: any }) {
     let commentSrc = String(node.value)
     commentSrc = commentSrc.replace(/\n/g, '¶')
     const lineNo = this.convLineno(node, false)
@@ -1089,7 +1111,7 @@ try {
     return ';' + lineNo + '//' + commentSrc + '\n'
   }
 
-  convReturn (node) {
+  convReturn (node: any) {
     // 関数の中であれば利用可能
     if (this.varsSet.names.has('!関数')) { throw NakoSyntaxError.fromNode('『戻る』がありますが、関数定義内のみで使用可能です。', node) }
 
@@ -1101,7 +1123,7 @@ try {
     return ''
   }
 
-  convCheckLoop (node, cmd) {
+  convCheckLoop (node: Ast | Token | SourceMap, cmd: string) {
     // ループの中であれば利用可能
     if (!this.flagLoop) {
       const cmdj = (cmd === 'continue') ? '続ける' : '抜ける'
@@ -1115,7 +1137,7 @@ try {
     return ''
   }
 
-  convDefFuncCommon (node, name) {
+  convDefFuncCommon (node: { meta: any; name: { meta: any }; block: any }, name: string) {
     // deffunc_code
     const isMumeiFunc = (name === '')
     let funcName = name
@@ -1152,9 +1174,9 @@ try {
     this.addCodeStr(code)
 
     // 関数定義は、グローバル領域で。
-    this.used_func.add(funcName)
+    this.usedFuncSet.add(funcName)
     this.varslistSet[1].names.add(funcName)
-    this.nako_func[funcName] = {
+    this.nakoFuncList[funcName] = {
       josi: meta.josi,
       fn: '(function(){\n' +
         '  const sys = (arguments.length > 0) ? arguments[arguments.length-1] : {}; \n' +
@@ -1187,11 +1209,11 @@ try {
     return ''
   }
 
-  convDefTest (node) {
+  convDefTest (node: Ast | Token | SourceMap) {
     throw NakoSyntaxError.fromNode('テスト構文は!非同期モードでは使えません。', node)
   }
 
-  convDefFunc (node) {
+  convDefFunc (node: any) {
     const name = NakoGen.getFuncName(node.name.value)
     this.convDefFuncCommon(node, name)
     // ★この時点では関数のコードを生成しない★
@@ -1199,15 +1221,15 @@ try {
     return ''
   }
 
-  convFuncObj (node) {
+  convFuncObj (node: any) {
     return this.convDefFuncCommon(node, '')
   }
 
-  convJsonObj (node) {
+  convJsonObj (node: { value: any }) {
     const list = node.value
     const objName = `sys.__tmp_obj${this.loopId++}`
     this.addCodeStr(objName + '={}; // convJsonObj::ここから')
-    list.forEach((e) => {
+    list.forEach((e: { value: any; key: any }) => {
       this._convGen(e.value, true)
       this._convGen(e.key, true)
       this.addCodeStr(`${objName}[sys.__stack.pop()]=sys.__stack.pop()`)
@@ -1216,16 +1238,16 @@ try {
     return ''
   }
 
-  convJsonArray (node) {
+  convJsonArray (node: { value: any }) {
     const list = node.value
     this.addCode(this.makeLabel('convJsonArray::ここから'))
-    list.forEach(e => this._convGen(e, true))
+    list.forEach((e: any) => this._convGen(e, true))
     const size = list.length
     this.addCodeStr(`sys.__stack.push(sys.__stack.splice(sys.__stack.length-${size},${size}))`)
     return ''
   }
 
-  convRefArray (node) {
+  convRefArray (node: { name: any; index: any }) {
     // 名前をPUSH
     this._convGen(node.name, true)
     const list = node.index
@@ -1241,7 +1263,7 @@ try {
     return ''
   }
 
-  convLetArray (node) {
+  convLetArray (node: { value: any; name: any; index: any }) {
     // 代入する値をPUSH
     this._convGen(node.value, true)
 
@@ -1267,7 +1289,7 @@ try {
     return ''
   }
 
-  convGenLoop (node) {
+  convGenLoop (node: any) {
     const tmpflag = this.flagLoop
     this.flagLoop = true
     try {
@@ -1277,7 +1299,7 @@ try {
     }
   }
 
-  convFor (node) {
+  convFor (node: { word: { value: any } | null; from: any; to: any; block: any }) {
     this.flagLoop = true
     // ループ変数について
     let word
@@ -1320,7 +1342,7 @@ try {
     return ''
   }
 
-  convForeach (node) {
+  convForeach (node: any) {
     this.flagLoop = true
     // 対象を用意する
     let taisyo = '__v0["対象"]'
@@ -1385,7 +1407,7 @@ try {
     return ''
   }
 
-  convWhile (node) {
+  convWhile (node: { cond: any; block: any }) {
     this.flagLoop = true
     const labelBegin = this.makeLabel('間:ここから')
     const labelEnd = this.makeLabel('間:ここまで')
@@ -1408,7 +1430,7 @@ try {
    * @param {boolean} _isExpression
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  convSpeedMode (_node, _isExpression) {
+  convSpeedMode (_node: any, _isExpression: any) {
     return ''
   }
 
@@ -1416,7 +1438,7 @@ try {
    * @param {Ast} node
    * @param {boolean} isExpression
    */
-  convPerformanceMonitor (node, isExpression) {
+  convPerformanceMonitor (node: { options: { [x: string]: any }; block: any }, isExpression: any) {
     const prev = { ...this.performanceMonitor }
     if (node.options['ユーザ関数']) {
       this.performanceMonitor.userFunction++
@@ -1431,7 +1453,7 @@ try {
     this.performanceMonitor = prev
   }
 
-  convSwitch (node) {
+  convSwitch (node: { value: any; cases: any }) {
     // 値をPUSH
     this._convGen(node.value, true)
     const varValue = `sys.__tmp__i${this.loopId++}`
@@ -1457,8 +1479,8 @@ try {
     return ''
   }
 
-  convFuncGetArgsCalcType (funcName, func, node) {
-    const opts = {}
+  convFuncGetArgsCalcType (funcName: string, func: any, node: { args: string | any[] }) {
+    const opts:any = {}
     for (let i = 0; i < node.args.length; i++) {
       const arg = node.args[i]
       if (i === 0 && arg === null) {
@@ -1484,7 +1506,7 @@ try {
    * @param {boolean} isExpression
    * @returns string コード
    */
-  convFunc (node, isExpression) {
+  convFunc (node: any, isExpression: any) {
     let isJSFunc = false
     let isMumeiFunc = false
     const funcName = NakoGen.getFuncName(node.name)
@@ -1494,13 +1516,13 @@ try {
     }
     let func
     if (res.i === 0) { // plugin function
-      func = this.__self.funclist[funcName]
+      func = this.__self.getFunc(funcName)
       if (func.type !== 'func') {
         throw NakoSyntaxError.fromNode(`『${funcName}』は関数ではありません。`, node)
       }
       isJSFunc = true
     } else {
-      func = this.nako_func[funcName]
+      func = this.nakoFuncList[funcName]
       // 無名関数の可能性
       if (func === undefined) {
         isMumeiFunc = true
@@ -1515,7 +1537,7 @@ try {
     // 関数定義より助詞を一つずつ調べる
     const argsOpts = this.convFuncGetArgsCalcType(funcName, func, node)
     // function
-    this.used_func.add(funcName)
+    this.usedFuncSet.add(funcName)
     let funcBegin = ''
     let funcEnd = ''
     // setter?
@@ -1556,12 +1578,12 @@ try {
     }
   }
 
-  convRenbun (node) {
+  convRenbun (node: { left: any; right: any }) {
     this._convGen(node.left, false)
     this._convGen(node.right, true)
   }
 
-  convOp (node) {
+  convOp (node: { operator: any; left: any; right: any }) {
     const OP_TBL = { // トークン名からJS演算子
       '&': '+""+',
       eq: '==',
@@ -1592,7 +1614,7 @@ try {
     if (op === '^') {
       code += 'const v = (Math.pow(lv, rv))\n'
     } else {
-      const op2 = OP_TBL[op] || op
+      const op2 = (OP_TBL as any)[op] || op
       code += `const v = ((lv) ${op2} (rv));\n`
     }
     // code += `if (isNaN(v) && '${op}' != '&') { console.log('ERROR:${op}', lv, rv) }\n`
@@ -1600,7 +1622,7 @@ try {
     this.addCodeStr(code)
   }
 
-  convLet (node) {
+  convLet (node: any) {
     let code = ''
     // 値をスタックに載せる
     if (node.value === null) {
@@ -1627,7 +1649,7 @@ try {
     this.addCodeStr(code + '//let')
   }
 
-  convDefLocalVar (node) {
+  convDefLocalVar (node: any) {
     if (node.value === null) {
       this.addCodeStr('sys.__stack.push(null)')
     } else {
@@ -1647,7 +1669,7 @@ try {
   }
 
   // #563 複数変数への代入
-  convDefLocalVarlist (node) {
+  convDefLocalVarlist (node: any) {
     const vtype = node.vartype // 変数 or 定数
     if (node.value === null) {
       this.addCodeStr('sys.__stack.push(null)')
@@ -1673,7 +1695,7 @@ try {
     return ''
   }
 
-  convString (node) {
+  convString (node: { value: string; mode: any }) {
     let value = '' + node.value
     const mode = node.mode
     value = value.replace(/\\/g, '\\\\')
@@ -1687,7 +1709,7 @@ try {
     return '"' + value + '"'
   }
 
-  convTryExcept (node) {
+  convTryExcept (node: { block: any; errBlock: any }) {
     const labelExcept = this.makeLabel('エラー監視:ならば')
     const labelEnd = this.makeLabel('エラー監視:ここまで')
 
@@ -1703,8 +1725,8 @@ try {
 }
 
 // ブラウザに登録する
-if (typeof (navigator) === 'object' && typeof (navigator.nako3) === 'object') {
+if (typeof (navigator) === 'object' && typeof ((navigator as any).nako3) === 'object') {
   // Webブラウザの場合
-  const nako3 = navigator.nako3
+  const nako3: any = (navigator as any).nako3
   if (nako3.addCodeGenerator) { nako3.addCodeGenerator('非同期モード', NakoGenASync) }
 }

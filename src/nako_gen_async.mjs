@@ -1,16 +1,11 @@
-// @ts-nocheck
 /**
- * file: nako_gen_async.js
+ * file: nako_gen_async
  * パーサーが生成した中間オブジェクトを実際のJavaScriptのコードに変換する。
  * なお、扱いやすさ優先で、なでしこの一文を一つの関数として生成し、非同期実行する。
  */
-'use strict';
 import { NakoSyntaxError, NakoError, NakoRuntimeError } from './nako_errors.mjs';
-import nakoVersion from './nako_version.mjs';
+import nakoVersion from './nako_core_version.mjs';
 import { NakoGen } from './nako_gen.mjs';
-/**
- * @typedef {import("./nako3").Ast} Ast
- */
 /**
  * なでしこのインタプリタコード
  */
@@ -31,8 +26,8 @@ const NakoCodeTagIsFuncpoint = 0x0F;
  */
 class NakoCode {
     /**
-     * @param {string} type
-     * @param {string} value
+     * @param type
+     * @param value
      */
     constructor(type, value) {
         /** Codeのタイプ
@@ -58,77 +53,26 @@ class NakoCode {
  */
 export class NakoGenASync {
     /**
-     * @param {import('./nako3')} com
-     * @param {Ast} ast
-     * @param {boolean | string} isTest 文字列なら1つのテストだけを実行する
-     */
-    static generate(com, ast, isTest) {
-        const gen = new NakoGenASync(com);
-        // ユーザー定義関数をシステムに登録する
-        gen.registerFunction(ast);
-        // JSコードを生成する
-        let js = gen.convGen(ast, !!isTest);
-        // JSコードを実行するための事前ヘッダ部分の生成
-        js = gen.getDefFuncCode(isTest) + js;
-        com.logger.trace('--- generate(非同期モード) ---\n' + js);
-        // テストの実行
-        if (js && isTest) {
-            js += '\n__self._runTests(__tests);\n';
-        }
-        return {
-            // なでしこの実行環境ありの場合
-            runtimeEnv: js,
-            // JavaScript単体で動かす場合
-            standalone: `\
-const nakoVersion = ${JSON.stringify(nakoVersion)};
-${NakoError.toString()}
-${NakoRuntimeError.toString()}
-this.logger = {
-  error(message) { console.error(message) },
-  send(level, message) { console.log(message) },
-};
-this.__varslist = [{}, {}, {}];
-this.__vars = this.__varslist[2];
-this.__module = {};
-this.__locals = {};
-this.__labels = {};
-this.__code = [];
-this.__callstack = [];
-this.__stack = [];
-this.__genMode = '非同期モード';
-try {
-  ${gen.getVarsCode()}
-  ${js}
-} catch (err) {
-  if (!(err instanceof NakoRuntimeError)) {
-    err = new NakoRuntimeError(err, this.__varslist[0].line);
-  }
-  this.logger.error(err);
-  throw err;
-}`,
-            gen // コード生成に使ったNakoGenのインスタンス
-        };
-    }
-    /**
-     * @param {import('./nako3')} com コンパイラのインスタンス
+     * @param com コンパイラのインスタンス
      */
     constructor(com) {
+        this.com = com;
         /**
          * 出力するJavaScriptコードのヘッダー部分で定義する必要のある関数。fnはjsのコード。
          * プラグイン関数は含まれない。
          */
-        this.nako_func = { ...com.nako_func };
+        this.nakoFuncList = { ...com.getNakoFuncList() };
         /**
          * なでしこで定義したテストの一覧
          * @type {Record<string, { josi: string[][], fn: string, type: 'test_func' }>}
          */
-        this.nako_test = {};
+        this.nakoTestList = {};
         /**
          * プログラム内で参照された関数のリスト。プラグインの命令を含む。
          * JavaScript単体で実行するとき、このリストにある関数の定義をJavaScriptコードの先頭に付け足す。
          * @type {Set<string>}
          */
-        this.used_func = new Set();
+        this.usedFuncSet = new Set();
         /**
          * ループ時の一時変数が被らないようにIDで管理
          * @type {number}
@@ -198,6 +142,58 @@ try {
         };
     }
     /**
+     * @param com
+     * @param {Ast} ast
+     * @param {boolean | string} isTest 文字列なら1つのテストだけを実行する
+     */
+    static generate(com, ast, isTest) {
+        const gen = new NakoGenASync(com);
+        // ユーザー定義関数をシステムに登録する
+        gen.registerFunction(ast);
+        // JSコードを生成する
+        let js = gen.convGen(ast, !!isTest);
+        // JSコードを実行するための事前ヘッダ部分の生成
+        js = gen.getDefFuncCode(isTest) + js;
+        com.getLogger().trace('--- generate(非同期モード) ---\n' + js);
+        // テストの実行
+        if (js && isTest) {
+            js += '\n__self._runTests(__tests);\n';
+        }
+        return {
+            // なでしこの実行環境ありの場合
+            runtimeEnv: js,
+            // JavaScript単体で動かす場合
+            standalone: `\
+const nakoVersion = ${JSON.stringify(nakoVersion)};
+${NakoError.toString()}
+${NakoRuntimeError.toString()}
+this.logger = {
+  error(message) { console.error(message) },
+  send(level, message) { console.log(message) },
+};
+this.__varslist = [{}, {}, {}];
+this.__vars = this.__varslist[2];
+this.__module = {};
+this.__locals = {};
+this.__labels = {};
+this.__code = [];
+this.__callstack = [];
+this.__stack = [];
+this.__genMode = '非同期モード';
+try {
+  ${gen.getVarsCode()}
+  ${js}
+} catch (err) {
+  if (!(err instanceof NakoRuntimeError)) {
+    err = new NakoRuntimeError(err, this.__varslist[0].line);
+  }
+  this.logger.error(err);
+  throw err;
+}`,
+            gen // コード生成に使ったNakoGenのインスタンス
+        };
+    }
+    /**
      * @param {import("./nako3").Ast} node
      * @param {boolean} forceUpdate
      */
@@ -242,7 +238,7 @@ try {
     getVarsCode() {
         let code = '';
         // プログラム中で使った関数を列挙して書き出す
-        for (const key of Array.from(this.used_func.values())) {
+        for (const key of Array.from(this.usedFuncSet.values())) {
             const f = this.__self.__varslist[0][key];
             const name = `this.__varslist[0]["${key}"]`;
             if (typeof (f) === 'function') {
@@ -272,8 +268,8 @@ try {
         code += 'const __code = this.__code;\n';
         // なでしこの関数定義を行う
         let nakoFuncCode = '';
-        for (const key in this.nako_func) {
-            const f = this.nako_func[key].fn;
+        for (const key in this.nakoFuncList) {
+            const f = this.nakoFuncList[key].fn;
             nakoFuncCode += '' +
                 `//[DEF_FUNC name='${key}']\n` +
                 `__v1["${key}"]=${f};\n;` +
@@ -287,7 +283,7 @@ try {
         for (const name in this.__self.__module) {
             const initkey = `!${name}:初期化`;
             if (this.varslistSet[0].names.has(initkey)) {
-                this.used_func.add(`!${name}:初期化`);
+                this.usedFuncSet.add(`!${name}:初期化`);
                 pluginCode += `__v0["!${name}:初期化"](__self);\n`;
             }
         }
@@ -297,9 +293,9 @@ try {
         // テストの定義を行う
         if (isTest) {
             let testCode = 'const __tests = [];\n';
-            for (const key in this.nako_test) {
+            for (const key in this.nakoTestList) {
                 if (isTest === true || (typeof isTest === 'string' && isTest === key)) {
-                    const f = this.nako_test[key].fn;
+                    const f = this.nakoTestList[key].fn;
                     testCode += `${f};\n;`;
                 }
             }
@@ -344,14 +340,6 @@ try {
         this.__self.addFunc(key, josi, fn);
     }
     /**
-     * 関数をセットする
-     * @param key 関数名
-     * @param fn 関数
-     */
-    setFunc(key, fn) {
-        this.__self.setFunc(key, fn);
-    }
-    /**
      * プラグイン関数を参照する
      * @param key プラグイン関数の関数名
      * @returns プラグイン・オブジェクト
@@ -371,10 +359,10 @@ try {
                 const t = node.block[i];
                 if (t.type === 'def_func') {
                     const name = t.name.value;
-                    this.used_func.add(name);
+                    this.usedFuncSet.add(name);
                     // eslint-disable-next-line @typescript-eslint/no-empty-function
                     this.__self.__varslist[1][name] = function () { }; // 事前に適当な値を設定
-                    this.nako_func[name] = {
+                    this.nakoFuncList[name] = {
                         josi: t.name.meta.josi,
                         fn: '',
                         type: 'func'
@@ -405,7 +393,7 @@ try {
             initialNames.add('それ');
         }
         this.varsSet = { isFunction: false, names: initialNames, readonly: new Set() };
-        this.varslistSet = this.__self.__varslist.map((v) => ({ isFunction: false, names: new Set(Object.keys(v)), readonly: new Set() }));
+        this.varslistSet = this.__self.__varslist.map(v => ({ isFunction: false, names: new Set(Object.keys(v)), readonly: new Set() }));
         this.varslistSet[2] = this.varsSet;
     }
     /**
@@ -425,7 +413,7 @@ try {
         //
         if (optimization) {
             // NOPを削除
-            codes = codes.filter(code => {
+            codes = codes.filter((code) => {
                 return code.type !== NakoCodeNop;
             });
             // 未参照のラベルを探す - ただし関数呼び出しは削除しない
@@ -856,12 +844,17 @@ try {
                 code += this.convTryExcept(node);
                 break;
             case 'require':
-                this.addCodeStr(NakoGen.convRequire(node));
+                code += this.convRequire(node);
                 break;
             default:
                 throw new Error('System Error: unknown_type=' + node.type);
         }
         return code;
+    }
+    convRequire(node) {
+        const gen = new NakoGen(this.com);
+        this.addCodeStr(gen.convRequire(node));
+        return '';
     }
     /**
      * add code to array
@@ -873,7 +866,7 @@ try {
             return '';
         }
         const a = codeStr.split('\n');
-        const a2 = a.map(row => '  ' + row.replace(/\s+$/, ''));
+        const a2 = a.map((row) => '  ' + row.replace(/\s+$/, ''));
         const c = new NakoCode(NakoCodeCode, a2.join('\n'));
         return this.addCode(c);
     }
@@ -944,8 +937,8 @@ try {
         this._convGen(node.block, false);
         this.addCode(this.makeJump(labelEnd));
         this.addCode(labelIfFalse);
-        if (node.false_block) {
-            this._convGen(node.false_block, false);
+        if (node.falseBlock) {
+            this._convGen(node.falseBlock, false);
         }
         this.addCode(labelEnd);
         return '';
@@ -1013,7 +1006,7 @@ try {
                 // デフォルト定義されている変数名
             }
             else {
-                this.__self.logger.warn(`変数『${name}』は定義されていません。`, position);
+                this.__self.getLogger().warn(`変数『${name}』は定義されていません。`, position);
             }
             this.varsSet.names.add(name);
             return this.varname(name);
@@ -1021,7 +1014,7 @@ try {
         const i = res.i;
         // システム関数・変数の場合
         if (i === 0) {
-            const pv = this.__self.funclist[name];
+            const pv = this.__self.getFunc(name);
             if (!pv) {
                 return `${res.js}/*err:${lno}*/`;
             }
@@ -1029,6 +1022,9 @@ try {
                 return res.js;
             }
             if (pv.type === 'func') {
+                if (!pv.josi) {
+                    throw new Error('[System Error]');
+                }
                 if (pv.josi.length === 0) {
                     return `(${res.js}())`;
                 }
@@ -1125,9 +1121,9 @@ try {
         code += '// ここまで:引数をローカル変数として登録\n';
         this.addCodeStr(code);
         // 関数定義は、グローバル領域で。
-        this.used_func.add(funcName);
+        this.usedFuncSet.add(funcName);
         this.varslistSet[1].names.add(funcName);
-        this.nako_func[funcName] = {
+        this.nakoFuncList[funcName] = {
             josi: meta.josi,
             fn: '(function(){\n' +
                 '  const sys = (arguments.length > 0) ? arguments[arguments.length-1] : {}; \n' +
@@ -1183,7 +1179,7 @@ try {
     convJsonArray(node) {
         const list = node.value;
         this.addCode(this.makeLabel('convJsonArray::ここから'));
-        list.forEach(e => this._convGen(e, true));
+        list.forEach((e) => this._convGen(e, true));
         const size = list.length;
         this.addCodeStr(`sys.__stack.push(sys.__stack.splice(sys.__stack.length-${size},${size}))`);
         return '';
@@ -1444,14 +1440,14 @@ try {
         }
         let func;
         if (res.i === 0) { // plugin function
-            func = this.__self.funclist[funcName];
+            func = this.__self.getFunc(funcName);
             if (func.type !== 'func') {
                 throw NakoSyntaxError.fromNode(`『${funcName}』は関数ではありません。`, node);
             }
             isJSFunc = true;
         }
         else {
-            func = this.nako_func[funcName];
+            func = this.nakoFuncList[funcName];
             // 無名関数の可能性
             if (func === undefined) {
                 isMumeiFunc = true;
@@ -1466,7 +1462,7 @@ try {
         // 関数定義より助詞を一つずつ調べる
         const argsOpts = this.convFuncGetArgsCalcType(funcName, func, node);
         // function
-        this.used_func.add(funcName);
+        this.usedFuncSet.add(funcName);
         let funcBegin = '';
         let funcEnd = '';
         // setter?
