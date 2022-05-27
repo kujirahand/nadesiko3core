@@ -52,7 +52,7 @@ export class NakoGlobal {
     this.gen = gen
 
     // 以下のメソッドで使うため
-    this.logger = compiler.logger
+    this.logger = compiler.getLogger()
     this.compiler = compiler
   }
 

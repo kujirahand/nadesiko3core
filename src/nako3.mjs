@@ -48,7 +48,7 @@ export class NakoCompiler {
         this.pluginfiles = {}; // 取り込んだファイル一覧
         this.isSetter = false; // 代入的関数呼び出しを管理(#290)
         this.commandlist = new Set(); // プラグインで定義された定数・変数・関数の名前
-        this.nako_func = {}; // __v1に配置するJavaScriptのコードで定義された関数
+        this.nakoFuncs = {}; // __v1に配置するJavaScriptのコードで定義された関数
         this.logger = new NakoLogger();
         // 必要なオブジェクトを覚えておく
         this.prepare = NakoPrepare.getInstance();

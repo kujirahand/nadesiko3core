@@ -25,11 +25,11 @@ export class NakoGen {
          * 出力するJavaScriptコードのヘッダー部分で定義する必要のある関数。fnはjsのコード。
          * プラグイン関数は含まれない。
          */
-        this.nako_func = { ...com.nako_func };
+        this.nakoFuncs = { ...com.nakoFuncs };
         /**
          * なでしこで定義したテストの一覧
          */
-        this.nako_test = {};
+        this.nakoTestFuncs = {};
         /**
          * プログラム内で参照された関数のリスト。プラグインの命令を含む。
          * JavaScript単体で実行するとき、このリストにある関数の定義をJavaScriptコードの先頭に付け足す。
@@ -207,9 +207,9 @@ export class NakoGen {
         code += 'const __vars = this.__vars = this.__varslist[2];\n';
         // なでしこの関数定義を行う
         let nakoFuncCode = '';
-        for (const key in this.nako_func) {
-            const f = this.nako_func[key].fn;
-            const isAsync = this.nako_func[key].asyncFn ? 'true' : 'false';
+        for (const key in this.nakoFuncs) {
+            const f = this.nakoFuncs[key].fn;
+            const isAsync = this.nakoFuncs[key].asyncFn ? 'true' : 'false';
             nakoFuncCode += '' +
                 `//[DEF_FUNC name='${key}' asyncFn=${isAsync}]\n` +
                 `__v1["${key}"]=${f};\n;` +
@@ -233,9 +233,9 @@ export class NakoGen {
         // テストの定義を行う
         if (isTest) {
             let testCode = 'const __tests = [];\n';
-            for (const key in this.nako_test) {
+            for (const key in this.nakoTestFuncs) {
                 if (isTest === true || (typeof isTest === 'string' && isTest === key)) {
-                    const f = this.nako_test[key].fn;
+                    const f = this.nakoTestFuncs[key].fn;
                     testCode += `${f};\n;`;
                 }
             }
@@ -322,7 +322,7 @@ export class NakoGen {
                     this.__self.__varslist[1][name] = function () { }; // 事前に適当な値を設定
                     this.varslistSet[1].names.add(name); // global
                     const meta = (t.name).meta; // todo: 強制変換したが正しいかチェック
-                    this.nako_func[name] = {
+                    this.nakoFuncs[name] = {
                         josi: meta.josi,
                         // eslint-disable-next-line @typescript-eslint/no-empty-function
                         fn: () => { },
@@ -581,7 +581,7 @@ export class NakoGen {
                 if (this.warnUndefinedVar) {
                     // main__は省略して表示するように。 #1223
                     const dispName = name.replace(/^main__(.+)$/, '$1');
-                    this.__self.logger.warn(`変数『${dispName}』は定義されていません。`, position);
+                    this.__self.getLogger().warn(`変数『${dispName}』は定義されていません。`, position);
                 }
             }
             this.varsSet.names.add(name);
@@ -720,9 +720,9 @@ export class NakoGen {
         if (name) {
             this.used_func.add(name);
             this.varslistSet[1].names.add(name);
-            if (this.nako_func[name] === undefined) {
+            if (this.nakoFuncs[name] === undefined) {
                 // 既に generate で作成済みのはず(念のため)
-                this.nako_func[name] = {
+                this.nakoFuncs[name] = {
                     josi: node.name.meta.josi,
                     // eslint-disable-next-line @typescript-eslint/no-empty-function
                     fn: () => { },
@@ -744,7 +744,7 @@ export class NakoGen {
         code += performanceMonitorInjectAtEnd;
         // ブロックでasyncFnを使ったか
         if (name && this.usedAsyncFn) {
-            this.nako_func[name].asyncFn = true;
+            this.nakoFuncs[name].asyncFn = true;
         }
         // 関数の末尾に、ローカル変数をPOP
         // 関数内で定義されたローカル変数の宣言
@@ -770,8 +770,8 @@ export class NakoGen {
         code += endOfFunction;
         // 名前があれば、関数を登録する
         if (name) {
-            this.nako_func[name].fn = code;
-            this.nako_func[name].asyncFn = this.usedAsyncFn;
+            this.nakoFuncs[name].fn = code;
+            this.nakoFuncs[name].asyncFn = this.usedAsyncFn;
             meta.asyncFn = this.usedAsyncFn;
         }
         this.usedAsyncFn = oldUsedAsyncFn; // 以前の値を戻す
@@ -789,7 +789,7 @@ export class NakoGen {
         const block = this._convGen(node.block, false);
         code += `   ${block}\n` +
             '}});';
-        this.nako_test[name] = {
+        this.nakoTestFuncs[name] = {
             josi: node.name.meta.josi,
             fn: code,
             type: 'test_func'
@@ -1167,7 +1167,7 @@ export class NakoGen {
             }
         }
         else {
-            func = this.nako_func[funcName];
+            func = this.nakoFuncs[funcName];
             // 無名関数の可能性
             if (func === undefined) {
                 func = { return_none: false };
@@ -1561,7 +1561,7 @@ ${js}
 // <nadesiko3::gen::async>\n`;
     }
     // デバッグメッセージ
-    com.logger.trace('--- generate ---\n' + js);
+    com.getLogger().trace('--- generate ---\n' + js);
     // todo: 将来的に mjs のコードを履くように修正する
     const standaloneJSCode = `\
 // <standaloneCode>

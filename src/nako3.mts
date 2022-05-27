@@ -80,10 +80,9 @@ export class NakoCompiler {
   __v1: NakoVars;
   __globals: NakoGlobal[];
   __module: Record<string, Record<string, FuncListItem>>;
-  // eslint-disable-next-line camelcase
-  nako_func: FuncList;
+  nakoFuncs: FuncList;
   funclist: FuncList;
-  logger: NakoLogger;
+  private logger: NakoLogger;
   pluginFunclist: Record<string, FuncListItem>;
   pluginfiles: Record<string, any>;
   isSetter: boolean;
@@ -125,7 +124,7 @@ export class NakoCompiler {
     this.pluginfiles = {} // 取り込んだファイル一覧
     this.isSetter = false // 代入的関数呼び出しを管理(#290)
     this.commandlist = new Set() // プラグインで定義された定数・変数・関数の名前
-    this.nako_func = {} // __v1に配置するJavaScriptのコードで定義された関数
+    this.nakoFuncs = {} // __v1に配置するJavaScriptのコードで定義された関数
 
     this.logger = new NakoLogger()
 

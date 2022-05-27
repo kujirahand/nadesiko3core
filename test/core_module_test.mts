@@ -6,7 +6,7 @@ import core from '../index.mjs'
 describe('core_module_test', () => {
   const nako = new core.NakoCompiler()
   const cmp = (code: string, res: string) => {
-    nako.logger.debug('code=' + code)
+    nako.getLogger().debug('code=' + code)
     assert.strictEqual(nako.run(code).log, res)
   }
   it('hello', () => {
