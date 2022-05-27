@@ -25,7 +25,7 @@ export class NakoGen {
          * 出力するJavaScriptコードのヘッダー部分で定義する必要のある関数。fnはjsのコード。
          * プラグイン関数は含まれない。
          */
-        this.nakoFuncs = { ...com.getNakoFuncList() };
+        this.nakoFuncList = { ...com.getNakoFuncList() };
         /**
          * なでしこで定義したテストの一覧
          */
@@ -207,9 +207,9 @@ export class NakoGen {
         code += 'const __vars = this.__vars = this.__varslist[2];\n';
         // なでしこの関数定義を行う
         let nakoFuncCode = '';
-        for (const key in this.nakoFuncs) {
-            const f = this.nakoFuncs[key].fn;
-            const isAsync = this.nakoFuncs[key].asyncFn ? 'true' : 'false';
+        for (const key in this.nakoFuncList) {
+            const f = this.nakoFuncList[key].fn;
+            const isAsync = this.nakoFuncList[key].asyncFn ? 'true' : 'false';
             nakoFuncCode += '' +
                 `//[DEF_FUNC name='${key}' asyncFn=${isAsync}]\n` +
                 `__v1["${key}"]=${f};\n;` +
@@ -314,7 +314,7 @@ export class NakoGen {
                     this.__self.__varslist[1][name] = function () { }; // 事前に適当な値を設定
                     this.varslistSet[1].names.add(name); // global
                     const meta = (t.name).meta; // todo: 強制変換したが正しいかチェック
-                    this.nakoFuncs[name] = {
+                    this.nakoFuncList[name] = {
                         josi: meta.josi,
                         // eslint-disable-next-line @typescript-eslint/no-empty-function
                         fn: () => { },
@@ -712,9 +712,9 @@ export class NakoGen {
         if (name) {
             this.used_func.add(name);
             this.varslistSet[1].names.add(name);
-            if (this.nakoFuncs[name] === undefined) {
+            if (this.nakoFuncList[name] === undefined) {
                 // 既に generate で作成済みのはず(念のため)
-                this.nakoFuncs[name] = {
+                this.nakoFuncList[name] = {
                     josi: node.name.meta.josi,
                     // eslint-disable-next-line @typescript-eslint/no-empty-function
                     fn: () => { },
@@ -736,7 +736,7 @@ export class NakoGen {
         code += performanceMonitorInjectAtEnd;
         // ブロックでasyncFnを使ったか
         if (name && this.usedAsyncFn) {
-            this.nakoFuncs[name].asyncFn = true;
+            this.nakoFuncList[name].asyncFn = true;
         }
         // 関数の末尾に、ローカル変数をPOP
         // 関数内で定義されたローカル変数の宣言
@@ -762,8 +762,8 @@ export class NakoGen {
         code += endOfFunction;
         // 名前があれば、関数を登録する
         if (name) {
-            this.nakoFuncs[name].fn = code;
-            this.nakoFuncs[name].asyncFn = this.usedAsyncFn;
+            this.nakoFuncList[name].fn = code;
+            this.nakoFuncList[name].asyncFn = this.usedAsyncFn;
             meta.asyncFn = this.usedAsyncFn;
         }
         this.usedAsyncFn = oldUsedAsyncFn; // 以前の値を戻す
@@ -1153,16 +1153,16 @@ export class NakoGen {
         // どの関数を呼び出すのか関数を特定する
         let func;
         if (res.i === 0) { // plugin function
-            func = this.__self.getNakoFunc(funcName);
+            func = this.__self.getFunc(funcName);
             if (!func) {
-                throw new Error('[System Error] NakoCompiler.nakoFuncList の不整合があります。');
+                throw new Error(`[System Error] 関数「${funcName}」NakoCompiler.nakoFuncList の不整合があります。`);
             }
             if (func.type !== 'func') {
                 throw NakoSyntaxError.fromNode(`『${funcName}』は関数ではありません。`, node);
             }
         }
         else {
-            func = this.nakoFuncs[funcName];
+            func = this.nakoFuncList[funcName];
             // 無名関数の可能性
             if (func === undefined) {
                 func = { return_none: false };

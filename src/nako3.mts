@@ -70,9 +70,7 @@ type NakoVars = {[key: string]: any}
 
 /** なでしこコンパイラ */
 export class NakoCompiler {
-  private filename: string;
   private options: NakoCompilerOption;
-  private silent: boolean;
   private nakoFuncList: FuncList;
   private funclist: FuncList;
   private logger: NakoLogger;
@@ -103,8 +101,6 @@ export class NakoCompiler {
     if (options === undefined) {
       options = { useBasicPlugin: true }
     }
-    this.silent = true
-    this.filename = 'main.nako3'
     this.options = options
     // 環境のリセット
     /** @type {Record<string, any>[]} */
@@ -569,10 +565,10 @@ export class NakoCompiler {
 
   /**
    * コードをパースしてASTにする
-   * @param {string} code なでしこのプログラム
-   * @param {string} filename
-   * @param {string} [preCode]
-   * @return {Ast}
+   * @param code なでしこのプログラム
+   * @param filename
+   * @param [preCode]
+   * @return Ast
    */
   parse (code: string, filename: string, preCode = '') {
     // 関数を字句解析と構文解析に登録
