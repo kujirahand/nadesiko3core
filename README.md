@@ -53,3 +53,14 @@ $ node command/snako.mjs sample/hello.nako3
 $ node command/snako.mjs -e "1+2を表示"
 ```
 
+### 簡易コマンドラインをグローバルインストールして使う場合
+
+簡易コマンドライン(snako)を手軽に利用したい場合は、次のように実行します。
+
+```
+$ npm install -g nadesiko3core
+$ snako -e "1+2を表示"
+$ snako nadesiko3core/sample/hello.nako3
+```
+
+

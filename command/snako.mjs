@@ -1,6 +1,5 @@
 import fs from 'fs';
 import com from '../index.mjs';
-import { NakoCompiler } from '../src/nako3.mjs';
 /** コマンドラインオプション */
 class CommandOptions {
     constructor() {
@@ -43,7 +42,7 @@ function main(argvOrg) {
     }
     // なでしこのコンパイラを生成
     const nako = new com.NakoCompiler();
-    // set logger
+    // logger を設定 --- リスナーを登録することでデバッグレベルを指定
     const logger = nako.getLogger();
     if (opt.isDebug) {
         logger.addListener('trace', (data) => {
@@ -53,14 +52,14 @@ function main(argvOrg) {
     logger.addListener('stdout', (data) => {
         console.log(data.noColor);
     });
-    // load soruce file
+    // ソースコードをファイルから読み込む
     const code = fs.readFileSync(opt.filename, 'utf-8');
-    // run
+    // 実行
     nako.run(code, opt.filename);
 }
-/** -e オプションでプログラムを直接実行する場合 */
+/** "-e" オプションでプログラムを直接実行する場合 */
 function evalStr(src) {
-    const nako = new NakoCompiler();
+    const nako = new com.NakoCompiler();
     const g = nako.run(src, 'main.nako3');
     console.log(g.log);
 }
@@ -70,5 +69,5 @@ function showHelp() {
     console.log('[使い方] node snako.mjs [--debug|-d] (filename)');
     console.log('[使い方] node snako.mjs [--eval|-e] (source)');
 }
-// メイン処理を実行
+/** メイン処理を実行 */
 main(process.argv);
