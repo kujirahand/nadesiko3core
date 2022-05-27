@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import fs from 'fs';
 import com from '../index.mjs';
 /** コマンドラインオプション */
