@@ -1,4 +1,4 @@
-import version from './src/nako_version.mjs';
+import version from './src/nako_core_version.mjs';
 import { NakoCompiler } from './src/nako3.mjs';
 import { NakoLogger } from './src/nako_logger.mjs';
 import { NakoError, NakoRuntimeError, NakoImportError } from './src/nako_errors.mjs';

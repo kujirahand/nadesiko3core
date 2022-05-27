@@ -1,4 +1,4 @@
-import nakoVersion from './nako_version.mjs'
+import nakoVersion from './nako_core_version.mjs'
 import { Ast, Token, SourceMap } from './nako_types.mjs'
 
 /**

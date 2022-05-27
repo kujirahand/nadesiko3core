@@ -7,7 +7,7 @@ import { NakoSyntaxError, NakoError, NakoRuntimeError } from './nako_errors.mjs'
 import { NakoLexer } from './nako_lexer.mjs'
 import { Ast, FuncList, FuncArgs, Token } from './nako_types.mjs'
 import { NakoCompiler } from './nako3.mjs'
-import nakoVersion from './nako_version.mjs'
+import nakoCoreVersion from './nako_core_version.mjs'
 
 // なでしこで定義した関数の開始コードと終了コード
 const topOfFunction = '(function(){\n'
@@ -1632,7 +1632,7 @@ ${js}
 const path = require('path')
 ${NakoError.toString()}
 ${NakoRuntimeError.toString()} 
-const nakoVersion = ${JSON.stringify(nakoVersion)};
+const nakoVersion = ${JSON.stringify(nakoCoreVersion)};
 const self = this
 self.logger = {
   error: (message) => { console.error(message) },

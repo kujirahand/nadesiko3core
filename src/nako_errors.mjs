@@ -1,4 +1,4 @@
-import nakoVersion from './nako_version.mjs';
+import nakoVersion from './nako_core_version.mjs';
 /**
  * なでしこ言語が投げる全てのエラーが継承するクラス
  */

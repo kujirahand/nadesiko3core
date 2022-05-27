@@ -72,7 +72,6 @@ type NakoVars = {[key: string]: any}
 export class NakoCompiler {
   private nakoFuncList: FuncList;
   private funclist: FuncList;
-  private logger: NakoLogger;
   private pluginFunclist: Record<string, FuncListItem>;
   private pluginfiles: Record<string, any>;
   private commandlist: Set<string>;
@@ -81,7 +80,7 @@ export class NakoCompiler {
   private lexer: NakoLexer;
   private dependencies: Dependencies;
   private usedFuncs: Set<string>;
-  private numFailures: number;
+  protected logger: NakoLogger;
   // global objects
   __varslist: NakoVars[];
   __locals: NakoVars;
@@ -91,7 +90,7 @@ export class NakoCompiler {
   __v1: NakoVars;
   __globals: NakoGlobal[];
   __module: Record<string, Record<string, FuncListItem>>;
-
+  numFailures: number; // エラーレポートの数を記録
   /**
    * @param {undefined | {'useBasicPlugin':true|false}} options
    */

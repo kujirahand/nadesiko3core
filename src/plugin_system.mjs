@@ -1,13 +1,13 @@
 import { NakoRuntimeError } from './nako_errors.mjs';
-import NakoVersion from './nako_version.mjs';
+import NakoCoreVersion from './nako_core_version.mjs';
 export default {
     'meta': {
         type: 'const',
         value: {
             pluginName: 'plugin_system',
-            pluginVersion: '3.3.18',
+            pluginVersion: '3.3.38',
             nakoRuntime: ['wnako', 'cnako', 'phpnako'],
-            nakoVersion: '^3.3.18' // 要求なでしこバージョン
+            nakoVersion: '^3.3.38' // 要求なでしこバージョン
         }
     },
     '初期化': {
@@ -15,7 +15,7 @@ export default {
         josi: [],
         pure: false,
         fn: function (sys) {
-            sys.__v0['ナデシコバージョン'] = typeof NakoVersion === 'undefined' ? '?' : NakoVersion.version;
+            sys.__v0['ナデシコバージョン'] = typeof NakoCoreVersion === 'undefined' ? '?' : NakoCoreVersion.version;
             // なでしこの関数や変数を探して返す
             sys.__findVar = function (nameStr, def) {
                 if (typeof nameStr === 'function') {
@@ -515,6 +515,7 @@ export default {
         type: 'func',
         josi: [['を', 'で']],
         pure: true,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         fn: function (src, sys) {
             // [メモ] ↑のsys は eval の中でも有効なので消さない!!
             // https://github.com/kujirahand/nadesiko3/issues/1237
