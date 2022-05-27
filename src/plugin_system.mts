@@ -124,7 +124,7 @@ export default {
   'ナデシコバージョン': { type: 'const', value: '?' }, // @なでしこばーじょん
   'ナデシコ言語バージョン': { type: 'const', value: '?' }, // @なでしこげんごばーじょん
   'ナデシコエンジン': { type: 'const', value: 'nadesi.com/v3' }, // @なでしこえんじん
-  'ナデシコ種類': { type: 'const', value: 'wnako3/cnako3' }, // @なでしこしゅるい
+  'ナデシコ種類': { type: 'const', value: '?' }, // @なでしこしゅるい
   'はい': { type: 'const', value: 1 }, // @はい
   'いいえ': { type: 'const', value: 0 }, // @いいえ
   '真': { type: 'const', value: 1 }, // @しん

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'fs'
 import com from '../index.mjs'
+import { NakoGlobal } from '../src/nako_global.mjs'
 
 /** コマンドラインオプション */
 class CommandOptions {
@@ -34,18 +35,12 @@ function main (argvOrg: string[]): void {
     }
     if (opt.filename === '') { opt.filename = arg }
   }
-  // -e オプションを実行したとき
-  if (opt.evalStr) {
-    evalStr(opt.evalStr)
-    return
-  }
-  // パラメータが空だったとき
-  if (opt.filename === '') {
-    showHelp()
-    return
-  }
   // なでしこのコンパイラを生成
   const nako = new com.NakoCompiler()
+  // 実行前にイベントを挟みたいとき
+  nako.addListener('beforeRun', (g: NakoGlobal) => {
+    g.__varslist[0]['ナデシコ種類'] = 'snako'
+  })
   // logger を設定 --- リスナーを登録することでデバッグレベルを指定
   const logger = nako.getLogger()
   if (opt.isDebug) {
@@ -56,17 +51,20 @@ function main (argvOrg: string[]): void {
   logger.addListener('stdout', (data) => { // 「表示」命令を実行したとき
     console.log(data.noColor)
   })
+  // -e オプションを実行したとき
+  if (opt.evalStr) {
+    nako.run(opt.evalStr)
+    return
+  }
+  // パラメータが空だったとき
+  if (opt.filename === '') {
+    showHelp()
+    return
+  }
   // ソースコードをファイルから読み込む
   const code: string = fs.readFileSync(opt.filename, 'utf-8')
   // 実行
   nako.run(code, opt.filename)
-}
-
-/** "-e" オプションでプログラムを直接実行する場合 */
-function evalStr (src: string): void {
-  const nako = new com.NakoCompiler()
-  const g = nako.run(src, 'main.nako3')
-  console.log(g.log)
 }
 
 /** 使い方を表示 */

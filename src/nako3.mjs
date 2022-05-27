@@ -46,6 +46,7 @@ export class NakoCompiler {
         this.pluginfiles = {}; // 取り込んだファイル一覧
         this.commandlist = new Set(); // プラグインで定義された定数・変数・関数の名前
         this.nakoFuncList = {}; // __v1に配置するJavaScriptのコードで定義された関数
+        this.eventList = []; // 実行前に環境を変更するためのイベント
         this.logger = new NakoLogger();
         // 必要なオブジェクトを覚えておく
         this.prepare = NakoPrepare.getInstance();
@@ -588,8 +589,15 @@ export class NakoCompiler {
             if (optsAll.resetAll) {
                 this.clearPlugins();
             }
+            // onBeforeParse
+            this.eventList.filter(o => o.eventName === 'beforeParse').map(e => e.callback(code));
             const ast = this.parse(code, fname, preCode);
+            // onBeforeGenerate
+            this.eventList.filter(o => o.eventName === 'beforeGenerate').map(e => e.callback(ast));
+            // generate
             out = this.generateCode(ast, optsAll.testOnly);
+            // onAfterGenerate
+            this.eventList.filter(o => o.eventName === 'afterGenerate').map(e => e.callback(out));
         }
         catch (e) {
             this.logger.error(e);
@@ -601,8 +609,13 @@ export class NakoCompiler {
             this.__globals.push(nakoGlobal);
         }
         try {
+            // beforeRun
+            this.eventList.filter(o => o.eventName === 'beforeRun').map(e => e.callback(nakoGlobal));
+            // eval function
             // eslint-disable-next-line no-new-func
             new Function(out.runtimeEnv).apply(nakoGlobal);
+            // afterRun
+            this.eventList.filter(o => o.eventName === 'afterRun').map(e => e.callback(nakoGlobal));
             return nakoGlobal;
         }
         catch (e) {
@@ -613,6 +626,9 @@ export class NakoCompiler {
             this.logger.error(err);
             throw err;
         }
+    }
+    addListener(eventName, callback) {
+        this.eventList.push({ eventName, callback });
     }
     /**
      * @param {string} code

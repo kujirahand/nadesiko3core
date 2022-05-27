@@ -135,7 +135,7 @@ export default {
     'ナデシコバージョン': { type: 'const', value: '?' },
     'ナデシコ言語バージョン': { type: 'const', value: '?' },
     'ナデシコエンジン': { type: 'const', value: 'nadesi.com/v3' },
-    'ナデシコ種類': { type: 'const', value: 'wnako3/cnako3' },
+    'ナデシコ種類': { type: 'const', value: '?' },
     'はい': { type: 'const', value: 1 },
     'いいえ': { type: 'const', value: 0 },
     '真': { type: 'const', value: 1 },

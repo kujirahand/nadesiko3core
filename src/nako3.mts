@@ -29,15 +29,7 @@ export interface CompilerOptions {
   resetAll: boolean;
 }
 
-/**
- * インタプリタに「取り込み」文を追加するために用意するオブジェクト
- * @typedef {{
- *    resolvePath: (name: string, token: TokenWithSourceMap, fromFile: string) => { type: 'nako3' | 'js' | 'invalid', filePath: string }
- *    readNako3: (filePath: string, token: TokenWithSourceMap) => { task: Promise<string> }
- *    readJs: (filePath: string, token: TokenWithSourceMap) => { task: Promise<() => object> }
- * }} LoaderTool
- */
-
+/** インタプリタに「取り込み」文を追加するために用意するオブジェクト */
 export interface LoaderToolTask<T> {
   task: Promise<T>;
 }
@@ -46,6 +38,13 @@ export interface LoaderTool {
   resolvePath: (name: string, token: Token, fromFile: string) => { type: string, filePath: string };
   readNako3: (filePath: string, token: Token) => LoaderToolTask<string>;
   readJs: (filePath: string, token: Token) => LoaderToolTask<any>;
+}
+
+type NakoComEventName = 'beforeRun' | 'afterRun' | 'beforeGenerate' | 'afterGenerate' | 'beforeParse'
+
+interface NakoEvent {
+  eventName: NakoComEventName
+  callback: (event: any) => void
 }
 
 interface DependenciesItem {
@@ -81,6 +80,7 @@ export class NakoCompiler {
   private dependencies: Dependencies;
   private usedFuncs: Set<string>;
   protected logger: NakoLogger;
+  protected eventList: NakoEvent[];
   // global objects
   __varslist: NakoVars[];
   __locals: NakoVars;
@@ -117,6 +117,7 @@ export class NakoCompiler {
     this.pluginfiles = {} // 取り込んだファイル一覧
     this.commandlist = new Set() // プラグインで定義された定数・変数・関数の名前
     this.nakoFuncList = {} // __v1に配置するJavaScriptのコードで定義された関数
+    this.eventList = [] // 実行前に環境を変更するためのイベント
 
     this.logger = new NakoLogger()
 
@@ -702,13 +703,20 @@ export class NakoCompiler {
    */
   _runEx (code: string, fname: string, opts: Partial<CompilerOptions>, preCode = '', nakoGlobal: NakoGlobal|undefined = undefined): NakoGlobal {
     // コンパイル
-    let out
+    let out: any
     try {
       const optsAll = Object.assign({ resetEnv: true, testOnly: false, resetAll: true }, opts)
       if (optsAll.resetEnv) { this.reset() }
       if (optsAll.resetAll) { this.clearPlugins() }
+      // onBeforeParse
+      this.eventList.filter(o => o.eventName === 'beforeParse').map(e => e.callback(code))
       const ast = this.parse(code, fname, preCode)
+      // onBeforeGenerate
+      this.eventList.filter(o => o.eventName === 'beforeGenerate').map(e => e.callback(ast))
+      // generate
       out = this.generateCode(ast, optsAll.testOnly)
+      // onAfterGenerate
+      this.eventList.filter(o => o.eventName === 'afterGenerate').map(e => e.callback(out))
     } catch (e: any) {
       this.logger.error(e)
       throw e
@@ -719,8 +727,13 @@ export class NakoCompiler {
       this.__globals.push(nakoGlobal)
     }
     try {
+      // beforeRun
+      this.eventList.filter(o => o.eventName === 'beforeRun').map(e => e.callback(nakoGlobal))
+      // eval function
       // eslint-disable-next-line no-new-func
       new Function(out.runtimeEnv).apply(nakoGlobal)
+      // afterRun
+      this.eventList.filter(o => o.eventName === 'afterRun').map(e => e.callback(nakoGlobal))
       return nakoGlobal
     } catch (e: any) {
       let err = e
@@ -730,6 +743,10 @@ export class NakoCompiler {
       this.logger.error(err)
       throw err
     }
+  }
+
+  addListener (eventName: NakoComEventName, callback: (event:any) => void) {
+    this.eventList.push({ eventName, callback })
   }
 
   /**
