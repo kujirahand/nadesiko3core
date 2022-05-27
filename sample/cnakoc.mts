@@ -1,7 +1,7 @@
 import com from '../index.mjs'
 import fs from 'fs'
 
-class COptions {
+class CommandOptions {
   isDebug: boolean;
   filename: string;
   nodePath: string;
@@ -14,10 +14,15 @@ class COptions {
   }
 }
 
+function showHelp (): void {
+  console.log('●なでしこ # v.' + com.version.version)
+  console.log('[使い方] node cnakoc.mjs [--debug|-d] (filename)')
+}
+
 function main (argvOrg: string[]): void {
   // check arguments
-  const argv: string[] = argvOrg.join(':::').split(':::') // clone
-  const opt: COptions = new COptions()
+  const argv: string[] = [...argvOrg]
+  const opt: CommandOptions = new CommandOptions()
   opt.nodePath = argv.shift() || ''
   opt.scriptPath = argv.shift() || ''
   while (argv.length > 0) {
@@ -25,11 +30,16 @@ function main (argvOrg: string[]): void {
     if (arg === '-d' || arg === '--debug') { opt.isDebug = true }
     if (opt.filename === '') { opt.filename = arg }
   }
+  if (opt.filename === '') {
+    showHelp()
+    return
+  }
   // compiler
   const nako = new com.NakoCompiler()
+  // set logger
   const logger = nako.getLogger()
   // set debug
-  logger.addListener('debug', (data) => {
+  logger.addListener('trace', (data) => {
     if (opt.isDebug) {
       console.log(data.nodeConsole)
     }
