@@ -68,10 +68,25 @@ export interface NakoCompilerOption {
 
 type NakoVars = {[key: string]: any}
 
+/** なでしこコンパイラ */
 export class NakoCompiler {
-  filename: string;
-  options: NakoCompilerOption;
-  silent: boolean;
+  private filename: string;
+  private options: NakoCompilerOption;
+  private silent: boolean;
+  private nakoFuncList: FuncList;
+  private funclist: FuncList;
+  private logger: NakoLogger;
+  private pluginFunclist: Record<string, FuncListItem>;
+  private pluginfiles: Record<string, any>;
+  private isSetter: boolean;
+  private commandlist: Set<string>;
+  private prepare: NakoPrepare;
+  private parser: NakoParser;
+  private lexer: NakoLexer;
+  private dependencies: Dependencies;
+  private usedFuncs: Set<string>;
+  private numFailures: number;
+  // global objects
   __varslist: NakoVars[];
   __locals: NakoVars;
   __self: NakoCompiler;
@@ -80,20 +95,6 @@ export class NakoCompiler {
   __v1: NakoVars;
   __globals: NakoGlobal[];
   __module: Record<string, Record<string, FuncListItem>>;
-  nakoFuncs: FuncList;
-  funclist: FuncList;
-  private logger: NakoLogger;
-  pluginFunclist: Record<string, FuncListItem>;
-  pluginfiles: Record<string, any>;
-  isSetter: boolean;
-  commandlist: Set<string>;
-  prepare: NakoPrepare;
-  parser: NakoParser;
-  lexer: NakoLexer;
-  dependencies: Dependencies;
-  usedFuncs: Set<string>;
-  numFailures: number;
-  setFunc: any;
 
   /**
    * @param {undefined | {'useBasicPlugin':true|false}} options
@@ -103,7 +104,7 @@ export class NakoCompiler {
       options = { useBasicPlugin: true }
     }
     this.silent = true
-    this.filename = 'inline'
+    this.filename = 'main.nako3'
     this.options = options
     // 環境のリセット
     /** @type {Record<string, any>[]} */
@@ -124,7 +125,7 @@ export class NakoCompiler {
     this.pluginfiles = {} // 取り込んだファイル一覧
     this.isSetter = false // 代入的関数呼び出しを管理(#290)
     this.commandlist = new Set() // プラグインで定義された定数・変数・関数の名前
-    this.nakoFuncs = {} // __v1に配置するJavaScriptのコードで定義された関数
+    this.nakoFuncList = {} // __v1に配置するJavaScriptのコードで定義された関数
 
     this.logger = new NakoLogger()
 
@@ -140,12 +141,7 @@ export class NakoCompiler {
      * funclistはシンタックスハイライトの高速化のために事前に取り出した、ファイルが定義する関数名のリスト。
      */
     this.dependencies = {}
-
-    /** @type {Set<string>} */
     this.usedFuncs = new Set()
-
-    this.setFunc = this.addFunc // エイリアス
-
     this.numFailures = 0
 
     if (options.useBasicPlugin) { this.addBasicPlugins() }
@@ -153,6 +149,18 @@ export class NakoCompiler {
 
   getLogger (): NakoLogger {
     return this.logger
+  }
+
+  getNakoFuncList (): FuncList {
+    return this.nakoFuncList
+  }
+
+  getNakoFunc (name: string): FuncListItem|undefined {
+    return this.nakoFuncList[name]
+  }
+
+  getPluginfiles (): Record<string, any> {
+    return this.pluginfiles
   }
 
   /**

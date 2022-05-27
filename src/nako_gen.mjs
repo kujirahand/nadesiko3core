@@ -25,7 +25,7 @@ export class NakoGen {
          * 出力するJavaScriptコードのヘッダー部分で定義する必要のある関数。fnはjsのコード。
          * プラグイン関数は含まれない。
          */
-        this.nakoFuncs = { ...com.nakoFuncs };
+        this.nakoFuncs = { ...com.getNakoFuncList() };
         /**
          * なでしこで定義したテストの一覧
          */
@@ -278,14 +278,6 @@ export class NakoGen {
      */
     addFunc(key, josi, fn) {
         this.__self.addFunc(key, josi, fn);
-    }
-    /**
-     * (非推奨) 関数をセットする
-     * @param key 関数名
-     * @param fn 関数
-     */
-    setFunc(key, fn) {
-        this.__self.setFunc(key, fn);
     }
     /**
      * プラグイン関数を参照する
@@ -590,7 +582,7 @@ export class NakoGen {
         const i = res.i;
         // システム関数・変数の場合
         if (i === 0) {
-            const pv = this.__self.funclist[name];
+            const pv = this.__self.getNakoFunc(name);
             if (!pv) {
                 return `${res.js}/*err:${lno}*/`;
             }
@@ -1161,7 +1153,10 @@ export class NakoGen {
         // どの関数を呼び出すのか関数を特定する
         let func;
         if (res.i === 0) { // plugin function
-            func = this.__self.funclist[funcName];
+            func = this.__self.getNakoFunc(funcName);
+            if (!func) {
+                throw new Error('[System Error] NakoCompiler.nakoFuncList の不整合があります。');
+            }
             if (func.type !== 'func') {
                 throw NakoSyntaxError.fromNode(`『${funcName}』は関数ではありません。`, node);
             }

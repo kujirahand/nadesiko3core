@@ -46,7 +46,7 @@ export class NakoGlobal {
 
     // PluginSystemとdestroy()から参照するため
     this.__module = { ...compiler.__module } // shallow copy
-    this.pluginfiles = { ...compiler.pluginfiles }
+    this.pluginfiles = { ...compiler.getPluginfiles() }
 
     // PluginWorkerでユーザー定義関数のJavaScriptコードをworkerのコンパイラのインスタンスへコピーするため
     this.gen = gen

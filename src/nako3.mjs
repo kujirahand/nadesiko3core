@@ -18,6 +18,7 @@ import { NakoRuntimeError, NakoLexerError, NakoImportError, NakoSyntaxError, Int
 import { NakoLogger } from './nako_logger.mjs';
 import { NakoGlobal } from './nako_global.mjs';
 const cloneAsJSON = (x) => JSON.parse(JSON.stringify(x));
+/** なでしこコンパイラ */
 export class NakoCompiler {
     /**
      * @param {undefined | {'useBasicPlugin':true|false}} options
@@ -27,7 +28,7 @@ export class NakoCompiler {
             options = { useBasicPlugin: true };
         }
         this.silent = true;
-        this.filename = 'inline';
+        this.filename = 'main.nako3';
         this.options = options;
         // 環境のリセット
         /** @type {Record<string, any>[]} */
@@ -48,7 +49,7 @@ export class NakoCompiler {
         this.pluginfiles = {}; // 取り込んだファイル一覧
         this.isSetter = false; // 代入的関数呼び出しを管理(#290)
         this.commandlist = new Set(); // プラグインで定義された定数・変数・関数の名前
-        this.nakoFuncs = {}; // __v1に配置するJavaScriptのコードで定義された関数
+        this.nakoFuncList = {}; // __v1に配置するJavaScriptのコードで定義された関数
         this.logger = new NakoLogger();
         // 必要なオブジェクトを覚えておく
         this.prepare = NakoPrepare.getInstance();
@@ -61,9 +62,7 @@ export class NakoCompiler {
          * funclistはシンタックスハイライトの高速化のために事前に取り出した、ファイルが定義する関数名のリスト。
          */
         this.dependencies = {};
-        /** @type {Set<string>} */
         this.usedFuncs = new Set();
-        this.setFunc = this.addFunc; // エイリアス
         this.numFailures = 0;
         if (options.useBasicPlugin) {
             this.addBasicPlugins();
@@ -71,6 +70,15 @@ export class NakoCompiler {
     }
     getLogger() {
         return this.logger;
+    }
+    getNakoFuncList() {
+        return this.nakoFuncList;
+    }
+    getNakoFunc(name) {
+        return this.nakoFuncList[name];
+    }
+    getPluginfiles() {
+        return this.pluginfiles;
     }
     /**
      * 基本的なプラグインを追加する
