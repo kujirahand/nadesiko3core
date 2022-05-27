@@ -1,5 +1,5 @@
 import { NakoRuntimeError } from './nako_errors.mjs';
-import NakoCoreVersion from './nako_core_version.mjs';
+import nakoCoreVersion from './nako_core_version.mjs';
 export default {
     'meta': {
         type: 'const',
@@ -15,7 +15,8 @@ export default {
         josi: [],
         pure: false,
         fn: function (sys) {
-            sys.__v0['ナデシコバージョン'] = typeof NakoCoreVersion === 'undefined' ? '?' : NakoCoreVersion.version;
+            sys.__v0['ナデシコ言語バージョン'] = nakoCoreVersion.version;
+            sys.__v0['ナデシコバージョン'] = nakoCoreVersion.version;
             // なでしこの関数や変数を探して返す
             sys.__findVar = function (nameStr, def) {
                 if (typeof nameStr === 'function') {
@@ -128,6 +129,7 @@ export default {
     },
     // @システム定数
     'ナデシコバージョン': { type: 'const', value: '?' },
+    'ナデシコ言語バージョン': { type: 'const', value: '?' },
     'ナデシコエンジン': { type: 'const', value: 'nadesi.com/v3' },
     'ナデシコ種類': { type: 'const', value: 'wnako3/cnako3' },
     'はい': { type: 'const', value: 1 },
