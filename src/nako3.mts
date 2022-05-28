@@ -4,7 +4,7 @@
 import { NakoParser } from './nako_parser3.mjs'
 import { NakoLexer } from './nako_lexer.mjs'
 import { NakoPrepare } from './nako_prepare.mjs'
-import { generateJS, NakoGenResult } from './nako_gen.mjs'
+import { generateJS, NakoGenOptions, NakoGenResult } from './nako_gen.mjs'
 import { NakoGenASync } from './nako_gen_async.mjs'
 import NakoIndent from './nako_indent.mjs'
 import { convertDNCL } from './nako_from_dncl.mjs'
@@ -645,31 +645,31 @@ export class NakoCompiler {
    * プログラムをコンパイルしてランタイム用のJavaScriptのコードを返す
    * @param {string} code コード (なでしこ)
    * @param {string} filename
-   * @param {boolean | string} isTest テストかどうか。stringの場合は1つのテストのみ。
+   * @param {boolean} isTest テストかどうか
    * @param {string} [preCode]
    */
-  compile (code: string, filename: string, isTest: boolean, preCode = ''): string {
+  compile (code: string, filename: string, isTest = false, preCode = ''): string {
     const ast = this.parse(code, filename, preCode)
-    const codeObj = this.generateCode(ast, isTest)
+    const codeObj = this.generateCode(ast, new NakoGenOptions(isTest))
     return codeObj.runtimeEnv
   }
 
   /**
    * プログラムをコンパイルしてJavaScriptのコードオブジェクトを返す
    * @param {AST} ast
-   * @param {boolean | string} isTest テストかどうか。stringの場合は1つのテストのみ。
+   * @param opt テストかどうか
    * @return {Object}
    */
-  generateCode (ast: Ast, isTest: boolean): NakoGenResult {
+  generateCode (ast: Ast, opt: NakoGenOptions): NakoGenResult {
     // Select Code Generator #637
     switch (ast.genMode) {
       // ノーマルモード
       case 'sync':
-        return generateJS(this, ast, isTest)
+        return generateJS(this, ast, opt)
       // 『!非同期モード』は非推奨
       case '非同期モード':
         this.logger.warn('『!非同期モード』の利用は非推奨です。[詳細](https://github.com/kujirahand/nadesiko3/issues/1164)')
-        return NakoGenASync.generate(this, ast, isTest)
+        return NakoGenASync.generate(this, ast, opt.isTest)
       default:
         throw new Error(`コードジェネレータの「${ast.genMode}」はサポートされていません。`)
     }
@@ -720,7 +720,7 @@ export class NakoCompiler {
       // onBeforeGenerate
       this.eventList.filter(o => o.eventName === 'beforeGenerate').map(e => e.callback(ast))
       // generate
-      out = this.generateCode(ast, optsAll.testOnly)
+      out = this.generateCode(ast, new NakoGenOptions(optsAll.testOnly))
       // onAfterGenerate
       this.eventList.filter(o => o.eventName === 'afterGenerate').map(e => e.callback(out))
     } catch (e: any) {
@@ -797,14 +797,13 @@ export class NakoCompiler {
 
   /**
    * JavaScriptのみで動くコードを取得する場合
-   * @param {string} code
-   * @param {string} filename
-   * @param {boolean | string} isTest
-   * @param {string} [preCode]
+   * @param code
+   * @param filename
+   * @param opt
    */
-  compileStandalone (code: string, filename: string, isTest: boolean, preCode = '') {
-    const ast = this.parse(code, filename, preCode)
-    return this.generateCode(ast, isTest).standalone
+  compileStandalone (code: string, filename: string, opt: NakoGenOptions): string {
+    const ast = this.parse(code, filename)
+    return this.generateCode(ast, opt).standalone
   }
 
   /**

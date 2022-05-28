@@ -1,7 +1,13 @@
 #!/usr/bin/env node
 import fs from 'fs'
+import path from 'path'
 import com from '../index.mjs'
 import { NakoGlobal } from '../src/nako_global.mjs'
+
+import * as url from 'url'
+import { NakoGenOptions } from '../src/nako_gen.mjs'
+import { NakoCompiler } from '../src/nako3.mjs'
+const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
 
 /** コマンドラインオプション */
 class CommandOptions {
@@ -10,12 +16,14 @@ class CommandOptions {
   nodePath: string;
   scriptPath: string;
   evalStr: string;
+  flagConvert: boolean;
   constructor () {
     this.nodePath = ''
     this.scriptPath = ''
     this.filename = ''
     this.evalStr = ''
     this.isDebug = false
+    this.flagConvert = false
   }
 }
 
@@ -28,9 +36,16 @@ function main (argvOrg: string[]): void {
   opt.scriptPath = argv.shift() || ''
   while (argv.length > 0) {
     const arg = argv.shift() || ''
-    if (arg === '-d' || arg === '--debug') { opt.isDebug = true }
+    if (arg === '-d' || arg === '--debug') {
+      opt.isDebug = true
+      continue
+    }
     if (arg === '-e' || arg === '--eval') {
       opt.evalStr = argv.shift() || ''
+      continue
+    }
+    if (arg === '-c' || arg === '--convert') {
+      opt.flagConvert = true
       continue
     }
     if (opt.filename === '') { opt.filename = arg }
@@ -63,8 +78,30 @@ function main (argvOrg: string[]): void {
   }
   // ソースコードをファイルから読み込む
   const code: string = fs.readFileSync(opt.filename, 'utf-8')
+  // -c オプションが指定されたとき
+  if (opt.flagConvert) { convert(nako, code, opt) }
   // 実行
   nako.run(code, opt.filename)
+}
+
+// -c オプションを指定したとき
+function convert (nako: NakoCompiler, code: string, opt: CommandOptions): void {
+  // オプションを指定
+  const genOpt = new NakoGenOptions(
+    false, 
+    ['nako_errors.mjs', 'nako_core_version.mjs', 'plugin_system.mjs'],
+    'self.__varslist[0][\'ナデシコ種類\'] = \'snako\'')
+  // スタンドアロンコードを生成
+  const js = nako.compileStandalone(code, opt.filename, genOpt)
+  const jsFilename = opt.filename + '.js'
+  fs.writeFileSync(jsFilename, js, { encoding: 'utf-8' })
+  // 必要なライブラリをコピー
+  const runtimeDir = path.join(path.dirname(jsFilename), 'nako3runtime')
+  const srcDir = path.join(__dirname, '..', 'src')
+  if (!fs.existsSync(runtimeDir)) { fs.mkdirSync(runtimeDir) }
+  for (const f of genOpt.importFiles) {
+    fs.copyFileSync(path.join(srcDir, f), path.join(runtimeDir, f))
+  }
 }
 
 /** 使い方を表示 */
@@ -72,6 +109,7 @@ function showHelp (): void {
   console.log('●なでしこ(簡易版) # v.' + com.version.version)
   console.log('[使い方] node snako.mjs [--debug|-d] (filename)')
   console.log('[使い方] node snako.mjs [--eval|-e] (source)')
+  console.log('[使い方] node snako.mjs [-c] (source) ... convert')
 }
 
 /** メイン処理を実行 */

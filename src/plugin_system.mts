@@ -16,11 +16,8 @@ export default {
     pure: false,
     fn: function (sys: any) {
       // 言語バージョンを設定
+      sys.__v0['ナデシコバージョン'] = sys.version
       sys.__v0['ナデシコ言語バージョン'] = sys.coreVersion
-      // ナデシコバージョンを設定(cnako3/wnako3ではコンパイラによって自動的に設定されるため空の場合のみ値を入れる)
-      if (!sys.__v0['ナデシコバージョン'] || sys.__v0['ナデシコバージョン'] === '?') {
-        sys.__v0['ナデシコバージョン'] = sys.version
-      }
       // なでしこの関数や変数を探して返す
       sys.__findVar = function (nameStr: any, def: any): any {
         if (typeof nameStr === 'function') { return nameStr }
