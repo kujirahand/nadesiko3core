@@ -139,7 +139,7 @@ export function stringify(ary, delimiter = undefined, eol = undefined) {
     if (eol === undefined) {
         eol = options.eol;
     }
-    const valueConv = genValueConverter(delimiter, eol);
+    const valueConv = genValueConverter(delimiter);
     if (ary === undefined)
         return '';
     let r = '';
@@ -164,14 +164,16 @@ export function replaceEolMark(eol) {
     eol = eol.replace(/\n/g, '[LF]');
     return eol;
 }
-function genValueConverter(delimiter, _eol) {
+function genValueConverter(delimiter) {
     return function (s) {
         s = '' + s;
         let fQuot = false;
-        if (s.indexOf('\n') >= 0 || s.indexOf('\r') >= 0)
+        if (s.indexOf('\n') >= 0 || s.indexOf('\r') >= 0) {
             fQuot = true;
-        if (s.indexOf(delimiter) >= 0)
+        }
+        if (s.indexOf(delimiter) >= 0) {
             fQuot = true;
+        }
         if (s.indexOf('"') >= 0) {
             fQuot = true;
             s = s.replace(/"/g, '""');

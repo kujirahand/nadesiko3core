@@ -8,6 +8,8 @@ import { FuncList } from './nako_types.mjs'
  * コンパイルされたなでしこのプログラムで、グローバル空間のthisが指すオブジェクト
  */
 export class NakoGlobal {
+  version: string;
+  coreVersion: string;
   __locals: {[key: string]: any};
   __varslist: {[key: string]: any}[];
   index: number;
@@ -43,6 +45,10 @@ export class NakoGlobal {
     this.__stack = []
     this.__labels = []
     this.__genMode = gen.genMode
+
+    // バージョン情報の引き継ぎ
+    this.version = compiler.version
+    this.coreVersion = compiler.coreVersion
 
     // PluginSystemとdestroy()から参照するため
     this.__module = { ...compiler.__module } // shallow copy

@@ -17,6 +17,7 @@ import { SourceMappingOfTokenization, SourceMappingOfIndentSyntax, OffsetToLineC
 import { NakoRuntimeError, NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs';
 import { NakoLogger } from './nako_logger.mjs';
 import { NakoGlobal } from './nako_global.mjs';
+import coreVersion from './nako_core_version.mjs';
 const cloneAsJSON = (x) => JSON.parse(JSON.stringify(x));
 /** なでしこコンパイラ */
 export class NakoCompiler {
@@ -35,6 +36,9 @@ export class NakoCompiler {
         this.__vars = this.__varslist[2];
         this.__v0 = this.__varslist[0];
         this.__v1 = this.__varslist[1];
+        // バージョンを設定
+        this.version = coreVersion.version;
+        this.coreVersion = coreVersion.version;
         /**
          * @type {NakoGlobal[]}
          */
@@ -631,37 +635,37 @@ export class NakoCompiler {
         this.eventList.push({ eventName, callback });
     }
     /**
-     * @param {string} code
-     * @param {string} fname
-     * @param {Partial<CompilerOptions>} opts
-     * @param {string} [preCode]
+     * @param code
+     * @param fname
+     * @param opts
+     * @param [preCode]
      */
     runEx(code, fname, opts, preCode = '') {
         return this._runEx(code, fname, opts, preCode);
     }
     /**
-     * @param {string} code
-     * @param {string} fname
-     * @param {string} [preCode]
-     * @param {string | undefined} [testName]
+     * @param code
+     * @param fname
+     * @param [preCode]
+     * @param [testName]
      */
     test(code, fname, preCode = '', testName = undefined) {
         return this._runEx(code, fname, { testOnly: testName || true }, preCode);
     }
     /**
      * なでしこのプログラムを実行（他に実行しているインスタンスはそのまま）
-     * @param {string} code
-     * @param {string} fname
-     * @param {string} [preCode]
+     * @param code
+     * @param fname
+     * @param [preCode]
      */
     run(code, fname = 'main.nako3', preCode = '') {
         return this._runEx(code, fname, { resetAll: false }, preCode);
     }
     /**
      * なでしこのプログラムを実行（他に実行しているインスタンスもリセットする)
-     * @param {string} code
-     * @param {string} fname
-     * @param {string} [preCode]
+     * @param code
+     * @param fname
+     * @param [preCode]
      */
     runReset(code, fname = 'main.nako3', preCode = '') {
         return this._runEx(code, fname, { resetAll: true, resetEnv: true }, preCode);

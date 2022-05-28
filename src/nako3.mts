@@ -17,6 +17,7 @@ import { SourceMappingOfTokenization, SourceMappingOfIndentSyntax, OffsetToLineC
 import { NakoRuntimeError, NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs'
 import { NakoLogger } from './nako_logger.mjs'
 import { NakoGlobal } from './nako_global.mjs'
+import coreVersion from './nako_core_version.mjs'
 
 // type
 import { Token, Ast, FuncList, FuncListItem, FuncArgs } from './nako_types.mjs'
@@ -91,6 +92,8 @@ export class NakoCompiler {
   __globals: NakoGlobal[];
   __module: Record<string, Record<string, FuncListItem>>;
   numFailures: number; // エラーレポートの数を記録
+  public version: string;
+  public coreVersion: string;
   /**
    * @param {undefined | {'useBasicPlugin':true|false}} options
    */
@@ -106,6 +109,9 @@ export class NakoCompiler {
     this.__vars = this.__varslist[2]
     this.__v0 = this.__varslist[0]
     this.__v1 = this.__varslist[1]
+    // バージョンを設定
+    this.version = coreVersion.version
+    this.coreVersion = coreVersion.version
     /**
      * @type {NakoGlobal[]}
      */
@@ -750,20 +756,20 @@ export class NakoCompiler {
   }
 
   /**
-   * @param {string} code
-   * @param {string} fname
-   * @param {Partial<CompilerOptions>} opts
-   * @param {string} [preCode]
+   * @param code
+   * @param fname
+   * @param opts
+   * @param [preCode]
    */
   runEx (code: string, fname: string, opts: Partial<CompilerOptions>, preCode = '') {
     return this._runEx(code, fname, opts, preCode)
   }
 
   /**
-   * @param {string} code
-   * @param {string} fname
-   * @param {string} [preCode]
-   * @param {string | undefined} [testName]
+   * @param code
+   * @param fname
+   * @param [preCode]
+   * @param [testName]
    */
   test (code: string, fname: string, preCode = '', testName: string|undefined = undefined) {
     return this._runEx(code, fname, { testOnly: testName || true }, preCode)
@@ -771,9 +777,9 @@ export class NakoCompiler {
 
   /**
    * なでしこのプログラムを実行（他に実行しているインスタンスはそのまま）
-   * @param {string} code
-   * @param {string} fname
-   * @param {string} [preCode]
+   * @param code
+   * @param fname
+   * @param [preCode]
    */
   run (code: string, fname = 'main.nako3', preCode = ''): NakoGlobal {
     return this._runEx(code, fname, { resetAll: false }, preCode)
@@ -781,9 +787,9 @@ export class NakoCompiler {
 
   /**
    * なでしこのプログラムを実行（他に実行しているインスタンスもリセットする)
-   * @param {string} code
-   * @param {string} fname
-   * @param {string} [preCode]
+   * @param code
+   * @param fname
+   * @param [preCode]
    */
   runReset (code: string, fname = 'main.nako3', preCode = '') {
     return this._runEx(code, fname, { resetAll: true, resetEnv: true }, preCode)

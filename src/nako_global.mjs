@@ -23,6 +23,9 @@ export class NakoGlobal {
         this.__stack = [];
         this.__labels = [];
         this.__genMode = gen.genMode;
+        // バージョン情報の引き継ぎ
+        this.version = compiler.version;
+        this.coreVersion = compiler.coreVersion;
         // PluginSystemとdestroy()から参照するため
         this.__module = { ...compiler.__module }; // shallow copy
         this.pluginfiles = { ...compiler.getPluginfiles() };

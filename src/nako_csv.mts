@@ -147,7 +147,7 @@ export function stringify (ary: string[][], delimiter: string|undefined = undefi
   if (eol === undefined) {
     eol = options.eol
   }
-  const valueConv = genValueConverter(delimiter, eol)
+  const valueConv = genValueConverter(delimiter)
   if (ary === undefined) return ''
   let r = ''
   for (let i = 0; i < ary.length; i++) {
@@ -172,12 +172,12 @@ export function replaceEolMark (eol: string): string {
   return eol
 }
 
-function genValueConverter (delimiter: string, _eol: string) {
+function genValueConverter (delimiter: string) {
   return function (s: string) {
     s = '' + s
     let fQuot = false
-    if (s.indexOf('\n') >= 0 || s.indexOf('\r') >= 0) fQuot = true
-    if (s.indexOf(delimiter) >= 0) fQuot = true
+    if (s.indexOf('\n') >= 0 || s.indexOf('\r') >= 0) { fQuot = true }
+    if (s.indexOf(delimiter) >= 0) { fQuot = true }
     if (s.indexOf('"') >= 0) {
       fQuot = true
       s = s.replace(/"/g, '""')
