@@ -3,7 +3,7 @@
  * なお速度優先で忠実にJavaScriptのコードを生成する。
  */
 
-import { NakoSyntaxError } from './nako_errors.mjs'
+import { NakoRuntimeError, NakoSyntaxError, NakoError } from './nako_errors.mjs'
 import { NakoLexer } from './nako_lexer.mjs'
 import { Ast, FuncList, FuncArgs, Token } from './nako_types.mjs'
 import { NakoCompiler } from './nako3.mjs'
@@ -41,10 +41,15 @@ export class NakoGenOptions {
   isTest: boolean
   importFiles: string[]
   codeStandalone: string
-  constructor (isTest = false, importFiles: string[] = [], codeStandalone = '') {
+  codeEnv: string
+  constructor (isTest = false, importFiles: string[] = [], codeStandalone = '', convEnv = '') {
     this.isTest = isTest
-    this.importFiles = importFiles
     this.codeStandalone = codeStandalone
+    this.codeEnv = convEnv
+    this.importFiles = ['plugin_system.mjs', 'plugin_math.mjs', 'plugin_csv.mjs', 'plugin_promise.mjs', 'plugin_test.mjs']
+    importFiles.map(fname => {
+      this.importFiles.push(fname)
+    })
   }
 }
 
@@ -238,33 +243,17 @@ export class NakoGen {
   }
 
   /**
-   * プログラムの実行に必要な関数を書き出す(システム領域)
-   * @returns {string}
-   */
-  getVarsCode (): string {
-    let code = ''
-
-    // プログラム中で使った関数を列挙して書き出す
-    for (const key of Array.from(this.usedFuncSet.values())) {
-      if (!this.__self.__varslist[0]) { break }
-      if (!this.__self.__varslist[0][key]) { continue }
-      const f = this.__self.__varslist[0][key]
-      const name = `self.__varslist[0]["${key}"]`
-      if (typeof (f) === 'function') { code += name + '=' + f.toString() + ';\n' } else { code += name + '=' + JSON.stringify(f) + ';\n' }
-    }
-    return code
-  }
-
-  /**
    * プログラムの実行に必要な関数定義を書き出す(グローバル領域)
    * convGenの結果を利用するため、convGenの後に呼び出すこと。
+   * @param com
    * @param opt
-   * @returns {string}
    */
-  getDefFuncCode (opt: NakoGenOptions) {
+  getDefFuncCode (com: NakoCompiler, opt: NakoGenOptions): string {
     let code = ''
     // よく使う変数のショートカット
-    code += 'const __self = self.__self = self;\n'
+    code += `const nakoVersion = { version: ${JSON.stringify(com.version)} }\n`
+    code += 'const __self = self;\n'
+    code += 'self.__self = self;\n'
     code += 'const __varslist = self.__varslist;\n'
     code += 'const __module = self.__module;\n'
     code += 'const __v0 = self.__v0 = self.__varslist[0];\n'
@@ -281,17 +270,6 @@ export class NakoGen {
         `//[/DEF_FUNC name='${key}']\n`
     }
     if (nakoFuncCode !== '') { code += '__v0.line=\'関数の定義\';\n' + nakoFuncCode }
-
-    // プラグインの初期化関数を実行する
-    let pluginCode = ''
-    for (const name in this.__self.__module) {
-      const initkey = `!${name}:初期化`
-      if (this.varslistSet[0].names.has(initkey)) {
-        this.usedFuncSet.add(`!${name}:初期化`)
-        pluginCode += `__v0["!${name}:初期化"](__self);\n`
-      }
-    }
-    if (pluginCode !== '') { code += '__v0.line=\'プラグインの初期化\';\n' + pluginCode }
 
     // テストの定義を行う
     if (opt.isTest) {
@@ -1572,6 +1550,21 @@ export class NakoGen {
   getUsedFuncSet (): Set<string> {
     return this.usedFuncSet
   }
+
+  getPluginInitCode(): string {
+    // プラグインの初期化関数を実行する
+    let code = ''
+    let pluginCode = ''
+    for (const name in this.__self.__module) {
+      const initkey = `!${name}:初期化`
+      if (this.varslistSet[0].names.has(initkey)) {
+        this.usedFuncSet.add(`!${name}:初期化`)
+        pluginCode += `__v0["!${name}:初期化"](__self);\n`
+      }
+    }
+    if (pluginCode !== '') { code += '__v0.line=\'プラグインの初期化\';\n' + pluginCode }
+    return code
+  }
 }
 
 export interface NakoGenResult {
@@ -1586,7 +1579,7 @@ export interface NakoGenResult {
 /**
  * @param com
  * @param ast
- * @param options
+ * @param opt
  */
 export function generateJS (com: NakoCompiler, ast: Ast, opt: NakoGenOptions): NakoGenResult {
   const gen = new NakoGen(com)
@@ -1603,7 +1596,7 @@ export function generateJS (com: NakoCompiler, ast: Ast, opt: NakoGenOptions): N
   let js = gen.convGen(ast, opt)
 
   // (3) JSコードを実行するための事前ヘッダ部分の生成
-  js = gen.getDefFuncCode(opt) + js
+  const jsInit = gen.getDefFuncCode(com, opt)
 
   // テストの実行
   if (js && opt.isTest) {
@@ -1611,32 +1604,48 @@ export function generateJS (com: NakoCompiler, ast: Ast, opt: NakoGenOptions): N
   }
   // async method
   if (gen.numAsyncFn > 0) {
+    const asyncMain = '__nako3async' + (new Date()).getTime() + '_' + ('' + Math.random()).replace('.', '_') + '__'
     js = `
-// <nadesiko3::gen::async>
-(async () => { // async::main
+// --------------------------------------------------
+// <nadesiko3::gen::async times="${gen.numAsyncFn}">
+async function ${asyncMain}(self) {
+${jsInit}
 ${js}
-}).call(this).catch(err => {
-  if (typeof(NakoRuntimeError) === 'undefined') { NakoRuntimeError = this.NakoRuntimeError }
+} // end of ${asyncMain}
+${asyncMain}.call(self, self).catch(err => {
   if (!(err instanceof NakoRuntimeError)) {
-    err = new NakoRuntimeError(err, this.__varslist[0].line);
+    err = new NakoRuntimeError(err, self.__v0.line)
   }
-  this.logger.error(err);
-  throw err;
-}); // async::main
-// <nadesiko3::gen::async>\n`
+  self.logger.error(err)
+})
+// <nadesiko3::gen::async>
+// --------------------------------------------------
+`
+  } else {
+    js = `
+// --------------------------------------------------
+try {
+  ${jsInit}
+  ${js}
+} catch (err) {
+  if (!(err instanceof NakoRuntimeError)) {
+    err = new NakoRuntimeError(err, self.__v0.line)
   }
-
+  self.logger.error(err)
+}
+// --------------------------------------------------
+`
+  }
   // デバッグメッセージ
   com.getLogger().trace('--- generate ---\n' + js)
-  // todo: 将来的に mjs のコードを履くように修正する
   let codeImportFiles = ''
+  const importNames = []
   for (const f of opt.importFiles) {
     if (f === 'nako_errors.mjs') { continue }
-    const ff = f.replace(/\.(js|mjs)$/, '')
+    const ff = 'nako3runtime_' + f.replace(/\.(js|mjs)$/, '').replace(/[^a-zA-Z0-9_]/g, '_')
+    importNames.push(ff)
     codeImportFiles += `import ${ff} from './nako3runtime/${f}'\n`
   }
-  // ${NakoError.toString()}
-  // ${NakoRuntimeError.toString()}
   const standaloneJSCode = `\
 // <standaloneCode>
 // 将来的に ESModule に対応する #1217
@@ -1651,29 +1660,61 @@ self.logger = {
   warn: (message) => { console.warn(message) },
   send: (level, message) => { console.log(message) },
 };
-self.__varslist = [{}, {}, {}];
+self.__varslist = [{}, {}, {}]
+self.__v0 = self.__varslist[0]
+self.initFuncList = []
+self.clearFuncList = []
+// Copy module functions
+for (const mod of [${importNames.join(', ')}]) {
+  for (const funcName in mod) {
+    if (funcName === '初期化') {
+      self.initFuncList.push(mod[funcName].fn)
+      continue
+    }
+    if (funcName === '!クリア') {
+      self.clearFuncList.push(mod[funcName].fn)
+      continue
+    }
+    self.__varslist[0][funcName] = mod[funcName].fn
+  }
+}
 self.__vars = self.__varslist[2];
 self.__module = {};
 self.__locals = {};
 self.__genMode = 'sync';
+
+// プラグインの初期化コードを実行
+self.initFuncList.map(f => f(self))
+
 try {
-${gen.getVarsCode()}
 ${opt.codeStandalone}
 // <JS>
 ${js}
 // </JS>
+  // プラグインのクリアコードを実行
+  self.clearFuncList.map(f => f(self))
 } catch (err) {
-  if (!(err instanceof NakoRuntimeError)) {
-    err = new NakoRuntimeError(err, self.__varslist[0].line);
-  }
   self.logger.error(err);
   throw err;
 }
 // </standaloneCode>
 `
+  // ---
+  const initCode = gen.getPluginInitCode()
+  const runtimeEnvCode = `
+// runtimeEnv
+${NakoError.toString()}
+${NakoRuntimeError.toString()}
+const self = this
+${opt.codeEnv}
+${jsInit}
+${initCode}
+${js}
+// end of runtimeEnv
+`
   return {
     // なでしこの実行環境ありの場合(thisが有効)
-    runtimeEnv: 'const self = this;\n' + js,
+    runtimeEnv: runtimeEnvCode,
     // JavaScript単体で動かす場合
     standalone: standaloneJSCode,
     // コード生成に使ったNakoGenのインスタンス

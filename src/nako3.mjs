@@ -14,7 +14,7 @@ import PluginCSV from './plugin_csv.mjs';
 import PluginPromise from './plugin_promise.mjs';
 import PluginTest from './plugin_test.mjs';
 import { SourceMappingOfTokenization, SourceMappingOfIndentSyntax, OffsetToLineColumn, subtractSourceMapByPreCodeLength } from './nako_source_mapping.mjs';
-import { NakoRuntimeError, NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs';
+import { NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs';
 import { NakoLogger } from './nako_logger.mjs';
 import { NakoGlobal } from './nako_global.mjs';
 import coreVersion from './nako_core_version.mjs';
@@ -553,12 +553,11 @@ export class NakoCompiler {
         }
     }
     /**
-     * @param {string} code
-     * @param {string} fname
-     * @param {boolean} isReset
-     * @param {boolean | string} isTest テストかどうか。stringの場合は1つのテストのみ。
-     * @param {string} [preCode]
-     * @returns {nakoGlobal}
+     * @param code
+     * @param fname
+     * @param isReset
+     * @param isTest テストかどうか。stringの場合は1つのテストのみ。
+     * @param [preCode]
      */
     _run(code, fname, isReset, isTest, preCode = '') {
         const opts = {
@@ -612,24 +611,16 @@ export class NakoCompiler {
         if (this.__globals.indexOf(nakoGlobal) < 0) {
             this.__globals.push(nakoGlobal);
         }
-        try {
-            // beforeRun
-            this.eventList.filter(o => o.eventName === 'beforeRun').map(e => e.callback(nakoGlobal));
-            // eval function
-            // eslint-disable-next-line no-new-func
-            new Function(out.runtimeEnv).apply(nakoGlobal);
-            // afterRun
-            this.eventList.filter(o => o.eventName === 'afterRun').map(e => e.callback(nakoGlobal));
-            return nakoGlobal;
-        }
-        catch (e) {
-            let err = e;
-            if (!(e instanceof NakoRuntimeError)) {
-                err = new NakoRuntimeError(e, nakoGlobal.__varslist[0].line);
-            }
-            this.logger.error(err);
-            throw err;
-        }
+        // beforeRun
+        this.eventList.filter(o => o.eventName === 'beforeRun').map(e => e.callback(nakoGlobal));
+        // コードを実行する
+        // この時、コードの中で try catch が行われるので関数の外に例外を出すことはない
+        // eslint-disable-next-line no-new-func
+        const f = new Function(out.runtimeEnv);
+        f.apply(nakoGlobal);
+        // afterRun
+        this.eventList.filter(o => o.eventName === 'afterRun').map(e => e.callback(nakoGlobal));
+        return nakoGlobal;
     }
     addListener(eventName, callback) {
         this.eventList.push({ eventName, callback });

@@ -1,11 +1,11 @@
 {
   "name": "nadesiko3core",
-  "version": "3.3.44",
+  "version": "3.3.45",
   "description": "Japanese Programming Language Nadesiko v3 core",
   "main": "index.mjs",
   "type": "module",
   "scripts": {
-    "test": "mocha",
+    "test": "mocha ./test",
     "tsc": "tsc --watch",
     "build": "cnako3 batch/build_nako_version.nako3 && tsc",
     "eslint": "eslint ./src/*.mts"

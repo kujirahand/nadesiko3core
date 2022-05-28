@@ -676,12 +676,11 @@ export class NakoCompiler {
   }
 
   /**
-   * @param {string} code
-   * @param {string} fname
-   * @param {boolean} isReset
-   * @param {boolean | string} isTest テストかどうか。stringの場合は1つのテストのみ。
-   * @param {string} [preCode]
-   * @returns {nakoGlobal}
+   * @param code
+   * @param fname
+   * @param isReset
+   * @param isTest テストかどうか。stringの場合は1つのテストのみ。
+   * @param [preCode]
    */
   _run (code: string, fname: string, isReset: boolean, isTest: boolean, preCode = ''): NakoGlobal {
     const opts: CompilerOptions = {
@@ -732,23 +731,16 @@ export class NakoCompiler {
     if (this.__globals.indexOf(nakoGlobal) < 0) {
       this.__globals.push(nakoGlobal)
     }
-    try {
-      // beforeRun
-      this.eventList.filter(o => o.eventName === 'beforeRun').map(e => e.callback(nakoGlobal))
-      // eval function
-      // eslint-disable-next-line no-new-func
-      new Function(out.runtimeEnv).apply(nakoGlobal)
-      // afterRun
-      this.eventList.filter(o => o.eventName === 'afterRun').map(e => e.callback(nakoGlobal))
-      return nakoGlobal
-    } catch (e: any) {
-      let err = e
-      if (!(e instanceof NakoRuntimeError)) {
-        err = new NakoRuntimeError(e, nakoGlobal.__varslist[0].line)
-      }
-      this.logger.error(err)
-      throw err
-    }
+    // beforeRun
+    this.eventList.filter(o => o.eventName === 'beforeRun').map(e => e.callback(nakoGlobal))
+    // コードを実行する
+    // この時、コードの中で try catch が行われるので関数の外に例外を出すことはない
+    // eslint-disable-next-line no-new-func
+    const f = new Function(out.runtimeEnv)
+    f.apply(nakoGlobal)
+    // afterRun
+    this.eventList.filter(o => o.eventName === 'afterRun').map(e => e.callback(nakoGlobal))
+    return nakoGlobal
   }
 
   addListener (eventName: NakoComEventName, callback: (event:any) => void) {

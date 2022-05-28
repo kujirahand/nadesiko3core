@@ -12,9 +12,6 @@ export class NakoGlobal {
   coreVersion: string;
   __locals: {[key: string]: any};
   __varslist: {[key: string]: any}[];
-  index: number;
-  nextIndex: number;
-  numFailures: number;
   __code: string[];
   __callstack: any[];
   __stack: any[];
@@ -22,6 +19,9 @@ export class NakoGlobal {
   __genMode: string;
   __module: {[key: string]: any};
   pluginfiles: {[key: string]: FuncList};
+  index: number;
+  nextIndex: number;
+  numFailures: number;
   gen: NakoGen;
   logger: NakoLogger;
   compiler: NakoCompiler;
