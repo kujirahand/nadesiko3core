@@ -101,20 +101,18 @@ describe('error_message', () => {
       assert.throws(
         () => nako.run('1を表示\n1のエラー発生', 'main.nako3'),
         err => {
-          console.log('@@@', err)
-          assert(err instanceof NakoRuntimeError)
+          assert.strictEqual(err.type, 'NakoRuntimeError')
           assert.strictEqual(err.line, 1) // 2行目
           assert.strictEqual(err.file, 'main.nako3')
           return true
         }
       )
     })
-    /*
     it('エラー位置をプロパティから取得 - 前後に文がある場合', () => {
       assert.throws(
         () => nako.run('1を表示\n1を表示。1のエラー発生。1を表示。', 'main.nako3'),
         err => {
-          assert(err instanceof NakoRuntimeError)
+          assert.strictEqual(err.type, 'NakoRuntimeError')
           assert.strictEqual(err.line, 1) // 2行目
           assert.strictEqual(err.file, 'main.nako3')
           return true
@@ -125,7 +123,7 @@ describe('error_message', () => {
       assert.throws(
         () => nako.run('1のエラー発生', 'main.nako3'),
         err => {
-          assert(err instanceof NakoRuntimeError)
+          assert.strictEqual(err.type, 'NakoRuntimeError')
           assert.strictEqual(err.line, 0) // 1行目
           assert.strictEqual(err.file, 'main.nako3')
           return true
@@ -137,9 +135,7 @@ describe('error_message', () => {
       assert.throws(
         () => nako.run('3回\n1のエラー発生\nここまで', 'main.nako3'),
         err => {
-          console.error(err)
-          console.error(nako.getLogger().getErrorLogs())
-          assert(err instanceof NakoRuntimeError)
+          assert.strictEqual(err.type, 'NakoRuntimeError')
           assert.strictEqual(err.line, 1) // 2行目
           assert.strictEqual(err.file, 'main.nako3')
           return true
@@ -155,31 +151,6 @@ describe('error_message', () => {
         assert.strictEqual(s, '[実行時エラー]main.nako3(2行目): 1')
       })
       await nako.run('0.0001秒後には\n1のエラー発生\nここまで', 'main.nako3')
-    })
-    it('JavaScriptのみで動くコードの場合 - エラー発生', function () {
-      if (process.env.NODE_ENV === 'test') { return this.skip() }
-      const nako = new NakoCompiler()
-      const code = nako.compileStandalone('10のエラー発生')
-      const silent = 'const console = { error: () => {} };\n'
-      assert.rejects(
-        // eslint-disable-next-line no-new-func
-        async () => await (new Function(silent + code)()),
-        (err) => {
-          assert.strictEqual(err.message.split('\n')[0], '[実行時エラー](1行目): エラー『10』が発生しました。')
-          return true
-        }
-      )
-    })
-    // 生成される standalone コードが cjs なのでパス
-    it('JavaScriptのみで動くコードの場合 - 「秒後」内の場合', function (done) {
-      if (process.env.NODE_ENV === 'test') {return this.skip()}
-      const nako = new NakoCompiler()
-      new Function('const console = { error: this.callback };\n' + nako.compileStandalone('0.0001秒後には\n20のエラー発生\nここまで')).apply({
-        callback: (err) => {
-          assert.strictEqual(err.message.split('\n')[0], '[実行時エラー](2行目): エラー『20』が発生しました。')
-          done()
-        }
-      })
     })
   })
   describe('インデント構文のエラー', () => {
@@ -235,6 +206,5 @@ describe('error_message', () => {
       // assert.strictEqual(log, '[警告]main.nako3(1行目): 関数『足』は既に定義されています。')
       assert.strictEqual(log, '')
     })
-  */
   })
 })
