@@ -815,6 +815,10 @@ export class NakoCompiler {
         this.pluginFunclist[key] = cloneAsJSON(this.funclist[key]);
         this.__varslist[0][key] = fn;
     }
+    // (非推奨) 互換性のため ... 関数を追加する
+    setFunc(key, josi, fn, returnNone = true, asyncFn = false) {
+        this.addFunc(key, josi, fn, returnNone, asyncFn);
+    }
     /**
      * プラグイン関数を参照する
      * @param key プラグイン関数の関数名

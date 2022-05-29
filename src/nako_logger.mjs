@@ -71,7 +71,6 @@ export class NakoLogger {
         return [this.logs.replace(/\s+$/, ''), this.position];
     }
     clear() {
-        this.listeners = [];
         this.logs = '';
         this.position = '';
     }

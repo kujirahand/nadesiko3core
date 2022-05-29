@@ -91,7 +91,6 @@ export class NakoLogger {
   }
 
   public clear (): void {
-    this.listeners = []
     this.logs = ''
     this.position = ''
   }

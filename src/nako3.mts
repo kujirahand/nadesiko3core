@@ -916,10 +916,15 @@ export class NakoCompiler {
    * @param {boolean} returnNone 値を返す関数の場合はfalseを指定
    * @param {boolean} asyncFn Promiseを返す関数かを指定
    */
-  addFunc (key: string, josi: FuncArgs, fn: any, returnNone = true, asyncFn = false) {
+  addFunc (key: string, josi: FuncArgs, fn: any, returnNone = true, asyncFn = false): void {
     this.funclist[key] = { josi, fn, type: 'func', return_none: returnNone, asyncFn }
     this.pluginFunclist[key] = cloneAsJSON(this.funclist[key])
     this.__varslist[0][key] = fn
+  }
+
+  // (非推奨) 互換性のため ... 関数を追加する
+  public setFunc (key: string, josi: FuncArgs, fn: any, returnNone = true, asyncFn = false): void {
+    this.addFunc(key, josi, fn, returnNone, asyncFn)
   }
 
   /**
