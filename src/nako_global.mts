@@ -1,8 +1,8 @@
-import { CompilerOptions, NakoCompiler } from './nako3.mjs'
+import { NakoCompiler } from './nako3.mjs'
 import { NakoColors } from './nako_colors.mjs'
 import { NakoGen } from './nako_gen.mjs'
 import { NakoLogger } from './nako_logger.mjs'
-import { FuncList } from './nako_types.mjs'
+import { CompilerOptions, FuncList } from './nako_types.mjs'
 
 /**
  * コンパイルされたなでしこのプログラムで、グローバル空間のthisが指すオブジェクト
@@ -79,9 +79,10 @@ export class NakoGlobal {
    * @param {CompilerOptions} opts
    * @param {string} [preCode]
    */
-  runEx (code: string, fname: string, opts: CompilerOptions, preCode = '') {
+  runEx (code: string, fname: string, opts: CompilerOptions, preCode = ''): NakoGlobal {
     // スコープを共有して実行
-    return this.compiler._runEx(code, fname, opts, preCode, this)
+    opts.preCode = preCode
+    return this.compiler.runSync(code, fname, opts)
   }
 
   /**

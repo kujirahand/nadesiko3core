@@ -78,8 +78,22 @@ interface NakoLoggerListener {
  */
 export class NakoLogger {
   private listeners: NakoLoggerListener[];
+  private logs: string
+  private position: string
   public constructor () {
     this.listeners = []
+    this.logs = ''
+    this.position = ''
+  }
+
+  public getErrorLogs (): [string, string] {
+    return [this.logs.replace(/\s+$/, ''), this.position]
+  }
+
+  public clear (): void {
+    this.listeners = []
+    this.logs = ''
+    this.position = ''
   }
 
   /**
@@ -137,14 +151,25 @@ export class NakoLogger {
    * @param {Position | null} position
    */
   public error (message: string | Error | NakoError, position: PositionOrNull = null):void {
-    if (message instanceof NakoError) {
-      // NakoErrorのサブクラスの場合は、そのプロパティからエラー位置などを取得できる。
-      this.sendI(
-        LogLevel.error,
-        `${NakoColors.color.red}${message.tag}${NakoColors.color.reset}${message.positionJa}${message.msg}`,
-        position)
-      return
-    } else if (message instanceof Error) {
+    // NakoErrorか判定 (`message instanceof NakoError`では判定できない場合がある)
+    if (message instanceof Error && typeof (message as NakoError).type === 'string') {
+      // NakoErrorか
+      const etype: string = (message as NakoError).type
+      switch (etype) {
+        case 'NakoRuntimeError':
+        case 'NakoError':
+          if (message instanceof NakoError) {
+            const e: NakoError = message as NakoError
+            let pos: any = position
+            if (pos === null || pos === undefined) {
+              pos = { file: e.file, line: e.line || 0, startOffset: 0, endOffset: 0 }
+            }
+            this.sendI(LogLevel.error, e.message, pos)
+            return
+          }
+      }
+    }
+    if (message instanceof Error) {
       // 一般のエラーの場合は、messageのみ取得できる。
       message = message.message
     }
@@ -188,6 +213,14 @@ export class NakoLogger {
         position: position
       }
       return data
+    }
+    // エラーならログに追加
+    if (level === LogLevel.error) {
+      const data = makeData()
+      this.logs += data.noColor + '\n'
+      if (position && this.position !== null) {
+        this.position = `l${position.line}:${position.file}`
+      }
     }
     // 登録したリスナーに通知する
     for (const l of this.listeners) {

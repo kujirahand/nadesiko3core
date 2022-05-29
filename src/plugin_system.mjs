@@ -125,6 +125,7 @@ export default {
             if (sys.__genMode === '非同期モード') {
                 sys.__stopAsync(sys);
             }
+            sys.__v0['表示ログ'] = '';
         }
     },
     // @システム定数

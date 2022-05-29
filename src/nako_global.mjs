@@ -52,7 +52,8 @@ export class NakoGlobal {
      */
     runEx(code, fname, opts, preCode = '') {
         // スコープを共有して実行
-        return this.compiler._runEx(code, fname, opts, preCode, this);
+        opts.preCode = preCode;
+        return this.compiler.runSync(code, fname, opts);
     }
     /**
      * テスト実行のためのメソッド

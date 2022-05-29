@@ -2,6 +2,8 @@
  * なでしこ3 の TypeScript のための型定義
  */
 
+import { NakoGlobal } from './nako_global.mjs'
+
 // 関数に関する定義
 export type FuncArgs = string[][]
 
@@ -21,14 +23,17 @@ export interface FuncListItem {
   name?: string;
 }
 
+// 関数の一覧
 export type FuncList = {[key: string]: FuncListItem};
 
+// トークンのメタ情報
 export interface TokenMeta {
     josi: FuncArgs | undefined;
     varnames: string[] | undefined;
     funcPointers: any[] | undefined;
 }
 
+// トークン
 export interface Token {
     type: string;
     value: any;
@@ -118,4 +123,29 @@ export interface SourceMap {
     file: string | undefined;
     line: number;
     column: number;
+}
+
+/**
+ * コンパイルオプション
+ */
+export class CompilerOptions {
+  resetEnv: boolean; // 現在の環境をリセット
+  testOnly: boolean; // テストだけを実行する
+  resetAll: boolean; // 全ての環境をリセット
+  preCode: string; // 環境を構築するためのコード
+  nakoGlobal: NakoGlobal | null; // 実行に使う環境
+  constructor (initObj: any = {}) {
+    this.testOnly = initObj.testOnly || false
+    this.resetEnv = initObj.resetEnv || false
+    this.resetAll = initObj.resetAll || false
+    this.preCode = initObj.preCode || ''
+    this.nakoGlobal = initObj.nakoGlobal || null
+  }
+}
+
+export type NakoComEventName = 'finish' | 'beforeRun' | 'beforeGenerate' | 'afterGenerate' | 'beforeParse'
+
+export interface NakoEvent {
+  eventName: NakoComEventName
+  callback: (event: any) => void
 }

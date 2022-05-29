@@ -19,7 +19,7 @@ export class NakoLexer {
         this.funclist = {};
         this.modList = []; // 字句解析した際,取り込むモジュール一覧 --- nako3::lex で更新される
         this.result = [];
-        this.modName = 'inline'; // モジュール名
+        this.modName = 'main.nako3'; // モジュール名
     }
     /** 関数一覧をセット */
     setFuncList(listObj) {
@@ -270,7 +270,7 @@ export class NakoLexer {
             }
             return tokens[i - 1].type;
         };
-        const modSelf = (tokens.length > 0) ? NakoLexer.filenameToModName(tokens[0].file) : 'inline';
+        const modSelf = (tokens.length > 0) ? NakoLexer.filenameToModName(tokens[0].file) : 'main.nako3';
         while (i < tokens.length) {
             const t = tokens[i];
             // 関数を強制的に置換( word => func )
@@ -595,7 +595,7 @@ export class NakoLexer {
      */
     static filenameToModName(filename) {
         if (!filename) {
-            return 'inline';
+            return 'main';
         }
         // パスがあればパスを削除
         filename = filename.replace(/[\\:]/g, '/'); // Windowsのpath記号を/に置換

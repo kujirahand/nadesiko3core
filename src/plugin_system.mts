@@ -113,6 +113,7 @@ export default {
     fn: function (sys: any) {
       sys.__exec('全タイマー停止', [sys])
       if (sys.__genMode === '非同期モード') { sys.__stopAsync(sys) }
+      sys.__v0['表示ログ'] = ''
     }
   },
 

@@ -4,18 +4,28 @@ import { NakoCompiler } from '../src/nako3.mjs'
 
 // eslint-disable-next-line no-undef
 describe('plugin_system_test', () => {
-  const nako = new NakoCompiler()
-  // nako.logger.addListener('trace', ({ browserConsole }) => { console.log(...browserConsole) })
-  const cmp = (/** @type {string} */ code, /** @type {string} */ res) => {
+  const cmp = async (/** @type {string} */ code, /** @type {string} */ res) => {
+    const nako = new NakoCompiler()
     nako.logger.debug('code=' + code)
-    assert.strictEqual(nako.run(code).log, res)
+    const g = nako.runSync(code)
+    assert.strictEqual(g.log, res)
   }
-  const cmpex = (/** @type {string} */ code, /** @type {string | Error | undefined} */ exinfo) => {
+  const cmpex = (/** @type {string} */ code, /** @type { name: String, message: string } */ exinfo) => {
+    const nako = new NakoCompiler()
     nako.logger.debug('code=' + code)
-    assert.throws(() => { nako.run(code) }, exinfo)
+    try {
+      nako.runSync(code)
+    } catch (err) {
+      console.log(err.message)
+      assert.strictEqual(err.name, exinfo.name)
+      assert.notStrictEqual(err.message.indexOf(exinfo.message), -1)
+    }
   }
 
   // --- test ---
+  it('簡単なテスト', () => {
+    cmp('123を表示', '123')
+  })
   it('ナデシコエンジンを表示', () => {
     cmp('ナデシコエンジンを表示', 'nadesi.com/v3')
   })
@@ -418,17 +428,19 @@ describe('plugin_system_test', () => {
     cmp('HYPOT(1,1)を表示。', '1.4142135623730951')
     cmp('HYPOT(10,5)を表示。', '11.180339887498949')
   })
-  it('ナデシコする', () => {
+  it('ナデシコする1/2', () => {
     cmp('「1+2を表示する。」をナデシコする。', '3')
     cmp('Aは3;「1+Aを表示する。」をナデシコする。', '4')
     cmp('Bは2;「BはB+3。Bを表示する。」をナデシコする。Bを表示する。', '5\n5')
     cmp('●Cとは\n5を戻す\nここまで\n「1+C()を表示する。」をナデシコする。C()を表示する。', '6\n5')
     cmp('「Dは4;Dを表示する。」をナデシコする。3+Dを表示する。', '4\n7')
     cmp('Eは5;「Eは3;Eを表示する。」をナデシコする。5+Eを表示する。', '3\n8')
-    // cmpex('「●Fとは\n2を戻す\nここまで\nF()を表示する。」をナデシコする。7+F()を表示する。', { name: 'Error', message: /関数『F』が見当たりません。/ })
     cmp('Bは2;Bを表示する。;「BはB+3。Bを表示する。」をナデシコする。Bを表示する。', '5\n5')
     cmp('Bは2;Bを表示する。;「BはB+3。Bを表示する。」をナデシコ続ける。Bを表示する。', '2\n5\n5')
     cmp('1と2を足す\n「それを表示」をナデシコする', '3')
+  })
+  it('ナデシコする2/2', () => {
+    cmpex('「●Fとは\n2を戻す\nここまで\nF()を表示する。」をナデシコする。7+F()を表示する。', { name: 'NakoError', message: '関数『F』が見当たりません' })
   })
   it('敬語 #728', () => {
     cmp('32を表示してください', '32')
@@ -444,7 +456,8 @@ describe('plugin_system_test', () => {
   })
   it('「ナデシコ」が空白行を出力してしまう問題の修正', () => {
     let lineCount = 0
-    nako.logger.addListener('stdout', (data) => { lineCount++ })
+    const nako = new NakoCompiler()
+    nako.logger.addListener('stdout', (_data) => { lineCount++ })
     nako.run('「a=1+2」をナデシコ')
     assert.strictEqual(lineCount, 0)
   })

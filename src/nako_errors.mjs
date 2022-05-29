@@ -10,12 +10,17 @@ export class NakoError extends Error {
      * @param {number | undefined} line
      */
     constructor(tag, msg, file = undefined, line = undefined) {
+        // エラー位置を分かりやすく日本語に変換
         const positionJa = `${file || ''}${line === undefined ? '' : `(${line + 1}行目): `}`;
-        super(`[${tag}]${positionJa}${msg}\n[バージョン] ${nakoVersion.version}`);
-        this.tag = '[' + tag + ']';
-        this.positionJa = positionJa;
         // #1223 エラーメッセージに「main__関数名」と表示されるので、main__は省略して表示
         msg = msg.replace(/『main__(.+?)』/g, '『$1』');
+        // 親のErrorを呼ぶ
+        super(`[${tag}]${positionJa}${msg}\n[バージョン] ${nakoVersion.version}`);
+        // エラーの種類を設定
+        this.name = 'NakoError';
+        this.type = 'NakoError';
+        this.tag = '[' + tag + ']';
+        this.positionJa = positionJa;
         this.msg = msg;
     }
 }
@@ -27,6 +32,7 @@ export class NakoIndentError extends NakoError {
      */
     constructor(msg, line, file) {
         super('インデントエラー', msg, file, line);
+        this.type = 'NakoIndentError';
         this.line = line;
         this.file = file;
     }
@@ -42,6 +48,7 @@ export class InternalLexerError extends NakoError {
      */
     constructor(msg, preprocessedCodeStartOffset, preprocessedCodeEndOffset, line, file) {
         super('字句解析エラー（内部エラー）', msg, file, line);
+        this.type = 'InternalLexerError';
         this.preprocessedCodeStartOffset = preprocessedCodeStartOffset;
         this.preprocessedCodeEndOffset = preprocessedCodeEndOffset;
         this.line = line;
@@ -58,6 +65,7 @@ export class NakoLexerError extends NakoError {
      */
     constructor(msg, startOffset, endOffset, line, file) {
         super('字句解析エラー', msg, file, line);
+        this.type = 'NakoLexerError';
         this.startOffset = startOffset;
         this.endOffset = endOffset;
         this.line = line;
@@ -74,6 +82,7 @@ export class NakoSyntaxError extends NakoError {
      */
     constructor(msg, line, startOffset, endOffset, file) {
         super('文法エラー', msg, file, line);
+        this.type = 'NakoSyntaxError';
         this.file = file;
         this.line = line;
         this.startOffset = startOffset;
@@ -97,22 +106,33 @@ export class NakoSyntaxError extends NakoError {
 }
 export class NakoRuntimeError extends NakoError {
     /**
-     * @param {Error | string} error エラー
-     * @param {string | undefined} lineNo 発生行
+     * @param error エラー
+     * @param lineNo 発生行
      */
     constructor(error, lineNo) {
-        const className = (error instanceof Error &&
-            error.constructor !== Error &&
-            error.constructor !== NakoRuntimeError)
-            ? error.constructor.name + ': '
-            : '';
-        const msg = error instanceof Error ? error.message : error + '';
+        let msg = 'unknown';
+        if (typeof error === 'string') {
+            msg = error;
+        }
+        else {
+            if (error instanceof NakoRuntimeError) {
+                msg = error.msg;
+            }
+            else if (error instanceof NakoError) {
+                msg = error.msg;
+            }
+            else if (error instanceof Error) {
+                if (error.name === 'Error') {
+                    msg = error.message;
+                }
+                else {
+                    msg = `${error.name}: ${error.message}`;
+                }
+            }
+        }
         // 行番号を表す文字列をパースする。
-        /** @type {number | undefined} */
         let line;
-        /** @type {string | undefined} */
         let file;
-        /** @type {RegExpExecArray | null} */
         let matches;
         if (lineNo === undefined) {
             line = undefined;
@@ -120,20 +140,20 @@ export class NakoRuntimeError extends NakoError {
             // eslint-disable-next-line no-cond-assign
         }
         else if (matches = /^l(-?\d+):(.*)$/.exec(lineNo)) {
-            line = +matches[1];
+            line = parseInt(matches[1]);
             file = matches[2];
             // eslint-disable-next-line no-cond-assign
         }
         else if (matches = /^l(-?\d+)$/.exec(lineNo)) {
-            line = +matches[1];
-            file = undefined;
+            line = parseInt(matches[1]);
+            file = 'main.nako3';
         }
         else {
-            line = undefined;
+            line = 0;
             file = lineNo;
         }
-        super('実行時エラー', `エラー『${className}${msg}』が発生しました。`, file, line);
-        this.error = error;
+        super('実行時エラー', msg, file, line);
+        this.type = 'NakoRuntimeError';
         this.lineNo = lineNo;
         this.line = line;
         this.file = file;

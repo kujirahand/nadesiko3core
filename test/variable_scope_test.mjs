@@ -3,13 +3,13 @@ import assert from 'assert'
 import { NakoCompiler } from '../src/nako3.mjs'
 
 describe('variable_scope_test', () => {
-  const nako = new NakoCompiler()
-  const cmp = (/** @type {string} */ code, /** @type {string} */ res) => {
-    assert.strictEqual(nako.run(code).log, res)
+  const cmp = async (/** @type {string} */ code, /** @type {string} */ res) => {
+    const nako = new NakoCompiler()
+    assert.strictEqual((await nako.runAsync(code)).log, res)
   }
 
-  it('関数内からグローバル変数へ代入', () => {
-    cmp(`
+  it('関数内からグローバル変数へ代入', async () => {
+    await cmp(`
 Aとは変数
 ●Fとは
     A=1
@@ -18,8 +18,8 @@ F
 Aを表示
 `, '1')
   })
-  it('関数内からグローバル変数を参照', () => {
-    cmp(`
+  it('関数内からグローバル変数を参照', async () => {
+    await cmp(`
 Aとは変数
 ●Fとは
     Aを表示
@@ -28,8 +28,8 @@ A=1
 F
 `, '1')
   })
-  it('変数のshadowing', () => {
-    cmp(`
+  it('変数のshadowing', async () => {
+    await cmp(`
 Aとは変数
 A=2
 ●Fとは
@@ -41,9 +41,9 @@ F
 Aを表示
 `, '1\n2')
   })
-  it('ネストした関数定義', () => {
+  it('ネストした関数定義', async () => {
     // 関数内の関数定義は、関数外で定義されている場合と同じ扱いとする。
-    cmp(`
+    await cmp(`
 Aとは変数
 A=3
 ●Fとは
@@ -56,14 +56,14 @@ G
 Aを表示
 `, '1')
   })
-  it('JavaScriptで使えない変数名の使用 - グローバル変数の場合', () => {
-    cmp(`
+  it('JavaScriptで使えない変数名の使用 - グローバル変数の場合', async () => {
+    await cmp(`
 if=10
 ifを表示
 `, '10')
   })
-  it('JavaScriptで使えない変数名の使用 - ローカル変数の場合', () => {
-    cmp(`
+  it('JavaScriptで使えない変数名の使用 - ローカル変数の場合', async () => {
+    await cmp(`
 ●function
     var=10
     varを表示
@@ -71,8 +71,8 @@ ifを表示
 function
 `, '10')
   })
-  it('JavaScriptで使えない変数名の使用 - 関数からグローバル変数を参照する場合', () => {
-    cmp(`
+  it('JavaScriptで使えない変数名の使用 - 関数からグローバル変数を参照する場合', async () => {
+    await cmp(`
 var=10
 ●function
     varを表示
@@ -80,8 +80,8 @@ var=10
 function
 `, '10')
   })
-  it('JavaScriptで使えない変数名の使用 - 変数のshadowing', () => {
-    cmp(`
+  it('JavaScriptで使えない変数名の使用 - 変数のshadowing', async () => {
+    await cmp(`
 var=10
 ●function
     varsとは変数
@@ -106,8 +106,8 @@ F
 `, '3\n4')
     })
     */
-  it('「代入」文が正しく動作しない #1208', () => {
-    cmp(`
+  it('「代入」文が正しく動作しない #1208', async () => {
+    await cmp(`
 A=10
 20をBに代入。
 Aを表示。
@@ -119,8 +119,8 @@ Bを表示。
 ここまで。
 `, '10\n20\n10\n20')
   })
-  it('代入文のテスト #1225', () => {
-    cmp(`
+  it('代入文のテスト #1225', async () => {
+    await cmp(`
 A=10。
 Bは20。
 Cに30を代入。
@@ -135,8 +135,8 @@ J,K,L=[1,2,3]
 ここまで。
 `, '[10,20,30,40,50,60,70,80,90,1,2,3]')
   })
-  it('定数文のテスト #1225', () => {
-    cmp(`
+  it('定数文のテスト #1225', async () => {
+    await cmp(`
 Aを10に定める。
 定数 Bは20。
 定数[C,D,E]=[30,40,50]

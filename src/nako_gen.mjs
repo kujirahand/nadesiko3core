@@ -15,9 +15,9 @@ export class NakoGenOptions {
         this.codeStandalone = codeStandalone;
         this.codeEnv = convEnv;
         this.importFiles = ['plugin_system.mjs', 'plugin_math.mjs', 'plugin_csv.mjs', 'plugin_promise.mjs', 'plugin_test.mjs'];
-        importFiles.map(fname => {
+        for (const fname of importFiles) {
             this.importFiles.push(fname);
-        });
+        }
     }
 }
 /**
@@ -1502,7 +1502,7 @@ export class NakoGen {
             }
         }
         if (pluginCode !== '') {
-            code += '__v0.line=\'プラグインの初期化\';\n' + pluginCode;
+            code += '__v0.line=\'l0:プラグインの初期化\';\n' + pluginCode;
         }
         return code;
     }
@@ -1539,10 +1539,8 @@ ${jsInit}
 ${js}
 } // end of ${asyncMain}
 ${asyncMain}.call(self, self).catch(err => {
-  if (!(err instanceof NakoRuntimeError)) {
-    err = new NakoRuntimeError(err, self.__v0.line)
-  }
-  self.logger.error(err)
+  self.numFailures++
+  throw new NakoRuntimeError(err, self.__v0.line) // エラー位置を認識
 })
 // <nadesiko3::gen::async>
 // --------------------------------------------------
@@ -1555,10 +1553,8 @@ try {
   ${jsInit}
   ${js}
 } catch (err) {
-  if (!(err instanceof NakoRuntimeError)) {
-    err = new NakoRuntimeError(err, self.__v0.line)
-  }
-  self.logger.error(err)
+  self.numFailures++
+  throw new NakoRuntimeError(err, self.__v0.line) // エラー位置を認識
 }
 // --------------------------------------------------
 `;

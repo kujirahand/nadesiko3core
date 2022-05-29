@@ -1,6 +1,9 @@
 /**
  * nadesiko v3
  */
+// types
+import { CompilerOptions } from './nako_types.mjs';
+// parser / lexer
 import { NakoParser } from './nako_parser3.mjs';
 import { NakoLexer } from './nako_lexer.mjs';
 import { NakoPrepare } from './nako_prepare.mjs';
@@ -8,16 +11,18 @@ import { generateJS, NakoGenOptions } from './nako_gen.mjs';
 import { NakoGenASync } from './nako_gen_async.mjs';
 import NakoIndent from './nako_indent.mjs';
 import { convertDNCL } from './nako_from_dncl.mjs';
+import { SourceMappingOfTokenization, SourceMappingOfIndentSyntax, OffsetToLineColumn, subtractSourceMapByPreCodeLength } from './nako_source_mapping.mjs';
+import { NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs';
+import { NakoLogger } from './nako_logger.mjs';
+import { NakoGlobal } from './nako_global.mjs';
+// version info
+import coreVersion from './nako_core_version.mjs';
+// basic plugins
 import PluginSystem from './plugin_system.mjs';
 import PluginMath from './plugin_math.mjs';
 import PluginCSV from './plugin_csv.mjs';
 import PluginPromise from './plugin_promise.mjs';
 import PluginTest from './plugin_test.mjs';
-import { SourceMappingOfTokenization, SourceMappingOfIndentSyntax, OffsetToLineColumn, subtractSourceMapByPreCodeLength } from './nako_source_mapping.mjs';
-import { NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs';
-import { NakoLogger } from './nako_logger.mjs';
-import { NakoGlobal } from './nako_global.mjs';
-import coreVersion from './nako_core_version.mjs';
 const cloneAsJSON = (x) => JSON.parse(JSON.stringify(x));
 /** なでしこコンパイラ */
 export class NakoCompiler {
@@ -327,6 +332,8 @@ export class NakoCompiler {
             this.funclist[name] = JSON.parse(JSON.stringify(original));
         }
         this.lexer.setFuncList(this.funclist);
+        this.clearPlugins();
+        this.logger.clear();
     }
     /**
      * typeがcodeのトークンを単語に分割するための処理
@@ -522,15 +529,45 @@ export class NakoCompiler {
     }
     /**
      * プログラムをコンパイルしてランタイム用のJavaScriptのコードを返す
-     * @param {string} code コード (なでしこ)
-     * @param {string} filename
-     * @param {boolean} isTest テストかどうか
-     * @param {string} [preCode]
+     * @param code コード (なでしこ)
+     * @param filename
+     * @param isTest テストかどうか
+     * @param preCode
      */
     compile(code, filename, isTest = false, preCode = '') {
-        const ast = this.parse(code, filename, preCode);
-        const codeObj = this.generateCode(ast, new NakoGenOptions(isTest));
-        return codeObj.runtimeEnv;
+        const opt = new CompilerOptions();
+        opt.testOnly = isTest;
+        opt.preCode = preCode;
+        const res = this.compileFromCode(code, filename, opt);
+        return res.runtimeEnv;
+    }
+    /** parse & generate  */
+    compileFromCode(code, filename, options) {
+        if (filename === '') {
+            filename = 'main.nako3';
+        }
+        try {
+            if (options.resetEnv) {
+                this.reset();
+            }
+            if (options.resetAll) {
+                this.clearPlugins();
+            }
+            // onBeforeParse
+            this.eventList.filter(o => o.eventName === 'beforeParse').map(e => e.callback(code));
+            const ast = this.parse(code, filename, options.preCode);
+            // onBeforeGenerate
+            this.eventList.filter(o => o.eventName === 'beforeGenerate').map(e => e.callback(ast));
+            // generate
+            const outCode = this.generateCode(ast, new NakoGenOptions(options.testOnly));
+            // onAfterGenerate
+            this.eventList.filter(o => o.eventName === 'afterGenerate').map(e => e.callback(outCode));
+            return outCode;
+        }
+        catch (e) {
+            this.logger.error(e);
+            throw e;
+        }
     }
     /**
      * プログラムをコンパイルしてJavaScriptのコードオブジェクトを返す
@@ -552,96 +589,113 @@ export class NakoCompiler {
                 throw new Error(`コードジェネレータの「${ast.genMode}」はサポートされていません。`);
         }
     }
-    /**
+    /** (非推奨)
      * @param code
      * @param fname
      * @param isReset
      * @param isTest テストかどうか。stringの場合は1つのテストのみ。
      * @param [preCode]
      */
-    _run(code, fname, isReset, isTest, preCode = '') {
-        const opts = {
+    async _run(code, fname, isReset, isTest, preCode = '') {
+        const opts = new CompilerOptions({
             resetEnv: isReset,
             resetAll: isReset,
-            testOnly: isTest
-        };
-        return this._runEx(code, fname, opts, preCode);
+            testOnly: isTest,
+            preCode: preCode
+        });
+        return this._runEx(code, fname, opts);
     }
+    /** 各プラグインをリセットする */
     clearPlugins() {
         // 他に実行している「なでしこ」があればクリアする
         this.__globals.forEach((sys) => {
             sys.reset();
         });
+        this.__globals = []; // clear
     }
     /**
-     * @param {string} code
-     * @param {string} fname
-     * @param {Partial<CompilerOptions>} opts
-     * @param {string} [preCode]
-     * @param {NakoGlobal} [nakoGlobal] ナデシコ命令でスコープを共有するため
-     * @returns {nakoGlobal}
+     * 環境を指定してJavaScriptのコードを実行する
+     * @param code JavaScriptのコード
+     * @param nakoGlobal 実行環境
      */
-    _runEx(code, fname, opts, preCode = '', nakoGlobal = undefined) {
-        // コンパイル
-        let out;
-        try {
-            const optsAll = Object.assign({ resetEnv: true, testOnly: false, resetAll: true }, opts);
-            if (optsAll.resetEnv) {
-                this.reset();
-            }
-            if (optsAll.resetAll) {
-                this.clearPlugins();
-            }
-            // onBeforeParse
-            this.eventList.filter(o => o.eventName === 'beforeParse').map(e => e.callback(code));
-            const ast = this.parse(code, fname, preCode);
-            // onBeforeGenerate
-            this.eventList.filter(o => o.eventName === 'beforeGenerate').map(e => e.callback(ast));
-            // generate
-            out = this.generateCode(ast, new NakoGenOptions(optsAll.testOnly));
-            // onAfterGenerate
-            this.eventList.filter(o => o.eventName === 'afterGenerate').map(e => e.callback(out));
-        }
-        catch (e) {
-            this.logger.error(e);
-            throw e;
-        }
-        // 実行
-        nakoGlobal = nakoGlobal || new NakoGlobal(this, out.gen);
-        if (this.__globals.indexOf(nakoGlobal) < 0) {
-            this.__globals.push(nakoGlobal);
-        }
-        // beforeRun
+    evalJS(code, nakoGlobal) {
+        // 実行前に環境を初期化するイベントを実行(beforeRun)
         this.eventList.filter(o => o.eventName === 'beforeRun').map(e => e.callback(nakoGlobal));
-        // コードを実行する
-        // この時、コードの中で try catch が行われるので関数の外に例外を出すことはない
         // eslint-disable-next-line no-new-func
-        const f = new Function(out.runtimeEnv);
+        const f = new Function(code);
         f.apply(nakoGlobal);
-        // afterRun
-        this.eventList.filter(o => o.eventName === 'afterRun').map(e => e.callback(nakoGlobal));
+        // 実行後に終了イベントを実行(finish)
+        this.eventList.filter(o => o.eventName === 'finish').map(e => e.callback(nakoGlobal));
+    }
+    /**
+     * 同期的になでしこのプログラムcodeを実行する
+     * @param code なでしこのプログラム
+     * @param filename ファイル名
+     * @param options オプション
+     * @returns 実行に利用したグローバルオブジェクト
+     */
+    runSync(code, filename, options = new CompilerOptions()) {
+        // コンパイル
+        const out = this.compileFromCode(code, filename, options);
+        // 実行前に環境を生成
+        const nakoGlobal = this.getNakoGlobal(options, out.gen);
+        // 実行
+        this.evalJS(out.runtimeEnv, nakoGlobal);
         return nakoGlobal;
     }
+    /**
+     * 非同期になでしこのプログラムcodeを実行する
+     * @param code なでしこのプログラム
+     * @param filename ファイル名
+     * @param options オプション
+     * @returns 実行に利用したグローバルオブジェクト
+     */
+    async runAsync(code, filename, options = new CompilerOptions()) {
+        // コンパイル
+        const out = this.compileFromCode(code, filename, options);
+        // 実行前に環境を生成
+        const nakoGlobal = this.getNakoGlobal(options, out.gen);
+        // 実行
+        this.evalJS(out.runtimeEnv, nakoGlobal);
+        return nakoGlobal;
+    }
+    getNakoGlobal(options, gen) {
+        // オプションを参照
+        let g = options.nakoGlobal;
+        if (!g) {
+            // 空ならば前回の値を参照(リセットするなら新規で作成する)
+            if (this.__globals.length > 0 && options.resetAll === false && options.resetEnv === false) {
+                g = this.__globals[this.__globals.length - 1];
+            }
+            else {
+                g = new NakoGlobal(this, gen);
+            }
+        }
+        if (this.__globals.indexOf(g) < 0) {
+            this.__globals.push(g);
+        }
+        return g;
+    }
+    /**
+     * イベントを登録する
+     * @param eventName イベント名
+     * @param callback コールバック関数
+     */
     addListener(eventName, callback) {
         this.eventList.push({ eventName, callback });
     }
     /**
+     * テストを実行する
      * @param code
      * @param fname
-     * @param opts
-     * @param [preCode]
+     * @param preCode
+     * @param testOnly
      */
-    runEx(code, fname, opts, preCode = '') {
-        return this._runEx(code, fname, opts, preCode);
-    }
-    /**
-     * @param code
-     * @param fname
-     * @param [preCode]
-     * @param [testName]
-     */
-    test(code, fname, preCode = '', testName = undefined) {
-        return this._runEx(code, fname, { testOnly: testName || true }, preCode);
+    test(code, fname, preCode = '', testOnly = false) {
+        const options = new CompilerOptions();
+        options.preCode = preCode;
+        options.testOnly = testOnly;
+        return this.runSync(code, fname, options);
     }
     /**
      * なでしこのプログラムを実行（他に実行しているインスタンスはそのまま）
@@ -650,16 +704,9 @@ export class NakoCompiler {
      * @param [preCode]
      */
     run(code, fname = 'main.nako3', preCode = '') {
-        return this._runEx(code, fname, { resetAll: false }, preCode);
-    }
-    /**
-     * なでしこのプログラムを実行（他に実行しているインスタンスもリセットする)
-     * @param code
-     * @param fname
-     * @param [preCode]
-     */
-    runReset(code, fname = 'main.nako3', preCode = '') {
-        return this._runEx(code, fname, { resetAll: true, resetEnv: true }, preCode);
+        const options = new CompilerOptions();
+        options.preCode = preCode;
+        return this.runSync(code, fname, options);
     }
     /**
      * JavaScriptのみで動くコードを取得する場合
@@ -667,14 +714,17 @@ export class NakoCompiler {
      * @param filename
      * @param opt
      */
-    compileStandalone(code, filename, opt) {
+    compileStandalone(code, filename, opt = null) {
+        if (opt === null) {
+            opt = new NakoGenOptions();
+        }
         const ast = this.parse(code, filename);
         return this.generateCode(ast, opt).standalone;
     }
     /**
      * プラグイン・オブジェクトを追加
      * @param po プラグイン・オブジェクト
-     * @param {boolean} [persistent] falseのとき、次以降の実行では使えない
+     * @param persistent falseのとき、次以降の実行では使えない
      */
     addPlugin(po, persistent = true) {
         // 変数のメタ情報を確認
@@ -713,7 +763,7 @@ export class NakoCompiler {
      * プラグイン・オブジェクトを追加(ブラウザ向け)
      * @param objName オブジェクト名
      * @param po 関数リスト
-     * @param {boolean} [persistent] falseのとき、次以降の実行では使えない
+     * @param persistent falseのとき、次以降の実行では使えない
      */
     addPluginObject(objName, po, persistent = true) {
         this.__module[objName] = po;
@@ -737,10 +787,10 @@ export class NakoCompiler {
     }
     /**
      * プラグイン・ファイルを追加(Node.js向け)
-     * @param {string} objName オブジェクト名
-     * @param {string} fpath ファイルパス
+     * @param objName オブジェクト名
+     * @param fpath ファイルパス
      * @param po 登録するオブジェクト
-     * @param {boolean} [persistent] falseのとき、次以降の実行では使えない
+     * @param persistent falseのとき、次以降の実行では使えない
      */
     addPluginFile(objName, fpath, po, persistent = true) {
         // Windowsのパスがあると、JSファイル書き出しでエラーになるので、置換する
@@ -767,10 +817,38 @@ export class NakoCompiler {
     }
     /**
      * プラグイン関数を参照する
-     * @param {string} key プラグイン関数の関数名
-     * @returns {NakoFunction} プラグイン・オブジェクト
+     * @param key プラグイン関数の関数名
+     * @returns プラグイン・オブジェクト
      */
     getFunc(key) {
         return this.funclist[key];
+    }
+    /** (非推奨) 同期的になでしこのプログラムcodeを実行する */
+    _runEx(code, filename, opts, preCode = '', nakoGlobal = undefined) {
+        // コンパイル
+        const options = new CompilerOptions(opts);
+        options.preCode = preCode;
+        if (nakoGlobal) {
+            options.nakoGlobal = nakoGlobal;
+        }
+        return this.runSync(code, filename, options);
+    }
+    /** (非推奨) 同期的に実行
+     * @param code
+     * @param fname
+     * @param opts
+     * @param [preCode]
+     */
+    runEx(code, fname, opts, preCode = '') {
+        return this._runEx(code, fname, opts, preCode);
+    }
+    /**
+     * (非推奨) なでしこのプログラムを実行（他に実行しているインスタンスもリセットする)
+     * @param code
+     * @param fname
+     * @param [preCode]
+     */
+    async runReset(code, fname = 'main.nako3', preCode = '') {
+        return this._runEx(code, fname, { resetAll: true, resetEnv: true }, preCode);
     }
 }
