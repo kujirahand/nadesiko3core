@@ -209,7 +209,7 @@ export class NakoLogger {
         browserConsole: browserConsole || formats.browserConsole,
         html: `<div style="${style}">` + (html || formats.html) + '</div>', // 各行を style: block で表示するために、<div>で囲む。
         level: LogLevel.toString(level),
-        position: position
+        position
       }
       return data
     }

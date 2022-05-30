@@ -128,7 +128,7 @@ function cbRangeComment(src) {
         }
     }
     res = res.replace(/(^\s+|\s+$)/, ''); // trim
-    return { src: src, res: res, josi: josi, numEOL: numEOL };
+    return { src, res, josi, numEOL };
 }
 /**
  * @param {string} src
@@ -201,7 +201,7 @@ function cbWordParser(src, isTrimOkurigana = true) {
         res = josi;
         josi = '';
     }
-    return { src: src, res: res, josi: josi, numEOL: 0 };
+    return { src, res, josi, numEOL: 0 };
 }
 function cbString(beginTag, closeTag, src) {
     let res = '';
@@ -246,7 +246,7 @@ function cbString(beginTag, closeTag, src) {
             numEOL++;
         }
     }
-    return { src: src, res: res, josi: josi, numEOL: numEOL };
+    return { src, res, josi, numEOL };
 }
 function parseNumber(n) {
     return Number(n.replace(/_/g, ''));

@@ -12,7 +12,7 @@ import { NakoGenASync } from './nako_gen_async.mjs'
 import NakoIndent from './nako_indent.mjs'
 import { convertDNCL } from './nako_from_dncl.mjs'
 import { SourceMappingOfTokenization, SourceMappingOfIndentSyntax, OffsetToLineColumn, subtractSourceMapByPreCodeLength } from './nako_source_mapping.mjs'
-import { NakoRuntimeError, NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs'
+import { NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs'
 import { NakoLogger } from './nako_logger.mjs'
 import { NakoGlobal } from './nako_global.mjs'
 // version info
@@ -702,7 +702,7 @@ export class NakoCompiler {
       resetEnv: isReset,
       resetAll: isReset,
       testOnly: isTest,
-      preCode: preCode
+      preCode
     })
     return this._runEx(code, fname, opts)
   }

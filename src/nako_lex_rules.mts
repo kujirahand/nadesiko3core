@@ -143,7 +143,7 @@ function cbRangeComment (src: string): NakoLexParseResult {
   for (let i = 0; i < res.length; i++) { if (res.charAt(i) === '\n') { numEOL++ } }
 
   res = res.replace(/(^\s+|\s+$)/, '') // trim
-  return { src: src, res: res, josi: josi, numEOL: numEOL }
+  return { src, res, josi, numEOL }
 }
 
 /**
@@ -214,7 +214,7 @@ function cbWordParser (src: string, isTrimOkurigana = true): NakoLexParseResult 
     res = josi
     josi = ''
   }
-  return { src: src, res: res, josi: josi, numEOL: 0 }
+  return { src, res, josi, numEOL: 0 }
 }
 
 function cbString (beginTag: string, closeTag: string, src: string): NakoLexParseResult {
@@ -252,7 +252,7 @@ function cbString (beginTag: string, closeTag: string, src: string): NakoLexPars
   // 改行を数える
   for (let i = 0; i < res.length; i++) { if (res.charAt(i) === '\n') { numEOL++ } }
 
-  return { src: src, res: res, josi: josi, numEOL: numEOL }
+  return { src, res, josi, numEOL }
 }
 
 function parseNumber (n: string): number {

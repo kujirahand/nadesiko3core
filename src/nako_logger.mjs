@@ -176,7 +176,7 @@ export class NakoLogger {
                 browserConsole: browserConsole || formats.browserConsole,
                 html: `<div style="${style}">` + (html || formats.html) + '</div>',
                 level: LogLevel.toString(level),
-                position: position
+                position
             };
             return data;
         };

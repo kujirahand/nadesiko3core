@@ -291,7 +291,7 @@ export class NakoGen {
                         type: 'func',
                         asyncFn: t.asyncFn
                     };
-                    funcList.push({ name: name, node: t });
+                    funcList.push({ name, node: t });
                     // eslint-disable-next-line brace-style
                 }
                 // 実行速度優先 などのオプションが付いている場合の処理

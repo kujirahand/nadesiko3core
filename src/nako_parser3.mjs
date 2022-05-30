@@ -771,7 +771,7 @@ export class NakoParser extends NakoParserBase {
                 operator: t.type,
                 left: a,
                 right: b,
-                josi: josi,
+                josi,
                 startOffset: a.startOffset,
                 endOffset: a.endOffset,
                 line: a.line,
@@ -1012,7 +1012,7 @@ export class NakoParser extends NakoParserBase {
             from: vFrom,
             to: vTo,
             inc: vInc,
-            word: word,
+            word,
             block: block || [],
             josi: '',
             ...map,
@@ -1233,7 +1233,7 @@ export class NakoParser extends NakoParserBase {
                 type: 'let_array',
                 name: word.name,
                 index: word.index,
-                value: value,
+                value,
                 josi: '',
                 checkInit: this.flagCheckArrayInit,
                 ...map,
@@ -1245,7 +1245,7 @@ export class NakoParser extends NakoParserBase {
         return {
             type: 'let',
             name: word2,
-            value: value,
+            value,
             josi: '',
             ...map,
             end: this.peekSourceMap()
@@ -1269,7 +1269,7 @@ export class NakoParser extends NakoParserBase {
             type: 'def_local_var',
             name: nameToken,
             vartype: '定数',
-            value: value,
+            value,
             josi: '',
             ...map,
             end: this.peekSourceMap()
@@ -1302,7 +1302,7 @@ export class NakoParser extends NakoParserBase {
         return {
             type: 'inc',
             name: word,
-            value: value,
+            value,
             josi: action.josi,
             ...map,
             end: this.peekSourceMap()
@@ -1485,7 +1485,7 @@ export class NakoParser extends NakoParserBase {
         const funcNode = {
             type: 'func',
             name: t.value,
-            args: args,
+            args,
             josi: t.josi,
             ...map,
             end: this.peekSourceMap()
@@ -2059,7 +2059,7 @@ export class NakoParser extends NakoParserBase {
                 operator: '*',
                 left: { type: 'number', value: -1, line },
                 right: v || [],
-                josi: josi,
+                josi,
                 ...map,
                 end: this.peekSourceMap()
             };
@@ -2072,7 +2072,7 @@ export class NakoParser extends NakoParserBase {
             return {
                 type: 'not',
                 value: v,
-                josi: josi,
+                josi,
                 ...map,
                 end: this.peekSourceMap()
             };

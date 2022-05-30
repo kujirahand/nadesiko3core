@@ -495,7 +495,7 @@ export class NakoLexer {
                     }
                     columnCurrent = column;
                     column += src.length - rp.src.length;
-                    result.push({ type: rule.name, value: rp.res, josi: rp.josi, line: line, column: columnCurrent, file: filename, preprocessedCodeOffset: srcLength - src.length, preprocessedCodeLength: src.length - rp.src.length });
+                    result.push({ type: rule.name, value: rp.res, josi: rp.josi, line, column: columnCurrent, file: filename, preprocessedCodeOffset: srcLength - src.length, preprocessedCodeLength: src.length - rp.src.length });
                     src = rp.src;
                     line += rp.numEOL;
                     if (rp.numEOL > 0) {
@@ -565,11 +565,11 @@ export class NakoLexer {
                 }
                 result.push({
                     type: rule.name,
-                    value: value,
+                    value,
                     line: lineCurrent,
                     column: columnCurrent,
                     file: filename,
-                    josi: josi,
+                    josi,
                     preprocessedCodeOffset: srcOffset,
                     preprocessedCodeLength: (srcLength - src.length) - srcOffset
                 });

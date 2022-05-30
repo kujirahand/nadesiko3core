@@ -601,7 +601,7 @@ export class NakoCompiler {
             resetEnv: isReset,
             resetAll: isReset,
             testOnly: isTest,
-            preCode: preCode
+            preCode
         });
         return this._runEx(code, fname, opts);
     }

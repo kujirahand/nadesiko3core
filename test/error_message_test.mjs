@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import { NakoCompiler } from 'nadesiko3core/src/nako3.mjs'
+import { NakoCompiler } from '../src/nako3.mjs'
 import { NakoSyntaxError, NakoRuntimeError, NakoIndentError, NakoLexerError } from '../src/nako_errors.mjs'
 import assert from 'assert'
 

@@ -126,7 +126,7 @@ export class NakoParserBase {
     // ローカル変数？
     if (this.localvars[name]) {
       return {
-        name: name,
+        name,
         scope: 'local',
         info: this.localvars[name]
       }
