@@ -1,0 +1,199 @@
+name: textlint CI
+
+# pull_requestで何かあった時に起動する
+on:
+  pull_request:
+
+jobs:
+  # textlintをかけ、結果をPRにコメントとして表示する。
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 16.x ]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1.4.4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: |
+          yarn install -D
+      # lintする
+      - name: Lint files
+        id: lint
+        run: |
+          result="$(yarn run textlint 2>&1)" || true
+          echo "$result"
+          result="${result//'%'/'%25'}"
+          result="${result//$'\n'/'%0A'}"
+          result="${result//$'\r'/'%0D'}"
+          echo "::set-output name=result::$result"
+          true
+        continue-on-error: true
+      # lint結果をコメントに残す
+      - name: Lint Comment
+        if: github.event.pull_request.head.repo.full_name == github.repository && steps.lint.outputs.result != ''
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const issues_listComments_params = {
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+             repo: context.repo.repo
+            }
+            console.log("call issues.listComments:", issues_listComments_params)
+            const issue_comments = (await github.paginate(github.issues.listComments, issues_listComments_params)).filter(
+              issue_comment => issue_comment.user.id==41898282 && issue_comment.body.startsWith('日本語の')
+            )
+
+            for (const issue_comment of issue_comments) {
+              const issues_deleteComment_params = {
+                comment_id: issue_comment.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo
+              }
+              console.log("call issues.deleteComment:", issues_deleteComment_params)
+              await github.issues.deleteComment(issues_deleteComment_params)
+            }
+
+            const result = `${{steps.lint.outputs.result}}`
+            const issues_createComment_params = {
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "日本語のLint結果\n```\n"+result+"\n```"
+            }
+            console.log("call issues.createComment:", issues_createComment_params)
+            await github.issues.createComment(issues_createComment_params)
+      - name: Exit
+        if: github.event.pull_request.head.repo.full_name != github.repository && steps.lint.outcome == 'failure'
+        run: exit 1
+
+  # PRが来たらtextlintをかけてみて、差分があればPRを作って、エラーで落ちるjob
+  format:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      matrix:
+        node-version: [ 16.x ]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1.4.4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: |
+          yarn install -D
+      # textlintでformatする
+      - name: Format files
+        id: format
+        run: |
+          yarn run textlint:fix
+        continue-on-error: true
+      # 差分があったときは差分を出力する
+      - name: Show diff
+        id: show_diff
+        run: |
+          echo "::set-output name=diff::$(git diff)"
+      # 差分があったときは、コミットを作りpushする
+      - name: Push
+        if: steps.show_diff.outputs.diff != ''
+        run: |
+          git config user.name "textlint CI"
+          git config user.email "textlint_ci@example.com"
+          git add -u
+          git commit -m "日本語修正"
+          git push -f https://${{github.actor}}:${{secrets.GITHUB_TOKEN}}@github.com/${{github.repository}}.git HEAD:refs/heads/fix-text-${{github.event.pull_request.head.ref}}
+      - name: Get PullRequests
+        uses: actions/github-script@v3
+        if: steps.show_diff.outputs.diff != ''
+        id: get_pull_requests
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const pulls_list_params = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: "kujirahand:fix-text-${{github.event.pull_request.head.ref}}",
+              base: "${{github.event.pull_request.head.ref}}",
+              state: "open"
+            }
+            console.log("call pulls.list:", pulls_list_params)
+            const pulls = await github.paginate(github.pulls.list, pulls_list_params)
+            return pulls.length
+      # pushしたブランチでPRを作る
+      - name: Create PullRequest
+        uses: actions/github-script@v3
+        if: steps.show_diff.outputs.diff != '' && steps.get_pull_requests.outputs.result == 0
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const common_params = {
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            }
+            const pulls_create_params = {
+              head: "kujirahand:fix-text-${{github.event.pull_request.head.ref}}",
+              base: "${{github.event.pull_request.head.ref}}",
+              title: "日本語修正 (修正する場合はPRをマージしてください) #${{github.event.pull_request.number}}",
+              body: "日本語を修正しました。本PRをマージすると #${{github.event.pull_request.number}} に修正が適用されます。",
+              ...common_params
+            }
+            console.log("call pulls.create:", pulls_create_params)
+            const create_pull_res = (await github.pulls.create(pulls_create_params)).data
+            const issues_add_assignees_params = {
+              issue_number: create_pull_res.number,
+              assignees: ["${{github.event.pull_request.user.login}}"],
+              ...common_params
+            }
+            console.log("call issues.addAssignees:", issues_add_assignees_params)
+            await github.issues.addAssignees(issues_add_assignees_params)
+      # 既にformat修正のPRがある状態で、手動でformatを修正した場合、format修正のPRを閉じる
+      - name: Close PullRequest
+        uses: actions/github-script@v3
+        if: steps.show_diff.outputs.diff == ''
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const head_name = "fix-text-${{github.event.pull_request.head.ref}}"
+            const common_params = {
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            }
+            const pulls_list_params = {
+              head: "kujirahand:" + head_name,
+              base: "${{github.event.pull_request.head.ref}}",
+              state: "open",
+              ...common_params
+            }
+            console.log("call pulls.list:", pulls_list_params)
+            const pulls = await github.paginate(github.pulls.list,pulls_list_params)
+
+            for (const pull of pulls) {
+              const pulls_update_params = {
+                pull_number: pull.number,
+                state: "closed",
+                ...common_params
+              }
+              console.log("call pulls.update:", pulls_update_params)
+              await github.pulls.update(pulls_update_params)
+              const git_deleteRef_params = {
+                ref: "heads/" + head_name,
+                ...common_params
+              }
+              console.log("call git.deleteRef:", git_deleteRef_params)
+              await github.git.deleteRef(git_deleteRef_params)
+            }
+      - name: Exit
+        if: steps.show_diff.outputs.diff != ''
+        run: exit 1
