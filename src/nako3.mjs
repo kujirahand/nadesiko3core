@@ -34,7 +34,6 @@ export class NakoCompiler {
             options = { useBasicPlugin: true };
         }
         // 環境のリセット
-        /** @type {Record<string, any>[]} */
         this.__varslist = [{}, {}, {}]; // このオブジェクトは変更しないこと (this.gen.__varslist と共有する)
         this.__locals = {}; // ローカル変数
         this.__self = this;
@@ -57,10 +56,6 @@ export class NakoCompiler {
         this.nakoFuncList = {}; // __v1に配置するJavaScriptのコードで定義された関数
         this.eventList = []; // 実行前に環境を変更するためのイベント
         this.logger = new NakoLogger();
-        // 必要なオブジェクトを覚えておく
-        this.prepare = NakoPrepare.getInstance();
-        this.parser = new NakoParser(this.logger);
-        this.lexer = new NakoLexer(this.logger);
         /**
          * 取り込み文を置換するためのオブジェクト。
          * 正規化されたファイル名がキーになり、取り込み文の引数に指定された正規化されていないファイル名はaliasに入れられる。
@@ -73,6 +68,12 @@ export class NakoCompiler {
         if (options.useBasicPlugin) {
             this.addBasicPlugins();
         }
+        // 必要なオブジェクトを覚えておく
+        this.prepare = NakoPrepare.getInstance();
+        this.parser = new NakoParser(this.logger);
+        this.lexer = new NakoLexer(this.logger);
+        // 関数一覧を設定
+        this.lexer.setFuncList(this.funclist);
     }
     getLogger() {
         return this.logger;
@@ -307,14 +308,21 @@ export class NakoCompiler {
     }
     /**
      * 環境のリセット
+     * {NakoResetOption|undefined}
      */
-    reset() {
+    reset(options = undefined) {
+        if (!options || options.needToClearPlugin) {
+            // (メモ) #1245
+            // 通常、リセット処理では、プラグインの!クリアを呼ぶ。
+            // しかし、エディタではクリアイベントを呼ぶと、時計などのコンテンツが止まってしまう
+            // そのため、例外的にオプションを指定すると、プラグインのクリアイベントを呼ばない
+            this.clearPlugins();
+        }
         /**
          * なでしこのローカル変数をスタックで管理
          * __varslist[0] プラグイン領域
          * __varslist[1] なでしこグローバル領域
          * __varslist[2] 最初のローカル変数 ( == __vars }
-         * @type {Record<string, any>[]}
          */
         this.__varslist = [this.__varslist[0], {}, {}];
         this.__v0 = this.__varslist[0];
@@ -331,7 +339,6 @@ export class NakoCompiler {
             this.funclist[name] = JSON.parse(JSON.stringify(original));
         }
         this.lexer.setFuncList(this.funclist);
-        this.clearPlugins();
         this.logger.clear();
     }
     /**
