@@ -328,8 +328,7 @@ export class NakoCompiler {
     const offsetToLineColumn = new OffsetToLineColumn(code)
 
     // トークン分割
-    /** @type {import('./nako_lexer.mjs').Token[]} */
-    let tokens
+    let tokens: Token[]
     try {
       tokens = this.lexer.tokenize(preprocessed.map((v) => v.text).join(''), line, filename)
     } catch (err) {

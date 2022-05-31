@@ -1573,7 +1573,6 @@ try {
     }
     const standaloneJSCode = `\
 // <standaloneCode>
-// 将来的に ESModule に対応する #1217
 import path from 'path'
 import { NakoRuntimeError } from './nako3runtime/nako_errors.mjs'
 ${codeImportFiles}
@@ -1613,10 +1612,10 @@ self.initFuncList.map(f => f(self))
 
 try {
 ${opt.codeStandalone}
-// <JS>
+// <JS:standalone>
 ${js}
-// </JS>
-  // プラグインのクリアコードを実行
+// </JS:standalone>
+  // standaloneCodeでは、即時プラグインのクリアコードを実行
   self.clearFuncList.map(f => f(self))
 } catch (err) {
   self.logger.error(err);

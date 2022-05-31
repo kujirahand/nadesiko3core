@@ -255,7 +255,6 @@ export class NakoCompiler {
         const indentationSyntaxSourceMapping = new SourceMappingOfIndentSyntax(code2, insertedLines, deletedLines);
         const offsetToLineColumn = new OffsetToLineColumn(code);
         // トークン分割
-        /** @type {import('./nako_lexer.mjs').Token[]} */
         let tokens;
         try {
             tokens = this.lexer.tokenize(preprocessed.map((v) => v.text).join(''), line, filename);
