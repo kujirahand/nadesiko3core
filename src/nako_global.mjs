@@ -7,7 +7,8 @@ export class NakoGlobal {
      * @param compiler
      * @param gen
      */
-    constructor(compiler, gen) {
+    constructor(compiler, gen, guid = 0) {
+        this.guid = guid;
         // ユーザーのプログラムから編集される変数
         this.__locals = {};
         this.__varslist = [
@@ -53,6 +54,7 @@ export class NakoGlobal {
     runEx(code, fname, opts, preCode = '') {
         // スコープを共有して実行
         opts.preCode = preCode;
+        opts.nakoGlobal = this;
         return this.compiler.runSync(code, fname, opts);
     }
     /**

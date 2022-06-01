@@ -89,4 +89,10 @@ describe('side_effects_test', () => {
     process1.destroy()
     assert.deepStrictEqual(log, ['初期化0', '初期化1', '!クリア1'])
   })
+  it('余分なNakoGlobalが生成されないこと #1246', () => {
+    const nako3 = new NakoCompiler()
+    const g1 = nako3.runSync('A=10')
+    const g2 = nako3.runSync('B=10')
+    assert.strictEqual(g1.guid, g2.guid)
+  })
 })

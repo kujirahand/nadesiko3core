@@ -8,6 +8,7 @@ import { CompilerOptions, FuncList } from './nako_types.mjs'
  * コンパイルされたなでしこのプログラムで、グローバル空間のthisが指すオブジェクト
  */
 export class NakoGlobal {
+  guid: number;
   version: string;
   coreVersion: string;
   __locals: {[key: string]: any};
@@ -29,7 +30,8 @@ export class NakoGlobal {
    * @param compiler
    * @param gen
    */
-  constructor (compiler: NakoCompiler, gen: NakoGen) {
+  constructor (compiler: NakoCompiler, gen: NakoGen, guid = 0) {
+    this.guid = guid
     // ユーザーのプログラムから編集される変数
     this.__locals = {}
     this.__varslist = [
@@ -82,6 +84,7 @@ export class NakoGlobal {
   runEx (code: string, fname: string, opts: CompilerOptions, preCode = ''): NakoGlobal {
     // スコープを共有して実行
     opts.preCode = preCode
+    opts.nakoGlobal = this
     return this.compiler.runSync(code, fname, opts)
   }
 

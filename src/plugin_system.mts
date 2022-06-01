@@ -580,7 +580,7 @@ export default {
       if (sys.__genMode === '非同期モード') {
         throw new Error('非同期モードでは「ナデシコ続」は利用できません。')
       }
-      sys.__self.runEx(code, sys.__modName, { resetEnv: false, resetLog: false })
+      sys.__self.runEx(code, sys.__modName, { resetEnv: false, resetAll: false })
       const out = sys.__varslist[0]['表示ログ'] + ''
       if (out) {
         sys.logger.trace(out)

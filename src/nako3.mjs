@@ -674,7 +674,7 @@ export class NakoCompiler {
                 g = this.__globals[this.__globals.length - 1];
             }
             else {
-                g = new NakoGlobal(this, gen);
+                g = new NakoGlobal(this, gen, (this.__globals.length + 1));
             }
         }
         if (this.__globals.indexOf(g) < 0) {

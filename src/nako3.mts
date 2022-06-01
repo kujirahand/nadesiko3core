@@ -782,7 +782,7 @@ export class NakoCompiler {
       if (this.__globals.length > 0 && options.resetAll === false && options.resetEnv === false) {
         g = this.__globals[this.__globals.length - 1]
       } else {
-        g = new NakoGlobal(this, gen)
+        g = new NakoGlobal(this, gen, (this.__globals.length + 1))
       }
     }
     if (this.__globals.indexOf(g) < 0) { this.__globals.push(g) }
