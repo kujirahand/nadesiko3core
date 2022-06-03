@@ -13,9 +13,6 @@ import { Token, Ast, FuncListItem, FuncArgs, NewEmptyToken, SourceMap } from './
 export class NakoParser extends NakoParserBase {
   /**
    * 構文解析を実行する
-   * @param {TokenWithSourceMap[]} tokens 字句解析済みのトークンの配列
-   * @param {string} filename 解析対象のモジュール名
-   * @return {Ast} AST(構文木)
    */
   parse (tokens: Token[], filename: string): Ast {
     this.reset()
@@ -1297,6 +1294,7 @@ export class NakoParser extends NakoParserBase {
     if (nullCount >= 2 && (valueCount > 0 || t.josi === '' || keizokuJosi.indexOf(t.josi) >= 0)) {
       throw NakoSyntaxError.fromNode(`関数『${t.value}』の引数が不足しています。`, t)
     }
+    this.usedFuncs.add(t.value)
     // 関数呼び出しのAstを構築
     const funcNode: Ast = {
       type: 'func',
@@ -1384,6 +1382,7 @@ export class NakoParser extends NakoParserBase {
           throw new Error(`助詞『${josiStr}』が見当たりません。`)
         })
       }
+      this.usedFuncs.add(funcName)
       // funcノードを返す
       return {
         type: 'func',
@@ -1877,6 +1876,7 @@ export class NakoParser extends NakoParserBase {
       const tt = this.get()
       if (!tt) { throw new Error('[System Error] 正しく値が取れませんでした。') }
       const f = this.getVarNameRef(tt)
+      this.usedFuncs.add(f.value)
       return {
         type: 'func',
         name: f.value,
@@ -1890,9 +1890,11 @@ export class NakoParser extends NakoParserBase {
     if (this.check2([['func', 'word'], '(']) && this.peekDef().josi === '') {
       const f = this.peek()
       if (this.accept([['func', 'word'], '(', this.yGetArgParen, ')'])) {
+        const funcName: string = this.getVarNameRef(this.y[0]).value
+        this.usedFuncs.add(funcName)
         return {
           type: 'func',
-          name: this.getVarNameRef(this.y[0]).value,
+          name: funcName,
           args: this.y[2],
           josi: this.y[3].josi,
           ...map,

@@ -578,12 +578,8 @@ export class NakoCompiler {
 
   /**
    * コードをパースしてASTにする
-   * @param code なでしこのプログラム
-   * @param filename
-   * @param [preCode]
-   * @return Ast
    */
-  parse (code: string, filename: string, preCode = '') {
+  parse (code: string, filename: string, preCode = ''): Ast {
     // 関数を字句解析と構文解析に登録
     this.lexer.setFuncList(this.funclist)
     this.parser.setFuncList(this.funclist)
@@ -591,8 +587,7 @@ export class NakoCompiler {
     const lexerOutput = this.lex(code, filename, preCode)
 
     // 構文木を作成
-    /** @type {Ast} */
-    let ast
+    let ast: Ast
     try {
       this.parser.genMode = 'sync' // set default
       ast = this.parser.parse(lexerOutput.tokens, filename)
@@ -602,14 +597,13 @@ export class NakoCompiler {
       }
       throw err
     }
-    this.usedFuncs = this.getUsedFuncs(ast)
+    // 使用したシステム関数の一覧を this.usedFuns に入れる(エディタなどで利用される)
+    this.usedFuncs = this.parser.usedFuncs // 全ての関数呼び出し
+    this.deleteUnNakoFuncs() // システム関数以外を削除
     this.logger.trace('--- ast ---\n' + JSON.stringify(ast, null, 2))
     return ast
   }
 
-  /**
-   * @param {Ast} ast
-   */
   getUsedFuncs (ast: Ast): Set<string> {
     const queue = [ast]
     this.usedFuncs = new Set()
@@ -621,7 +615,6 @@ export class NakoCompiler {
         this.getUsedAndDefFuncs(queue, JSON.parse(JSON.stringify(ast_.block)))
       }
     }
-
     return this.deleteUnNakoFuncs()
   }
 
@@ -668,8 +661,9 @@ export class NakoCompiler {
   }
 
   /** parse & generate  */
-  compileFromCode (code: string, filename: string, options: CompilerOptions): NakoGenResult {
+  compileFromCode (code: string, filename: string, options: CompilerOptions|undefined = undefined): NakoGenResult {
     if (filename === '') { filename = 'main.nako3' }
+    if (options === undefined) { options = newCompilerOptions() }
     try {
       if (options.resetEnv) { this.reset() }
       if (options.resetAll) { this.clearPlugins() }

@@ -7,6 +7,7 @@ export class NakoParserBase {
         this.logger = logger;
         this.stackList = []; // 関数定義の際にスタックが混乱しないように整理する
         this.tokens = [];
+        this.usedFuncs = new Set();
         /** @type {import('./nako3.mjs').Ast[]} */
         this.stack = [];
         this.index = 0;
