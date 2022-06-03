@@ -11,15 +11,3 @@ export function NewEmptyToken(type = '?', value = {}, line = 0, file = 'main.nak
         josi: ''
     };
 }
-/**
- * コンパイルオプション
- */
-export class CompilerOptions {
-    constructor(initObj = {}) {
-        this.testOnly = initObj.testOnly || false;
-        this.resetEnv = initObj.resetEnv || false;
-        this.resetAll = initObj.resetAll || false;
-        this.preCode = initObj.preCode || '';
-        this.nakoGlobal = initObj.nakoGlobal || null;
-    }
-}

@@ -128,19 +128,12 @@ export interface SourceMap {
 /**
  * コンパイルオプション
  */
-export class CompilerOptions {
+export interface CompilerOptions {
   resetEnv: boolean; // 現在の環境をリセット
   testOnly: boolean; // テストだけを実行する
   resetAll: boolean; // 全ての環境をリセット
   preCode: string; // 環境を構築するためのコード
   nakoGlobal: NakoGlobal | null; // 実行に使う環境
-  constructor (initObj: any = {}) {
-    this.testOnly = initObj.testOnly || false
-    this.resetEnv = initObj.resetEnv || false
-    this.resetAll = initObj.resetAll || false
-    this.preCode = initObj.preCode || ''
-    this.nakoGlobal = initObj.nakoGlobal || null
-  }
 }
 
 export type NakoComEventName = 'finish' | 'beforeRun' | 'beforeGenerate' | 'afterGenerate' | 'beforeParse'

@@ -61,6 +61,17 @@ export interface NakoResetOption {
   needToClearPlugin: boolean
 }
 
+/** コンパイラ実行オプションを生成 */
+export function newCompilerOptions (initObj: any = {}): CompilerOptions {
+  if (typeof initObj !== 'object') { initObj = {} }
+  initObj.testOnly = initObj.testOnly || false
+  initObj.resetEnv = initObj.resetEnv || false
+  initObj.resetAll = initObj.resetAll || false
+  initObj.preCode = initObj.preCode || ''
+  initObj.nakoGlobal = initObj.nakoGlobal || null
+  return initObj
+}
+
 /** なでしこコンパイラ */
 export class NakoCompiler {
   private nakoFuncList: FuncList;
@@ -649,7 +660,7 @@ export class NakoCompiler {
    * @param preCode
    */
   compile (code: string, filename: string, isTest = false, preCode = ''): string {
-    const opt = new CompilerOptions()
+    const opt = newCompilerOptions()
     opt.testOnly = isTest
     opt.preCode = preCode
     const res = this.compileFromCode(code, filename, opt)
@@ -707,7 +718,7 @@ export class NakoCompiler {
    * @param [preCode]
    */
   async _run (code: string, fname: string, isReset: boolean, isTest: boolean, preCode = ''): Promise<NakoGlobal> {
-    const opts: CompilerOptions = new CompilerOptions({
+    const opts: CompilerOptions = newCompilerOptions({
       resetEnv: isReset,
       resetAll: isReset,
       testOnly: isTest,
@@ -747,8 +758,9 @@ export class NakoCompiler {
    * @param options オプション
    * @returns 実行に利用したグローバルオブジェクト
    */
-  public runSync (code: string, filename: string, options: CompilerOptions = new CompilerOptions()): NakoGlobal {
+  public runSync (code: string, filename: string, options: CompilerOptions|undefined = undefined): NakoGlobal {
     // コンパイル
+    options = newCompilerOptions(options)
     const out = this.compileFromCode(code, filename, options)
     // 実行前に環境を生成
     const nakoGlobal = this.getNakoGlobal(options, out.gen)
@@ -764,8 +776,9 @@ export class NakoCompiler {
    * @param options オプション
    * @returns 実行に利用したグローバルオブジェクト
    */
-  public async runAsync (code: string, filename: string, options: CompilerOptions = new CompilerOptions()): Promise<NakoGlobal> {
+  public async runAsync (code: string, filename: string, options: CompilerOptions|undefined = undefined): Promise<NakoGlobal> {
     // コンパイル
+    options = newCompilerOptions(options)
     const out = this.compileFromCode(code, filename, options)
     // 実行前に環境を生成
     const nakoGlobal = this.getNakoGlobal(options, out.gen)
@@ -806,7 +819,7 @@ export class NakoCompiler {
    * @param testOnly
    */
   test (code: string, fname: string, preCode = '', testOnly = false) {
-    const options = new CompilerOptions()
+    const options = newCompilerOptions()
     options.preCode = preCode
     options.testOnly = testOnly
     return this.runSync(code, fname, options)
@@ -819,7 +832,7 @@ export class NakoCompiler {
    * @param [preCode]
    */
   run (code: string, fname = 'main.nako3', preCode = ''): NakoGlobal {
-    const options = new CompilerOptions()
+    const options = newCompilerOptions()
     options.preCode = preCode
     return this.runSync(code, fname, options)
   }
@@ -946,12 +959,11 @@ export class NakoCompiler {
   }
 
   /** (非推奨) 同期的になでしこのプログラムcodeを実行する */
-  private _runEx (code: string, filename: string, opts: Partial<CompilerOptions>, preCode = '', nakoGlobal: NakoGlobal|undefined = undefined): NakoGlobal {
+  private _runEx (code: string, filename: string, opts: CompilerOptions, preCode = '', nakoGlobal: NakoGlobal|undefined = undefined): NakoGlobal {
     // コンパイル
-    const options: CompilerOptions = new CompilerOptions(opts)
-    options.preCode = preCode
-    if (nakoGlobal) { options.nakoGlobal = nakoGlobal }
-    return this.runSync(code, filename, options)
+    opts.preCode = preCode
+    if (nakoGlobal) { opts.nakoGlobal = nakoGlobal }
+    return this.runSync(code, filename, opts)
   }
 
   /** (非推奨) 同期的に実行
@@ -960,7 +972,7 @@ export class NakoCompiler {
    * @param opts
    * @param [preCode]
    */
-  public runEx (code: string, fname: string, opts: Partial<CompilerOptions>, preCode = '') {
+  public runEx (code: string, fname: string, opts: CompilerOptions, preCode = '') {
     return this._runEx(code, fname, opts, preCode)
   }
 
@@ -971,6 +983,7 @@ export class NakoCompiler {
    * @param [preCode]
    */
   async runReset (code: string, fname = 'main.nako3', preCode = ''): Promise<NakoGlobal> {
-    return this._runEx(code, fname, { resetAll: true, resetEnv: true }, preCode)
+    const opts = newCompilerOptions({ resetAll: true, resetEnv: true })
+    return this._runEx(code, fname, opts, preCode)
   }
 }

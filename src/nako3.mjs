@@ -1,8 +1,3 @@
-/**
- * nadesiko v3
- */
-// types
-import { CompilerOptions } from './nako_types.mjs';
 // parser / lexer
 import { NakoParser } from './nako_parser3.mjs';
 import { NakoLexer } from './nako_lexer.mjs';
@@ -24,6 +19,18 @@ import PluginCSV from './plugin_csv.mjs';
 import PluginPromise from './plugin_promise.mjs';
 import PluginTest from './plugin_test.mjs';
 const cloneAsJSON = (x) => JSON.parse(JSON.stringify(x));
+/** コンパイラ実行オプションを生成 */
+export function newCompilerOptions(initObj = {}) {
+    if (typeof initObj !== 'object') {
+        initObj = {};
+    }
+    initObj.testOnly = initObj.testOnly || false;
+    initObj.resetEnv = initObj.resetEnv || false;
+    initObj.resetAll = initObj.resetAll || false;
+    initObj.preCode = initObj.preCode || '';
+    initObj.nakoGlobal = initObj.nakoGlobal || null;
+    return initObj;
+}
 /** なでしこコンパイラ */
 export class NakoCompiler {
     /**
@@ -541,7 +548,7 @@ export class NakoCompiler {
      * @param preCode
      */
     compile(code, filename, isTest = false, preCode = '') {
-        const opt = new CompilerOptions();
+        const opt = newCompilerOptions();
         opt.testOnly = isTest;
         opt.preCode = preCode;
         const res = this.compileFromCode(code, filename, opt);
@@ -603,7 +610,7 @@ export class NakoCompiler {
      * @param [preCode]
      */
     async _run(code, fname, isReset, isTest, preCode = '') {
-        const opts = new CompilerOptions({
+        const opts = newCompilerOptions({
             resetEnv: isReset,
             resetAll: isReset,
             testOnly: isTest,
@@ -640,8 +647,9 @@ export class NakoCompiler {
      * @param options オプション
      * @returns 実行に利用したグローバルオブジェクト
      */
-    runSync(code, filename, options = new CompilerOptions()) {
+    runSync(code, filename, options = undefined) {
         // コンパイル
+        options = newCompilerOptions(options);
         const out = this.compileFromCode(code, filename, options);
         // 実行前に環境を生成
         const nakoGlobal = this.getNakoGlobal(options, out.gen);
@@ -656,8 +664,9 @@ export class NakoCompiler {
      * @param options オプション
      * @returns 実行に利用したグローバルオブジェクト
      */
-    async runAsync(code, filename, options = new CompilerOptions()) {
+    async runAsync(code, filename, options = undefined) {
         // コンパイル
+        options = newCompilerOptions(options);
         const out = this.compileFromCode(code, filename, options);
         // 実行前に環境を生成
         const nakoGlobal = this.getNakoGlobal(options, out.gen);
@@ -698,7 +707,7 @@ export class NakoCompiler {
      * @param testOnly
      */
     test(code, fname, preCode = '', testOnly = false) {
-        const options = new CompilerOptions();
+        const options = newCompilerOptions();
         options.preCode = preCode;
         options.testOnly = testOnly;
         return this.runSync(code, fname, options);
@@ -710,7 +719,7 @@ export class NakoCompiler {
      * @param [preCode]
      */
     run(code, fname = 'main.nako3', preCode = '') {
-        const options = new CompilerOptions();
+        const options = newCompilerOptions();
         options.preCode = preCode;
         return this.runSync(code, fname, options);
     }
@@ -836,12 +845,11 @@ export class NakoCompiler {
     /** (非推奨) 同期的になでしこのプログラムcodeを実行する */
     _runEx(code, filename, opts, preCode = '', nakoGlobal = undefined) {
         // コンパイル
-        const options = new CompilerOptions(opts);
-        options.preCode = preCode;
+        opts.preCode = preCode;
         if (nakoGlobal) {
-            options.nakoGlobal = nakoGlobal;
+            opts.nakoGlobal = nakoGlobal;
         }
-        return this.runSync(code, filename, options);
+        return this.runSync(code, filename, opts);
     }
     /** (非推奨) 同期的に実行
      * @param code
@@ -859,6 +867,7 @@ export class NakoCompiler {
      * @param [preCode]
      */
     async runReset(code, fname = 'main.nako3', preCode = '') {
-        return this._runEx(code, fname, { resetAll: true, resetEnv: true }, preCode);
+        const opts = newCompilerOptions({ resetAll: true, resetEnv: true });
+        return this._runEx(code, fname, opts, preCode);
     }
 }
