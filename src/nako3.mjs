@@ -62,6 +62,7 @@ export class NakoCompiler {
         this.commandlist = new Set(); // プラグインで定義された定数・変数・関数の名前
         this.nakoFuncList = {}; // __v1に配置するJavaScriptのコードで定義された関数
         this.eventList = []; // 実行前に環境を変更するためのイベント
+        this.codeGenerateor = {}; // コードジェネレータ
         this.logger = new NakoLogger();
         /**
          * 取り込み文を置換するためのオブジェクト。
@@ -581,23 +582,31 @@ export class NakoCompiler {
     }
     /**
      * プログラムをコンパイルしてJavaScriptのコードオブジェクトを返す
-     * @param {AST} ast
+     * @param ast
      * @param opt テストかどうか
-     * @return {Object}
      */
     generateCode(ast, opt) {
         // Select Code Generator #637
-        switch (ast.genMode) {
-            // ノーマルモード
-            case 'sync':
-                return generateJS(this, ast, opt);
-            // 『!非同期モード』は非推奨
-            case '非同期モード':
-                this.logger.warn('『!非同期モード』の利用は非推奨です。[詳細](https://github.com/kujirahand/nadesiko3/issues/1164)');
-                return NakoGenASync.generate(this, ast, opt.isTest);
-            default:
-                throw new Error(`コードジェネレータの「${ast.genMode}」はサポートされていません。`);
+        const mode = ast.genMode || '';
+        // normal mode
+        if (mode === 'sync') {
+            return generateJS(this, ast, opt);
         }
+        // 非推奨の非同期モード #1164
+        if (mode === '非同期モード') {
+            this.logger.warn('『!非同期モード』の利用は非推奨です。[詳細](https://github.com/kujirahand/nadesiko3/issues/1164)');
+            return NakoGenASync.generate(this, ast, opt.isTest);
+        }
+        // その他のコードジェネレータ(PHPなど)
+        const genObj = this.codeGenerateor[mode];
+        if (!genObj) {
+            throw new Error(`コードジェネレータの「${mode}」はサポートされていません。`);
+        }
+        return genObj.generate(this, ast, opt.isTest);
+    }
+    /** コードジェネレータを追加する */
+    addCodeGenerator(mode, obj) {
+        this.codeGenerateor[mode] = obj;
     }
     /** (非推奨)
      * @param code
