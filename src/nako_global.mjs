@@ -9,6 +9,7 @@ export class NakoGlobal {
      */
     constructor(compiler, gen, guid = 0) {
         this.guid = guid;
+        this.lastJSCode = '';
         // ユーザーのプログラムから編集される変数
         this.__locals = {};
         this.__varslist = [
@@ -46,16 +47,18 @@ export class NakoGlobal {
     }
     /**
      * 「ナデシコ」命令のためのメソッド
-     * @param {string} code
-     * @param {string} fname
-     * @param {CompilerOptions} opts
-     * @param {string} [preCode]
      */
     runEx(code, fname, opts, preCode = '') {
         // スコープを共有して実行
         opts.preCode = preCode;
         opts.nakoGlobal = this;
         return this.compiler.runSync(code, fname, opts);
+    }
+    async runAsync(code, fname, opts, preCode = '') {
+        // スコープを共有して実行
+        opts.preCode = preCode;
+        opts.nakoGlobal = this;
+        return await this.compiler.runAsync(code, fname, opts);
     }
     /**
      * テスト実行のためのメソッド

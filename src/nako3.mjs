@@ -642,6 +642,7 @@ export class NakoCompiler {
         // 実行前に環境を初期化するイベントを実行(beforeRun)
         this.eventList.filter(o => o.eventName === 'beforeRun').map(e => e.callback(nakoGlobal));
         this.__globalObj = nakoGlobal; // 現在のnakoGlobalを記録
+        this.__globalObj.lastJSCode = code;
         // eslint-disable-next-line no-new-func
         const f = new Function(code);
         f.apply(nakoGlobal);

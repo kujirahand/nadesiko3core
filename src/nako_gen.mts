@@ -1697,15 +1697,17 @@ ${js}
   // ---
   const initCode = gen.getPluginInitCode()
   const runtimeEnvCode = `
-// runtimeEnv
+// <runtimeEnvCode>
+// <nakoError>
 ${NakoError.toString()}
 ${NakoRuntimeError.toString()}
+// </nakoError>
 const self = this
 ${opt.codeEnv}
 ${jsInit}
 ${initCode}
 ${js}
-// end of runtimeEnv
+// </runtimeEnvCode>
 `
   return {
     // なでしこの実行環境ありの場合(thisが有効)

@@ -26,12 +26,14 @@ export class NakoGlobal {
   gen: NakoGen;
   logger: NakoLogger;
   compiler: NakoCompiler;
+  lastJSCode: string;
   /**
    * @param compiler
    * @param gen
    */
   constructor (compiler: NakoCompiler, gen: NakoGen, guid = 0) {
     this.guid = guid
+    this.lastJSCode = ''
     // ユーザーのプログラムから編集される変数
     this.__locals = {}
     this.__varslist = [
@@ -76,16 +78,19 @@ export class NakoGlobal {
 
   /**
    * 「ナデシコ」命令のためのメソッド
-   * @param {string} code
-   * @param {string} fname
-   * @param {CompilerOptions} opts
-   * @param {string} [preCode]
    */
   runEx (code: string, fname: string, opts: CompilerOptions, preCode = ''): NakoGlobal {
     // スコープを共有して実行
     opts.preCode = preCode
     opts.nakoGlobal = this
     return this.compiler.runSync(code, fname, opts)
+  }
+
+  async runAsync (code: string, fname: string, opts: CompilerOptions, preCode = ''): Promise<NakoGlobal> {
+    // スコープを共有して実行
+    opts.preCode = preCode
+    opts.nakoGlobal = this
+    return await this.compiler.runAsync(code, fname, opts)
   }
 
   /**

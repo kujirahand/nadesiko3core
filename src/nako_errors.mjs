@@ -1,21 +1,14 @@
-import nakoVersion from './nako_core_version.mjs';
 /**
  * なでしこ言語が投げる全てのエラーが継承するクラス
  */
 export class NakoError extends Error {
-    /**
-     * @param {string} tag
-     * @param {string} msg
-     * @param {string | undefined} file
-     * @param {number | undefined} line
-     */
     constructor(tag, msg, file = undefined, line = undefined) {
         // エラー位置を分かりやすく日本語に変換
         const positionJa = `${file || ''}${line === undefined ? '' : `(${line + 1}行目): `}`;
         // #1223 エラーメッセージに「main__関数名」と表示されるので、main__は省略して表示
         msg = msg.replace(/『main__(.+?)』/g, '『$1』');
         // 親のErrorを呼ぶ
-        super(`[${tag}]${positionJa}${msg}\n[バージョン] ${nakoVersion.version}`);
+        super(`[${tag}]${positionJa}${msg}`);
         // エラーの種類を設定
         this.name = 'NakoError';
         this.type = 'NakoError';
