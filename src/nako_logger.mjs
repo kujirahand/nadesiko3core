@@ -1,5 +1,5 @@
 /** NakoLogger */
-import { NakoError } from './nako_errors.mjs';
+import { NakoError, NakoRuntimeError } from './nako_errors.mjs';
 import { NakoColors } from './nako_colors.mjs';
 /** ログレベル - 数字が高いほど優先度が高い。 */
 export class LogLevel {
@@ -146,6 +146,11 @@ export class NakoLogger {
             message = message.message;
         }
         this.sendI(LogLevel.error, `${NakoColors.color.bold}${NakoColors.color.red}[エラー]${NakoColors.color.reset}${stringifyPosition(position)}${message}`, position);
+    }
+    /** RuntimeErrorを生成する */
+    runtimeError(error, posStr) {
+        const e = new NakoRuntimeError(error, posStr);
+        return e;
     }
     /** ユーザープログラムのデバッグ情報（すべて)
      * @param {string} message

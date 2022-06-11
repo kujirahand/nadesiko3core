@@ -3,7 +3,7 @@
  * なお速度優先で忠実にJavaScriptのコードを生成する。
  */
 
-import { NakoRuntimeError, NakoSyntaxError, NakoError } from './nako_errors.mjs'
+import { NakoSyntaxError } from './nako_errors.mjs'
 import { NakoLexer } from './nako_lexer.mjs'
 import { Ast, FuncList, FuncArgs, Token } from './nako_types.mjs'
 import { NakoCompiler } from './nako3.mjs'
@@ -1614,7 +1614,7 @@ ${js}
 } // end of ${asyncMain}
 ${asyncMain}.call(self, self).catch(err => {
   self.numFailures++
-  throw new NakoRuntimeError(err, self.__v0.line) // エラー位置を認識
+  throw self.logger.runtimeError(err, self.__v0.line)
 })
 // <nadesiko3::gen::async>
 // --------------------------------------------------
@@ -1627,7 +1627,7 @@ try {
   ${js}
 } catch (err) {
   self.numFailures++
-  throw new NakoRuntimeError(err, self.__v0.line) // エラー位置を認識
+  throw self.logger.runtimeError(err, self.__v0.line)
 }
 // --------------------------------------------------
 `
@@ -1698,10 +1698,6 @@ ${js}
   const initCode = gen.getPluginInitCode()
   const runtimeEnvCode = `
 // <runtimeEnvCode>
-// <nakoError>
-${NakoError.toString()}
-${NakoRuntimeError.toString()}
-// </nakoError>
 const self = this
 ${opt.codeEnv}
 ${jsInit}

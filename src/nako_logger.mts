@@ -1,5 +1,5 @@
 /** NakoLogger */
-import { NakoError } from './nako_errors.mjs'
+import { NakoError, NakoRuntimeError } from './nako_errors.mjs'
 import { NakoColors } from './nako_colors.mjs'
 import { Token, Ast } from './nako_types.mjs'
 
@@ -176,6 +176,12 @@ export class NakoLogger {
       LogLevel.error,
       `${NakoColors.color.bold}${NakoColors.color.red}[エラー]${NakoColors.color.reset}${stringifyPosition(position)}${message}`,
       position)
+  }
+
+  /** RuntimeErrorを生成する */
+  public runtimeError (error: any, posStr: string): NakoRuntimeError {
+    const e = new NakoRuntimeError(error, posStr)
+    return e
   }
 
   /** ユーザープログラムのデバッグ情報（すべて)

@@ -587,7 +587,6 @@ export class NakoCompiler {
     // 関数を字句解析と構文解析に登録
     this.lexer.setFuncList(this.funclist)
     this.parser.setFuncList(this.funclist)
-
     const lexerOutput = this.lex(code, filename, preCode)
 
     // 構文木を作成
