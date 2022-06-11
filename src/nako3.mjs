@@ -54,6 +54,7 @@ export class NakoCompiler {
          * @type {NakoGlobal[]}
          */
         this.__globals = []; // 生成した NakoGlobal のインスタンスを保持
+        this.__globalObj = null;
         /** @type {Record<string, Record<string, NakoFunction>>} */
         this.__module = {}; // requireなどで取り込んだモジュールの一覧
         this.pluginFunclist = {}; // プラグインで定義された関数
@@ -640,6 +641,7 @@ export class NakoCompiler {
     evalJS(code, nakoGlobal) {
         // 実行前に環境を初期化するイベントを実行(beforeRun)
         this.eventList.filter(o => o.eventName === 'beforeRun').map(e => e.callback(nakoGlobal));
+        this.__globalObj = nakoGlobal; // 現在のnakoGlobalを記録
         // eslint-disable-next-line no-new-func
         const f = new Function(code);
         f.apply(nakoGlobal);
