@@ -753,9 +753,16 @@ export class NakoCompiler {
     this.eventList.filter(o => o.eventName === 'beforeRun').map(e => e.callback(nakoGlobal))
     this.__globalObj = nakoGlobal // 現在のnakoGlobalを記録
     this.__globalObj.lastJSCode = code
-    // eslint-disable-next-line no-new-func
-    const f = new Function(code)
-    f.apply(nakoGlobal)
+    try {
+      // eslint-disable-next-line no-new-func
+      const f = new Function(code)
+      f.apply(nakoGlobal)
+    } catch (err: any) {
+      // なでしこコードのエラーは抑止してログにのみ記録
+      nakoGlobal.numFailures++
+      this.getLogger().error(err)
+      throw err
+    }
     // 実行後に終了イベントを実行(finish)
     this.eventList.filter(o => o.eventName === 'finish').map(e => e.callback(nakoGlobal))
   }
