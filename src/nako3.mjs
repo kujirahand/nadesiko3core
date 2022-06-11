@@ -226,9 +226,9 @@ export class NakoCompiler {
             // 非同期な場合のエラーハンドリング
             if (result !== undefined) {
                 result.catch((err) => {
-                    // 読み込みに失敗しても処理は続ける方針なので、失敗しても例外は投げない
-                    // たぶん、その後の構文解析でエラーになるため
-                    this.logger.warn(err.msg);
+                    // 読み込みに失敗したら処理を中断する
+                    this.logger.error(err.msg);
+                    this.numFailures++;
                 });
             }
             // すべてが終わってからthis.dependenciesに代入する。そうしないと、「実行」ボタンを連打した場合など、
@@ -238,17 +238,17 @@ export class NakoCompiler {
         }
         catch (err) {
             // 同期処理では素直に例外を投げる
-            this.logger.warn('' + err);
+            this.logger.error('' + err);
             throw err;
         }
     }
     /**
      * コードを単語に分割する
-     * @param {string} code なでしこのプログラム
-     * @param {number} line なでしこのプログラムの行番号
-     * @param {string} filename
-     * @param {string} [preCode]
-     * @returns {TokenWithSourceMap[]} トークンのリスト
+     * @param code なでしこのプログラム
+     * @param line なでしこのプログラムの行番号
+     * @param filename
+     * @param preCode
+     * @returns トークンのリスト
      */
     rawtokenize(code, line, filename, preCode = '') {
         if (!code.startsWith(preCode)) {

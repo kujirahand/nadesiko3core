@@ -152,7 +152,7 @@ export class NakoParserBase {
      * 計算用に要素をスタックに積む
      */
     pushStack(item) {
-        this.logger.debug('PUSH:' + JSON.stringify(item));
+        this.logger.trace('PUSH:' + JSON.stringify(item));
         this.stack.push(item);
     }
     /**
