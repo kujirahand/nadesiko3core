@@ -63,4 +63,8 @@ $ snako -e "1+2を表示"
 $ snako nadesiko3core/sample/hello.nako3
 ```
 
+## なでしこの内部構造について
+
+なでしこの内部構造の仕組みについては、[こちら](/doc/README.md)に詳しく書かれています。
+
 

@@ -396,10 +396,10 @@ export class NakoLexer {
   }
 
   /**
-   * @param {string} src
-   * @param {number} line
-   * @param {string} filename
-   * @returns {Token[]}
+   * ソースコードをトークンに分割する
+   * @param src なでしこのソースコード
+   * @param line 先頭行の行番号
+   * @param filename ファイル名
    */
   tokenize (src: string, line: number, filename: string): Token[] {
     const srcLength: number = src.length
