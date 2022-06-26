@@ -1270,6 +1270,8 @@ export class NakoGen {
       return result
     }
 
+    // 引数チェックの例外 #1260
+    const noCheckFuncs: {[key: string]: boolean} = { 'TYPEOF': true, '変数型確認': true }
     // 関数呼び出しコードの構築
     let argsCode: string
     if ((this.warnUndefinedCallingUserFunc === 0 && res.i !== 0) || (this.warnUndefinedCallingSystemFunc === 0 && res.i === 0)) {
@@ -1277,7 +1279,7 @@ export class NakoGen {
     } else {
       argsCode = ''
       args.forEach((arg: string) => {
-        if (arg === '__self') {
+        if (arg === '__self' || noCheckFuncs[funcName] === true) { // #1260
           argsCode += `,${arg}`
         } else {
           if (res.i === 0) {
