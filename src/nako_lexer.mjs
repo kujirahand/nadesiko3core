@@ -92,9 +92,6 @@ export class NakoLexer {
     /**
      * ファイル内で定義されている関数名を列挙する。結果はfunclistに書き込む。その他のトークンの置換処理も行う。
      * シンタックスハイライトの処理から呼び出すためにstaticメソッドにしている。
-     * @param {Token[]} tokens
-     * @param {import('./nako_logger.mjs').NakoLogger} logger
-     * @param {FuncList} funclist
      */
     static preDefineFunc(tokens, logger, funclist) {
         // 関数を先読みして定義

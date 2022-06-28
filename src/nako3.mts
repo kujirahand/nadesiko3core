@@ -10,6 +10,7 @@ import { NakoPrepare } from './nako_prepare.mjs'
 import { NakoGen, generateJS, NakoGenOptions, NakoGenResult } from './nako_gen.mjs'
 import { NakoGenASync } from './nako_gen_async.mjs'
 import NakoIndent from './nako_indent.mjs'
+import NakoInlineIndent from './nako_indent_inline.mjs'
 import { convertDNCL } from './nako_from_dncl.mjs'
 import { SourceMappingOfTokenization, SourceMappingOfIndentSyntax, OffsetToLineColumn, subtractSourceMapByPreCodeLength } from './nako_source_mapping.mjs'
 import { NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs'
@@ -335,12 +336,14 @@ export class NakoCompiler {
     if (!code.startsWith(preCode)) {
       throw new Error('codeの先頭にはpreCodeを含める必要があります。')
     }
+    // DNCL構文 (#1140)
+    code = convertDNCL(code, filename)
+    // インライン・インデント (#1215)
+    code = NakoInlineIndent.convert(code)
     // インデント構文 (#596)
     const { code: code2, insertedLines, deletedLines } = NakoIndent.convert(code, filename)
-    // DNCL構文 (#1140)
-    const code3 = convertDNCL(code2, filename)
     // 全角半角の統一処理
-    const preprocessed = this.prepare.convert(code3)
+    const preprocessed = this.prepare.convert(code2)
 
     const tokenizationSourceMapping = new SourceMappingOfTokenization(code2.length, preprocessed)
     const indentationSyntaxSourceMapping = new SourceMappingOfIndentSyntax(code2, insertedLines, deletedLines)
@@ -356,8 +359,7 @@ export class NakoCompiler {
       }
       // エラー位置をソースコード上の位置に変換して返す
       const dest = indentationSyntaxSourceMapping.map(tokenizationSourceMapping.map(err.preprocessedCodeStartOffset), tokenizationSourceMapping.map(err.preprocessedCodeEndOffset))
-      /** @type {number | undefined} */
-      const line = dest.startOffset === null ? err.line : offsetToLineColumn.map(dest.startOffset, false).line
+      const line: number|undefined = dest.startOffset === null ? err.line : offsetToLineColumn.map(dest.startOffset, false).line
       const map = subtractSourceMapByPreCodeLength({ ...dest, line }, preCode)
       throw new NakoLexerError(err.msg, map.startOffset, map.endOffset, map.line, filename)
     }
@@ -532,11 +534,7 @@ export class NakoCompiler {
     return deletedTokens
   }
 
-  /**
-   * @param {string} code
-   * @param {string} filename
-   * @param {string} [preCode]
-   */
+  /** 字句解析を行う */
   lex (code: string, filename = 'main.nako3', preCode = '', syntaxHighlighting = false): LexResult {
     // 単語に分割
     let tokens = this.rawtokenize(code, 0, filename, preCode)
@@ -584,9 +582,10 @@ export class NakoCompiler {
    * コードをパースしてASTにする
    */
   parse (code: string, filename: string, preCode = ''): Ast {
-    // 関数を字句解析と構文解析に登録
+    // 関数リストを字句解析と構文解析に登録
     this.lexer.setFuncList(this.funclist)
     this.parser.setFuncList(this.funclist)
+    // 字句解析を行う
     const lexerOutput = this.lex(code, filename, preCode)
 
     // 構文木を作成
@@ -672,6 +671,7 @@ export class NakoCompiler {
       if (options.resetAll) { this.clearPlugins() }
       // onBeforeParse
       this.eventList.filter(o => o.eventName === 'beforeParse').map(e => e.callback(code))
+      // parse
       const ast = this.parse(code, filename, options.preCode)
       // onBeforeGenerate
       this.eventList.filter(o => o.eventName === 'beforeGenerate').map(e => e.callback(ast))

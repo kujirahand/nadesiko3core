@@ -221,22 +221,17 @@ export class NakoParser extends NakoParserBase {
     return a
   }
 
-  /** @returns {Ast | null} */
   yDefTest (): Ast|null {
     return this.yDef('def_test')
   }
 
-  /** @returns {Ast | null} */
   yDefFunc (): Ast|null {
     return this.yDef('def_func')
   }
 
-  /**
-   * @param {string} type
-   * @returns {Ast | null}
-   */
+  /** ユーザー関数の定義 */
   yDef (type: string): Ast|null {
-    if (!this.check(type)) {
+    if (!this.check(type)) { // yDefFuncから呼ばれれば def_func なのかをチェックする
       return null
     }
     const map = this.peekSourceMap()

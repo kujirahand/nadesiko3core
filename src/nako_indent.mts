@@ -4,6 +4,9 @@ import { NakoPrepare, checkNakoMode } from './nako_prepare.mjs'
 // インデント構文のキーワード
 const INDENT_MODE_KEYWORDS = ['!インデント構文', '!ここまでだるい']
 
+// 現在インデントに使える文字
+// [ 　・\t] // スペース、タブ、・
+
 interface DeletedLine {
   lineNumber: number;
   len: number;
@@ -24,36 +27,42 @@ interface BlockStruct {
 
 /**
  * インデント構文指定があればコードを変換する
- * @param {string} code
- * @param {string} filename
  */
 function convert (code: string, filename = 'main.nako3'): ConvertResult {
   // インデント構文の適用が必要か？
   if (checkNakoMode(code, INDENT_MODE_KEYWORDS)) {
-    return convertGo(code, filename)
+    return convertForIndentMode(code, filename)
   }
   return { code, insertedLines: [], deletedLines: [] }
 }
 
 /**
  * インデント構文指定があるかチェックする
- * @param {string} code
- * @returns {boolean}
  */
 function isIndentSyntaxEnabled (code: string): boolean {
   return checkNakoMode(code, INDENT_MODE_KEYWORDS)
 }
 
-// ありえない改行マークを定義
-const SpecialRetMark = '🌟🌟改行🌟🌟s4j#WjcSb😀/FcX3🌟🌟'
+/** ありえない改行マークを定義 */
+const defSpecialRetMark = '🍷🍷改行🍹黐黑鼘鼶齈▨🍺🍺🍶🍶'
+let SpecialRetMark = defSpecialRetMark
+
+/** code中にありえない改行マーク生成しモジュール内の変数SpecialRetMarkに設定 */
+export function checkSpecialRetMark (code: string): string {
+  SpecialRetMark = defSpecialRetMark
+  while (code.indexOf(SpecialRetMark) >= 0) {
+    // 適当な文字を足してユニークにする(一応漢字領域で生成)
+    const c = String.fromCodePoint(Math.floor(Math.random() * 40952) + 0x4E00)
+    SpecialRetMark += c + c
+  }
+  return SpecialRetMark
+}
 
 /**
  * ソースコードのある1行の中のコメントを全て取り除く。
  * 事前にreplaceRetMarkによって文字列や範囲コメント内の改行文字が置換されている必要がある。
- * @param {string} src
- * @return {string}
  */
-function removeCommentsFromLine (src: string): string {
+export function removeCommentsFromLine (src: string): string {
   const prepare = NakoPrepare.getInstance() // `※`, `／/`, `／＊` といったパターン全てに対応するために必要
   const len = src.length
   let result = ''
@@ -160,12 +169,9 @@ function removeCommentsFromLine (src: string): string {
   return result
 }
 
-/**
- * @param {string} code
- * @param {string} filename
- * @returns {{ code: string, insertedLines: number[], deletedLines: { lineNumber: number, len: number }[] }}
- */
-function convertGo (code: string, filename: string) {
+/** インデントモードのための変換処理 */
+function convertForIndentMode (code: string, filename: string): any {
+  // returns => {{ code: string, insertedLines: number[], deletedLines: { lineNumber: number, len: number }[] }}
   const insertedLines: number[] = []
   const deletedLines: DeletedLine[] = []
 
@@ -175,6 +181,9 @@ function convertGo (code: string, filename: string) {
   const lines2: string[] = []
   const indentStack: number[] = []
   let lastIndent = 0
+
+  // 元ソースコードの中に特殊改行マークが含まれるかチェックして含まれるならもっと複雑な特殊マークを動的に生成
+  checkSpecialRetMark(code)
 
   let lineCount = -1
   lines.forEach((line) => {
@@ -283,9 +292,8 @@ function makeIndent (count: number): string {
 
 /**
  * インデント部分を取り出す
- * @param {string} line
  */
-function getIndent (line: string): string {
+export function getIndent (line: string): string {
   // eslint-disable-next-line no-irregular-whitespace
   const m = /^([ 　・\t]*)/.exec(removeCommentsFromLine(line))
   if (!m) { return '' }
@@ -294,9 +302,8 @@ function getIndent (line: string): string {
 
 /**
  * インデントの個数を数える
- * @param {string} line
  */
-function countIndent (line: string): number {
+export function countIndent (line: string): number {
   let cnt = 0
   for (let i = 0; i < line.length; i++) {
     const ch = line.charAt(i)
@@ -321,11 +328,7 @@ function countIndent (line: string): number {
   return cnt
 }
 
-/**
- * @param {string} src
- * @returns {string}
- */
-function replaceRetMark (src: string): string {
+export function replaceRetMark (src: string): string {
   const prepare = NakoPrepare.getInstance() // `※`, `／/`, `／＊` といったパターン全てに対応するために必要
   const len = src.length
   let result = ''
@@ -434,7 +437,6 @@ function replaceRetMark (src: string): string {
  * コードのインデントの構造を取得する。
  * 空白行や複数行にまたがる構文を考慮する。
  * インデント構文が有効化されていない場合にも使われる。
- * @param {string} code
  */
 export function getBlockStructure (code: string): BlockStruct {
   const result: BlockStruct = {
