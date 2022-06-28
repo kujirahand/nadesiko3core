@@ -29,7 +29,7 @@ export function convert (code: string): string {
   code = code.split('\r\n').join('\n')
   // ソース末尾に空白があるかチェック(意外と重要)
   let lastSpace = ''
-  let lastm = code.match(/(\s+)$/)
+  const lastm = code.match(/(\s+)$/)
   if (lastm) { lastSpace = lastm[1] }
   code = code.replace(/\s+$/, '') // 末尾の空白を除去
   const lines: string[] = code.split('\n')
@@ -45,14 +45,15 @@ export function convert (code: string): string {
       const lineICount = countIndent(line)
       while (checkICount >= lineICount) {
         const prevLine = removeCommentsFromLine(lines[i - 1])
+        // eslint-disable-next-line no-irregular-whitespace
         if (line.replace(/^[ 　・\t]+/, '').charAt(0) !== '違') {
           lines[i - 1] = prevLine + KOKOMADE
         }
         // 現在のブロックの処理が完了
         blockIndents.pop()
-        checkICount = (blockIndents.length > 0) ? blockIndents[blockIndents.length - 1] : -1 
+        checkICount = (blockIndents.length > 0) ? blockIndents[blockIndents.length - 1] : -1
         if (checkICount === -1) {
-          break 
+          break
         }
       }
     }

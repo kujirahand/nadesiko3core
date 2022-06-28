@@ -86,6 +86,7 @@ export class NakoGen {
          * 未定義の変数の警告を行う
          */
         this.warnUndefinedVar = true;
+        this.constPools = [];
         // 暫定変数
         this.warnUndefinedReturnUserFunc = 1;
         this.warnUndefinedCallingUserFunc = 1;
@@ -189,6 +190,8 @@ export class NakoGen {
         code += 'const __v0 = self.__v0 = self.__varslist[0];\n';
         code += 'const __v1 = self.__v1 = self.__varslist[1];\n';
         code += 'const __vars = self.__vars = self.__varslist[2];\n';
+        // 定数を埋め込む
+        code += 'self.constPools = ' + JSON.stringify(this.constPools) + ';\n';
         // なでしこの関数定義を行う
         let nakoFuncCode = '';
         for (const key in this.nakoFuncList) {
@@ -605,7 +608,13 @@ export class NakoGen {
             return lno + `return ${value};`;
         }
         else {
-            return lno + `return (function(a){if(a===undefined){__self.logger.warn('ユーザ関数からundefinedが返されています',{file:'${node.file}',line:${node.line}});};return a;})(${value});`;
+            const poolIndex = this.constPools.length;
+            this.constPools.push({
+                msg: 'ユーザ関数からundefinedが返されています',
+                file: node.file,
+                line: node.line
+            });
+            return lno + `return (__self.chk(${value}, ${poolIndex}));`;
         }
     }
     convCheckLoop(node, cmd) {
@@ -1206,21 +1215,32 @@ export class NakoGen {
             argsCode = args.join(',');
         }
         else {
-            argsCode = '';
+            const argsA = [];
             args.forEach((arg) => {
                 if (arg === '__self' || noCheckFuncs[funcName] === true) { // #1260
-                    argsCode += `,${arg}`;
+                    argsA.push(`${arg}`);
                 }
                 else {
+                    // 引数のundefinedチェックのコードを入れる
+                    const poolIndex = this.constPools.length;
                     if (res.i === 0) {
-                        argsCode += `,(function(a){if(a===undefined){__self.logger.warn('命令『${funcName}』の引数にundefinedを渡しています。',{file:'${node.file}',line:${node.line}});};return a;})(${arg})`;
+                        this.constPools.push({
+                            msg: `命令『${funcName}』の引数にundefinedを渡しています。`,
+                            file: node.file,
+                            line: node.line
+                        });
                     }
                     else {
-                        argsCode += `,(function(a){if(a===undefined){__self.logger.warn('ユーザ関数『${funcName}』の引数にundefinedを渡しています。',{file:'${node.file}',line:${node.line}});};return a;})(${arg})`;
+                        this.constPools.push({
+                            msg: `ユーザ関数『『${funcName}』の引数にundefinedを渡しています。`,
+                            file: node.file,
+                            line: node.line
+                        });
                     }
+                    argsA.push(`(__self.chk(${arg}, ${poolIndex}))`);
                 }
             });
-            argsCode = argsCode.substring(1);
+            argsCode = argsA.join(', ');
         }
         let funcCall = `${res.js}(${argsCode})`;
         if (func.asyncFn) {

@@ -24,7 +24,7 @@ export function convert(code) {
     code = code.split('\r\n').join('\n');
     // ソース末尾に空白があるかチェック(意外と重要)
     let lastSpace = '';
-    let lastm = code.match(/(\s+)$/);
+    const lastm = code.match(/(\s+)$/);
     if (lastm) {
         lastSpace = lastm[1];
     }
@@ -42,6 +42,7 @@ export function convert(code) {
             const lineICount = countIndent(line);
             while (checkICount >= lineICount) {
                 const prevLine = removeCommentsFromLine(lines[i - 1]);
+                // eslint-disable-next-line no-irregular-whitespace
                 if (line.replace(/^[ 　・\t]+/, '').charAt(0) !== '違') {
                     lines[i - 1] = prevLine + KOKOMADE;
                 }

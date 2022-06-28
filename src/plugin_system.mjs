@@ -114,6 +114,14 @@ export default {
             };
             // 『継続表示』のための一時変数(『表示』実行で初期化)
             sys.__printPool = '';
+            // undefinedチェック
+            sys.chk = (value, constId) => {
+                if (typeof value === 'undefined') {
+                    const cp = sys.constPools[constId];
+                    sys.logger.warn(cp.msg, { file: cp.file, line: cp.line });
+                }
+                return value;
+            };
         }
     },
     '!クリア': {
