@@ -43,7 +43,11 @@ export function convert(code) {
             while (checkICount >= lineICount) {
                 const prevLine = removeCommentsFromLine(lines[i - 1]);
                 // eslint-disable-next-line no-irregular-whitespace
-                if (line.replace(/^[ 　・\t]+/, '').charAt(0) !== '違') {
+                const lineTrimed = line.replace(/^[ 　・\t]+/, '');
+                if (lineTrimed.charAt(0) === '違' || lineTrimed.substring(0, 6) === 'エラーならば') {
+                    // この場合、ここまでは不要
+                }
+                else {
                     lines[i - 1] = prevLine + KOKOMADE;
                 }
                 // 現在のブロックの処理が完了

@@ -380,7 +380,18 @@ describe('indent', () => {
     '違えば\n' +
     '    b;ここまで\n')
   })
-  it('#1215 インラインインデント構文3 - ネスト', () => {
+  it('#1215 インラインインデント構文 - エラー監視', () => {
+        assert.strictEqual(NakoIndentInline.convert(
+          'エラー監視:\n' +
+          '    a\n' +
+          'エラーならば:\n' +
+          '    b\n'),
+        'エラー監視\n' +
+        '    a\n' +
+        'エラーならば\n' +
+        '    b;ここまで\n')
+      })
+      it('#1215 インラインインデント構文3 - ネスト', () => {
     assert.strictEqual(NakoIndentInline.convert(
       '3回：\n' +
             '　　4回：\n' +
