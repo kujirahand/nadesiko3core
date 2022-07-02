@@ -112,7 +112,7 @@ export class NakoParser extends NakoParserBase {
     // 関数呼び出し演算子
     if (this.check2(['func', '←'])) { return this.yCallOp() }
     if (this.check2(['func', 'eq'])) {
-      const word: Token = this.get() || NewEmptyToken('?', '?', map.line, map.file || '')
+      const word: Token = this.get() || NewEmptyToken()
       throw NakoSyntaxError.fromNode(`関数『${word.value}』に代入できません。『←』を使ってください。`, word)
     }
 

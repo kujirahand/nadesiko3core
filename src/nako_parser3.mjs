@@ -140,7 +140,7 @@ export class NakoParser extends NakoParserBase {
             return this.yCallOp();
         }
         if (this.check2(['func', 'eq'])) {
-            const word = this.get() || NewEmptyToken('?', '?', map.line, map.file || '');
+            const word = this.get() || NewEmptyToken();
             throw NakoSyntaxError.fromNode(`関数『${word.value}』に代入できません。『←』を使ってください。`, word);
         }
         // 先読みして初めて確定する構文

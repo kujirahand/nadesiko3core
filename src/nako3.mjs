@@ -5,7 +5,7 @@ import { NakoPrepare } from './nako_prepare.mjs';
 import { generateJS, NakoGenOptions } from './nako_gen.mjs';
 import { NakoGenASync } from './nako_gen_async.mjs';
 import NakoIndent from './nako_indent.mjs';
-import NakoInlineIndent from './nako_indent_inline.mjs';
+import { convertInlineIndent } from './nako_indent_inline.mjs';
 import { convertDNCL } from './nako_from_dncl.mjs';
 import { SourceMappingOfTokenization, SourceMappingOfIndentSyntax, OffsetToLineColumn, subtractSourceMapByPreCodeLength } from './nako_source_mapping.mjs';
 import { NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs';
@@ -259,7 +259,7 @@ export class NakoCompiler {
         // DNCL構文 (#1140)
         code = convertDNCL(code, filename);
         // インライン・インデント (#1215)
-        code = NakoInlineIndent.convert(code);
+        // code = NakoInlineIndent.convert(code)
         // インデント構文 (#596)
         const { code: code2, insertedLines, deletedLines } = NakoIndent.convert(code, filename);
         // 全角半角の統一処理
@@ -282,13 +282,15 @@ export class NakoCompiler {
             const map = subtractSourceMapByPreCodeLength({ ...dest, line }, preCode);
             throw new NakoLexerError(err.msg, map.startOffset, map.endOffset, map.line, filename);
         }
+        // インラインインデントを変換 #1215
+        tokens = convertInlineIndent(tokens);
         // ソースコード上の位置に変換
         return tokens.map((token) => {
             const dest = indentationSyntaxSourceMapping.map(tokenizationSourceMapping.map(token.preprocessedCodeOffset || 0), tokenizationSourceMapping.map((token.preprocessedCodeOffset || 0) + (token.preprocessedCodeLength || 0)));
             let line = token.line;
             let column = 0;
             if (token.type === 'eol' && dest.endOffset !== null) {
-                // eolはparserで `line = ${eolToken.line};` に変換されるため、
+                // eolはnako_genで `line = ${eolToken.line};` に変換されるため、
                 // 行末のeolのlineは次の行の行数を表す必要がある。
                 const out = offsetToLineColumn.map(dest.endOffset, false);
                 line = out.line;

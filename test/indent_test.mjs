@@ -1,6 +1,5 @@
 import assert from 'assert'
 import NakoIndent from '../src/nako_indent.mjs'
-import NakoIndentInline from '../src/nako_indent_inline.mjs'
 
 describe('indent', () => {
   const cmp = (/** @type {unknown} */ src, /** @type {string} */ expected) => {
@@ -361,43 +360,5 @@ describe('indent', () => {
       ).pairs,
       [[0, 2], [2, 4]]
     )
-  })
-  it('#1215 インラインインデント構文 - 回', () => {
-    assert.strictEqual(NakoIndentInline.convert(
-      '3回:\n' +
-      '　　a\n'),
-      '3回\n' +
-      '　　a;ここまで\n')
-    })
-    it('#1215 インラインインデント構文 - もし', () => {
-    assert.strictEqual(NakoIndentInline.convert(
-      'もし,3>1ならば:\n' +
-      '    a\n' +
-      '違えば:\n' +
-      '    b\n'),
-    'もし,3>1ならば\n' +
-    '    a\n' +
-    '違えば\n' +
-    '    b;ここまで\n')
-  })
-  it('#1215 インラインインデント構文 - エラー監視', () => {
-        assert.strictEqual(NakoIndentInline.convert(
-          'エラー監視:\n' +
-          '    a\n' +
-          'エラーならば:\n' +
-          '    b\n'),
-        'エラー監視\n' +
-        '    a\n' +
-        'エラーならば\n' +
-        '    b;ここまで\n')
-      })
-      it('#1215 インラインインデント構文3 - ネスト', () => {
-    assert.strictEqual(NakoIndentInline.convert(
-      '3回：\n' +
-            '　　4回：\n' +
-            '　　　　a\n'),
-    '3回\n' +
-    '　　4回\n' +
-    '　　　　a;ここまで;ここまで\n')
   })
 })

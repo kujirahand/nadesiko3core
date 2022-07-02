@@ -43,6 +43,7 @@ export class NakoLexer {
                     type: 'eol',
                     line: eof.line,
                     column: 0,
+                    indent: -1,
                     file: eof.file,
                     josi: '',
                     value: '---',
@@ -53,6 +54,7 @@ export class NakoLexer {
                 this.result.push({
                     type: 'eof',
                     line: eof.line,
+                    indent: -1,
                     column: 0,
                     file: eof.file,
                     josi: '',
@@ -67,6 +69,7 @@ export class NakoLexer {
                     type: 'eol',
                     line: 0,
                     column: 0,
+                    indent: -1,
                     file: '',
                     josi: '',
                     value: '---',
@@ -78,6 +81,7 @@ export class NakoLexer {
                     type: 'eof',
                     line: 0,
                     column: 0,
+                    indent: -1,
                     file: '',
                     josi: '',
                     value: '',
@@ -152,7 +156,7 @@ export class NakoLexer {
             // 無名関数の定義：「xxには**」があった場合 ... 暗黙的な関数定義とする
             if ((t.type === 'word' && t.josi === 'には') || (t.type === 'word' && t.josi === 'は~')) {
                 t.josi = 'には';
-                tokens.splice(i + 1, 0, { type: 'def_func', value: '関数', line: t.line, column: t.column, file: t.file, josi: '', startOffset: t.endOffset, endOffset: t.endOffset, rawJosi: '', tag: '無名関数' });
+                tokens.splice(i + 1, 0, { type: 'def_func', value: '関数', indent: t.indent, line: t.line, column: t.column, file: t.file, josi: '', startOffset: t.endOffset, endOffset: t.endOffset, rawJosi: '', tag: '無名関数' });
                 i++;
                 continue;
             }
@@ -164,7 +168,7 @@ export class NakoLexer {
                     if (!t.endOffset) {
                         t.endOffset = 1;
                     }
-                    const kai = { type: '回', value: '回', line: t.line, column: t.column, file: t.file, josi: '', startOffset: t.endOffset - 1, endOffset: t.endOffset, rawJosi: '' };
+                    const kai = { type: '回', value: '回', indent: t.indent, line: t.line, column: t.column, file: t.file, josi: '', startOffset: t.endOffset - 1, endOffset: t.endOffset, rawJosi: '' };
                     tokens.splice(i + 1, 0, kai);
                     t.endOffset--;
                     i++;
@@ -327,6 +331,7 @@ export class NakoLexer {
                 const startOffset = (t.endOffset === undefined) ? undefined : t.endOffset - t.rawJosi.length;
                 tokens.splice(i + 1, 0, {
                     type: 'eq',
+                    indent: t.indent,
                     line: t.line,
                     column: t.column,
                     file: t.file,
@@ -349,6 +354,7 @@ export class NakoLexer {
                 const startOffset = t.endOffset === undefined ? undefined : t.endOffset - t.rawJosi.length;
                 tokens.splice(i + 1, 0, {
                     type: t.josi,
+                    indent: t.indent,
                     line: t.line,
                     column: t.column,
                     file: t.file,
@@ -373,6 +379,7 @@ export class NakoLexer {
                 tokens.splice(i + 1, 0, {
                     type: 'ならば',
                     value: josi,
+                    indent: t.indent,
                     line: t.line,
                     column: t.column,
                     file: t.file,
@@ -406,6 +413,33 @@ export class NakoLexer {
         }
     }
     /**
+     * インデントの個数を数える
+     * @returns 戻り値として[インデント数, 読み飛ばすべき文字数]を返す
+     */
+    countIndent(src) {
+        let indent = 0;
+        for (let i = 0; i < src.length; i++) {
+            const c = src.charAt(i);
+            switch (c) {
+                case ' ':
+                    indent++;
+                    break;
+                case '　':
+                    indent += 2;
+                    break;
+                case '\t':
+                    indent += 4;
+                    break;
+                case '・':
+                    indent += 2;
+                    break;
+                default:
+                    return [indent, i];
+            }
+        }
+        return [indent, src.length];
+    }
+    /**
      * ソースコードをトークンに分割する
      * @param src なでしこのソースコード
      * @param line 先頭行の行番号
@@ -418,6 +452,11 @@ export class NakoLexer {
         let lineCurrent;
         let column = 1;
         let isDefTest = false;
+        let indent = 0;
+        // 最初にインデントを数える
+        const ia = this.countIndent(src);
+        indent = ia[0];
+        src = src.substring(ia[1]);
         while (src !== '') {
             let ok = false;
             // 各ルールについて
@@ -437,7 +476,6 @@ export class NakoLexer {
                 // マッチしたルールがコールバックを持つなら
                 if (rule.cbParser) {
                     // コールバックを呼ぶ
-                    /** @type {{ src: string, res: string, josi: string, numEOL: number }} */
                     let rp;
                     if (isDefTest && rule.name === 'word') {
                         rp = rule.cbParser(src, false);
@@ -465,6 +503,7 @@ export class NakoLexer {
                                     value: list[i],
                                     file: filename,
                                     josi,
+                                    indent,
                                     line,
                                     column,
                                     preprocessedCodeOffset: srcLength - src.length + offset,
@@ -474,11 +513,11 @@ export class NakoLexer {
                                 offset += list[i].length + 2;
                             }
                             else {
-                                result.push({ type: '&', value: '&', josi: '', file: filename, line, column, preprocessedCodeOffset: srcLength - src.length + offset, preprocessedCodeLength: 0 });
-                                result.push({ type: '(', value: '(', josi: '', file: filename, line, column, preprocessedCodeOffset: srcLength - src.length + offset, preprocessedCodeLength: 0 });
-                                result.push({ type: 'code', value: list[i], josi: '', file: filename, line, column, preprocessedCodeOffset: srcLength - src.length + offset, preprocessedCodeLength: list[i].length });
-                                result.push({ type: ')', value: ')', josi: '', file: filename, line, column, preprocessedCodeOffset: srcLength - src.length + offset + list[i].length, preprocessedCodeLength: 0 });
-                                result.push({ type: '&', value: '&', josi: '', file: filename, line, column, preprocessedCodeOffset: srcLength - src.length + offset + list[i].length, preprocessedCodeLength: 0 });
+                                result.push({ type: '&', value: '&', josi: '', indent, file: filename, line, column, preprocessedCodeOffset: srcLength - src.length + offset, preprocessedCodeLength: 0 });
+                                result.push({ type: '(', value: '(', josi: '', indent, file: filename, line, column, preprocessedCodeOffset: srcLength - src.length + offset, preprocessedCodeLength: 0 });
+                                result.push({ type: 'code', value: list[i], josi: '', indent, file: filename, line, column, preprocessedCodeOffset: srcLength - src.length + offset, preprocessedCodeLength: list[i].length });
+                                result.push({ type: ')', value: ')', josi: '', indent, file: filename, line, column, preprocessedCodeOffset: srcLength - src.length + offset + list[i].length, preprocessedCodeLength: 0 });
+                                result.push({ type: '&', value: '&', josi: '', indent, file: filename, line, column, preprocessedCodeOffset: srcLength - src.length + offset + list[i].length, preprocessedCodeLength: 0 });
                                 offset += list[i].length;
                             }
                         }
@@ -492,7 +531,7 @@ export class NakoLexer {
                     }
                     columnCurrent = column;
                     column += src.length - rp.src.length;
-                    result.push({ type: rule.name, value: rp.res, josi: rp.josi, line, column: columnCurrent, file: filename, preprocessedCodeOffset: srcLength - src.length, preprocessedCodeLength: src.length - rp.src.length });
+                    result.push({ type: rule.name, value: rp.res, josi: rp.josi, indent, line, column: columnCurrent, file: filename, preprocessedCodeOffset: srcLength - src.length, preprocessedCodeLength: src.length - rp.src.length });
                     src = rp.src;
                     line += rp.numEOL;
                     if (rp.numEOL > 0) {
@@ -512,6 +551,7 @@ export class NakoLexer {
                 lineCurrent = line;
                 column += m[0].length;
                 src = src.substring(m[0].length);
+                // 改行の時の処理
                 if ((rule.name === 'eol' && value === '\n') || rule.name === '_eol') {
                     value = line++;
                     column = 1;
@@ -563,6 +603,7 @@ export class NakoLexer {
                 result.push({
                     type: rule.name,
                     value,
+                    indent,
                     line: lineCurrent,
                     column: columnCurrent,
                     file: filename,
@@ -570,6 +611,10 @@ export class NakoLexer {
                     preprocessedCodeOffset: srcOffset,
                     preprocessedCodeLength: (srcLength - src.length) - srcOffset
                 });
+                if (rule.name === 'eol') { // 改行のとき次の行のインデントを調べる
+                    const ia = this.countIndent(src);
+                    indent = ia[0];
+                }
                 break;
             }
             if (!ok) {

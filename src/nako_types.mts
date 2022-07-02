@@ -41,6 +41,7 @@ export interface Token {
     column: number;
     file: string;
     josi: string;
+    indent: number;
     meta?: FuncListItem;
     rawJosi?: string;
     startOffset?: number | undefined;
@@ -58,10 +59,11 @@ export interface Token {
     lastToken?: Token;
 }
 
-export function NewEmptyToken (type = '?', value: any = {}, line = 0, file = 'main.nako3'): Token {
+export function NewEmptyToken (type = '?', value: any = {}, indent = -1, line = 0, file = 'main.nako3'): Token {
   return {
     type,
     value,
+    indent,
     line,
     column: 0,
     file,

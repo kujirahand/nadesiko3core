@@ -1,87 +1,79 @@
-import { countIndent, checkSpecialRetMark, replaceRetMark, removeCommentsFromLine } from './nako_indent.mjs'
+import { Token, NewEmptyToken } from './nako_types.mjs'
 
-// インラインインデント構文を処理するために文字列内の改行を置換
-// 複数行にまたがる文字列やコメント内にある改行を全部特殊文字に置き換える
-class StrCommentTrimmer {
-  specialMark: string
-  constructor () {
-    this.specialMark = '__ありえない改行マーク__' // beginEditでユニークな値に変更される
-  }
-
-  beginEdit (code: string): string {
-    // 文字列とコメント内の改行を置換
-    this.specialMark = checkSpecialRetMark(code)
-    return replaceRetMark(code)
-  }
-
-  endEdit (code: string): string {
-    return code.split(this.specialMark).join('\n')
-  }
-}
-
-export function convert (code: string): string {
-  // 挿入する「ここまで」
-  const KOKOMADE = ';ここまで'
-  // 一時的に文字列とコメントを特殊マークに置換する
-  const trimmer = new StrCommentTrimmer()
-  code = trimmer.beginEdit(code)
+/** インラインインデント構文 --- 末尾の":"をインデントを考慮して"ここまで"を挿入 (#1215) */
+export function convertInlineIndent (tokens: Token[]): Token[] {
+  const lines: Token[][] = splitTokens(tokens, 'eol')
   const blockIndents: number[] = []
-  code = code.split('\r\n').join('\n')
-  // ソース末尾に空白があるかチェック(意外と重要)
-  let lastSpace = ''
-  const lastm = code.match(/(\s+)$/)
-  if (lastm) { lastSpace = lastm[1] }
-  code = code.replace(/\s+$/, '') // 末尾の空白を除去
-  const lines: string[] = code.split('\n')
   let checkICount = -1
   for (let i = 0; i < lines.length; i++) {
-    let line = lines[i]
-    // ブロックの終了をチェック
-    // インデントチェック中か?
+    const line = lines[i]
+    if (line.length === 0) { continue }
+    // インデントの終了を確認する必要があるか？
     if (checkICount >= 0) {
-      // 0:3回
-      // 2:・・「あ」を表示
-      // 0:
-      const lineICount = countIndent(line)
+      const lineICount: number = lines[i][0].indent
       while (checkICount >= lineICount) {
-        const prevLine = removeCommentsFromLine(lines[i - 1])
-        // eslint-disable-next-line no-irregular-whitespace
-        const lineTrimed = line.replace(/^[ 　・\t]+/, '')
-        if (lineTrimed.charAt(0) === '違' || lineTrimed.substring(0, 6) === 'エラーならば') {
-          // この場合、ここまでは不要
+        const tFirst: Token = line[0]
+        if (tFirst.type === '違えば' || (tFirst.type === 'word' && tFirst.value === 'エラー' && tFirst.josi === 'ならば')) {
+          // 挿入不要
         } else {
-          lines[i - 1] = prevLine + KOKOMADE
+          // ここまでを挿入する
+          lines[i - 1].push(NewEmptyToken('ここまで', '', lineICount, tFirst.line))
         }
-        // 現在のブロックの処理が完了
         blockIndents.pop()
-        checkICount = (blockIndents.length > 0) ? blockIndents[blockIndents.length - 1] : -1
-        if (checkICount === -1) {
+        if (blockIndents.length > 0) {
+          checkICount = blockIndents[blockIndents.length - 1]
+        } else {
+          checkICount = -1
           break
         }
       }
     }
-    // ブロックの開始をチェック
-    if (line.indexOf(':') >= 0 || line.indexOf('：') >= 0) {
-      const lineICount = countIndent(line)
-      line = removeCommentsFromLine(line).replace(/\s+$/, '')
-      const c = line.substring(line.length - 1)
-      if (c === '：' || c === ':') {
-        blockIndents.push(lineICount)
-        lines[i] = line.substring(0, line.length - 1)
-        checkICount = lineICount
-      }
+    const tLast: Token = getLastTokenWithoutEOL(line)
+    if (tLast.type === ':') {
+      // 末尾の「:」を削除
+      lines[i] = lines[i].filter(t => t !== tLast)
+      checkICount = tLast.indent
+      blockIndents.push(checkICount)
     }
   }
-  // ブロックの残りをまとめて処理
-  for (let i = 0; i < blockIndents.length; i++) {
-    const last = lines.length - 1
-    lines[last] = removeCommentsFromLine(lines[last]) + KOKOMADE
+  if (lines.length > 0) {
+    for (let i = 0; i < blockIndents.length; i++) {
+      lines[lines.length - 1].push(NewEmptyToken('ここまで'))
+    }
   }
-  // 特殊マークを実際の文字列とコメントに置換する
-  code = trimmer.endEdit(lines.join('\n'))
-  return code + lastSpace
+  // 行ごとに分割していたトークンをくっつける
+  const r: Token[] = []
+  for (const line of lines) {
+    for (const t of line) {
+      r.push(t)
+    }
+    // console.log('@@debug=', line.map(t => (t.type+':'+t.indent)).join('|'))
+  }
+  return r
 }
 
-export default {
-  convert
+function getLastTokenWithoutEOL (line: Token[]): Token {
+  const len: number = line.length
+  if (len === 0) { return NewEmptyToken('?') }
+  let res: Token = line[len - 1]
+  if (res.type === 'eol') {
+    if (len >= 2) { res = line[len - 2] }
+  }
+  return res
+}
+
+function splitTokens (tokens: Token[], delimiter: string): Token[][] {
+  const result: Token[][] = []
+  let line: Token[] = []
+  for (const t of tokens) {
+    line.push(t)
+    if (t.type === delimiter) {
+      result.push(line)
+      line = []
+    }
+  }
+  if (line.length > 0) {
+    result.push(line)
+  }
+  return result
 }
