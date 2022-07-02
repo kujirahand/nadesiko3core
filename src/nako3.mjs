@@ -4,8 +4,7 @@ import { NakoLexer } from './nako_lexer.mjs';
 import { NakoPrepare } from './nako_prepare.mjs';
 import { generateJS, NakoGenOptions } from './nako_gen.mjs';
 import { NakoGenASync } from './nako_gen_async.mjs';
-import NakoIndent from './nako_indent.mjs';
-import { convertInlineIndent } from './nako_indent_inline.mjs';
+import { convertInlineIndent, convertIndentSyntax } from './nako_indent_inline.mjs';
 import { convertDNCL } from './nako_from_dncl.mjs';
 import { SourceMappingOfTokenization, SourceMappingOfIndentSyntax, OffsetToLineColumn, subtractSourceMapByPreCodeLength } from './nako_source_mapping.mjs';
 import { NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs';
@@ -258,14 +257,10 @@ export class NakoCompiler {
         }
         // DNCL構文 (#1140)
         code = convertDNCL(code, filename);
-        // インライン・インデント (#1215)
-        // code = NakoInlineIndent.convert(code)
-        // インデント構文 (#596)
-        const { code: code2, insertedLines, deletedLines } = NakoIndent.convert(code, filename);
         // 全角半角の統一処理
-        const preprocessed = this.prepare.convert(code2);
-        const tokenizationSourceMapping = new SourceMappingOfTokenization(code2.length, preprocessed);
-        const indentationSyntaxSourceMapping = new SourceMappingOfIndentSyntax(code2, insertedLines, deletedLines);
+        const preprocessed = this.prepare.convert(code);
+        const tokenizationSourceMapping = new SourceMappingOfTokenization(code.length, preprocessed);
+        const indentationSyntaxSourceMapping = new SourceMappingOfIndentSyntax(code, [], []);
         const offsetToLineColumn = new OffsetToLineColumn(code);
         // トークン分割
         let tokens;
@@ -282,10 +277,12 @@ export class NakoCompiler {
             const map = subtractSourceMapByPreCodeLength({ ...dest, line }, preCode);
             throw new NakoLexerError(err.msg, map.startOffset, map.endOffset, map.line, filename);
         }
+        // インデント構文を変換 #596
+        tokens = convertIndentSyntax(tokens);
         // インラインインデントを変換 #1215
         tokens = convertInlineIndent(tokens);
         // ソースコード上の位置に変換
-        return tokens.map((token) => {
+        tokens = tokens.map((token) => {
             const dest = indentationSyntaxSourceMapping.map(tokenizationSourceMapping.map(token.preprocessedCodeOffset || 0), tokenizationSourceMapping.map((token.preprocessedCodeOffset || 0) + (token.preprocessedCodeLength || 0)));
             let line = token.line;
             let column = 0;
@@ -307,6 +304,7 @@ export class NakoCompiler {
                 rawJosi: token.josi
             };
         });
+        return tokens;
     }
     /**
      * 単語の属性を構文解析に先立ち補正する

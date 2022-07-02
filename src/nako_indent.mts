@@ -4,9 +4,6 @@ import { NakoPrepare, checkNakoMode } from './nako_prepare.mjs'
 // インデント構文のキーワード
 const INDENT_MODE_KEYWORDS = ['!インデント構文', '!ここまでだるい']
 
-// 現在インデントに使える文字
-// [ 　・\t] // スペース、タブ、・
-
 interface DeletedLine {
   lineNumber: number;
   len: number;

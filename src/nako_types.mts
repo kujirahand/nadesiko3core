@@ -59,7 +59,7 @@ export interface Token {
     lastToken?: Token;
 }
 
-export function NewEmptyToken (type = '?', value: any = {}, indent = -1, line = 0, file = 'main.nako3'): Token {
+export function NewEmptyToken (type = '?', value: any = '', indent = -1, line = 0, file = 'main.nako3'): Token {
   return {
     type,
     value,

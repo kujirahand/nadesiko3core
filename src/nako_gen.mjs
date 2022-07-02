@@ -103,7 +103,7 @@ export class NakoGen {
      * @param {Ast} node
      * @param {boolean} forceUpdate
      */
-    convLineno(node, forceUpdate = false) {
+    convLineno(node, forceUpdate = false, incLine = 0) {
         if (this.speedMode.lineNumbers > 0) {
             return '';
         }
@@ -112,10 +112,10 @@ export class NakoGen {
             lineNo = 'unknown';
         }
         else if (typeof node.file !== 'string') {
-            lineNo = `l${node.line}`;
+            lineNo = `l${node.line + incLine}`;
         }
         else {
-            lineNo = `l${node.line}:${node.file}`;
+            lineNo = `l${node.line + incLine}:${node.file}`;
         }
         // 強制的に行番号をアップデートするか
         if (!forceUpdate) {
@@ -737,7 +737,8 @@ export class NakoGen {
         // usedAsyncFnの値に応じて関数定義の方法を変更
         const tof = (this.usedAsyncFn) ? topOfFunctionAsync : topOfFunction;
         // 関数コード全体を構築
-        code = tof + performanceMonitorInjectAtStart + variableDeclarations + code + popStack;
+        const lineInfo = '  ' + this.convLineno(node, true, 1) + '\n';
+        code = tof + performanceMonitorInjectAtStart + variableDeclarations + lineInfo + code + popStack;
         code += endOfFunction;
         // 名前があれば、関数を登録する
         if (name) {
