@@ -58,7 +58,7 @@ export function convertInlineIndent(tokens) {
     return joinTokenLines(lines);
 }
 /** 行ごとに分割していたトークンをくっつける */
-function joinTokenLines(lines) {
+export function joinTokenLines(lines) {
     const r = [];
     for (const line of lines) {
         for (const t of line) {
@@ -90,7 +90,7 @@ function getLastTokenWithoutEOL(line) {
     }
     return res;
 }
-function splitTokens(tokens, delimiter) {
+export function splitTokens(tokens, delimiter) {
     const result = [];
     let line = [];
     let kakko = 0;

@@ -49,7 +49,7 @@ export const rules = [
     { name: 'noteq', pattern: /^(≠|<>|!=)/ },
     { name: '←', pattern: /^(←|<--)/ },
     { name: 'eq', pattern: /^(=|🟰)/ },
-    { name: 'line_comment', pattern: /^(!|💡)(インデント構文|ここまでだるい)[^\n]*/ },
+    { name: 'line_comment', pattern: /^(!|💡)(インデント構文|ここまでだるい|DNCLモード)[^\n]*/ },
     { name: 'not', pattern: /^(!|💡)/ },
     { name: 'gt', pattern: /^>/ },
     { name: 'lt', pattern: /^</ },

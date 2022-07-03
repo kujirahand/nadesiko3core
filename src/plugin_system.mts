@@ -292,6 +292,26 @@ export default {
     josi: [['に', 'と'], ['を']],
     pure: true,
     fn: function (a: any, b: any) {
+      // 数値の掛け算
+      if (typeof a === 'number') {
+        return a * b
+      }
+      // 文字列の掛け算(文字列の繰り返し)
+      if (typeof a === 'string') {
+        let s = ''
+        for (let i = 0; i < parseInt(b); i++) {
+          s += a
+        }
+        return s
+      }
+      // 配列の繰り返し
+      if (a instanceof Array) {
+        const aa: any[] = []
+        for (let i = 0; i < parseInt(b); i++) {
+          aa.push(...a)
+        }
+        return aa
+      }
       return a * b
     }
   },

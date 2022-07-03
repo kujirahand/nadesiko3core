@@ -68,7 +68,7 @@ export const rules: NakoLexRule[] = [
   { name: 'noteq', pattern: /^(≠|<>|!=)/ },
   { name: '←', pattern: /^(←|<--)/ }, // 関数呼び出し演算子 #891 #899
   { name: 'eq', pattern: /^(=|🟰)/ },
-  { name: 'line_comment', pattern: /^(!|💡)(インデント構文|ここまでだるい)[^\n]*/ }, // #1184
+  { name: 'line_comment', pattern: /^(!|💡)(インデント構文|ここまでだるい|DNCLモード)[^\n]*/ }, // #1184
   { name: 'not', pattern: /^(!|💡)/ }, // #1184
   { name: 'gt', pattern: /^>/ },
   { name: 'lt', pattern: /^</ },

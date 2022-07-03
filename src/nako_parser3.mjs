@@ -129,7 +129,7 @@ export class NakoParser extends NakoParserBase {
         if (this.accept(['not', '非同期モード'])) {
             return this.yASyncMode();
         }
-        if (this.accept(['not', 'DNCLモード'])) {
+        if (this.accept(['DNCLモード'])) {
             return this.yDNCLMode();
         }
         if (this.accept(['not', 'string', 'モード設定'])) {

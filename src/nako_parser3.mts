@@ -106,7 +106,7 @@ export class NakoParser extends NakoParserBase {
     if (this.accept(['続ける'])) { return { type: 'continue', josi: '', ...map, end: this.peekSourceMap() } }
     if (this.accept(['require', 'string', '取込'])) { return this.yRequire() }
     if (this.accept(['not', '非同期モード'])) { return this.yASyncMode() }
-    if (this.accept(['not', 'DNCLモード'])) { return this.yDNCLMode() }
+    if (this.accept(['DNCLモード'])) { return this.yDNCLMode() }
     if (this.accept(['not', 'string', 'モード設定'])) { return this.ySetGenMode(this.y[1].value) }
 
     // 関数呼び出し演算子

@@ -335,8 +335,6 @@ export class NakoCompiler {
     if (!code.startsWith(preCode)) {
       throw new Error('codeの先頭にはpreCodeを含める必要があります。')
     }
-    // DNCL構文 (#1140)
-    code = convertDNCL(code, filename)
     // 全角半角の統一処理
     const preprocessed = this.prepare.convert(code)
     const tokenizationSourceMapping = new SourceMappingOfTokenization(code.length, preprocessed)
@@ -362,6 +360,9 @@ export class NakoCompiler {
 
     // インラインインデントを変換 #1215
     tokens = convertInlineIndent(tokens)
+
+    // DNCL構文 (#1140)
+    tokens = convertDNCL(tokens)
 
     // ソースコード上の位置に変換
     tokens = tokens.map((token) => {
