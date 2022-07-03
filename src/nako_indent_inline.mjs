@@ -20,6 +20,9 @@ export function convertInlineIndent(tokens) {
         if (line.length === 0) {
             continue;
         }
+        if (line[0].type === 'eol') {
+            continue;
+        }
         // インデントの終了を確認する必要があるか？
         if (checkICount >= 0) {
             const lineICount = lines[i][0].indent;
@@ -65,7 +68,7 @@ export function joinTokenLines(lines) {
             r.push(t);
         }
         // debug
-        // console.log('@@join=', mkIndent(line[0] ? line[0].indent : 0), line.map(t => (t.type + '_' + t.value + ':' + t.indent)).join(' | '))
+        // console.log('@@join=', mkIndent(line[0] ? line[0].indent : 0), line.map(t => (t.type + '_' + t.value + t.josi + ':' + t.indent)).join(' | '))
     }
     // console.log('@@@-----')
     return r;

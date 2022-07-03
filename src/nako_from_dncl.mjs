@@ -192,7 +192,6 @@ export function convertDNCL(tokens) {
                     t.value = t.value.substring(0, t.value.length - 1);
                     t.josi = 'だけ';
                     line.splice(j + 1, 0, NewEmptyToken('word', c, t.indent, t.line, t.file));
-                    console.log(line);
                 }
                 j++;
                 continue;
@@ -211,11 +210,13 @@ export function convertDNCL(tokens) {
         }
         // console.log(t)
     }
+    /*
     // 表示
     lines.map(line => {
-        console.log(line.map(t => t.type + '_' + ('' + t.value).replace('\n', '') + t.josi).join(' | '));
-    });
-    console.log('===');
+      console.log(line.map(t => t.type + '_' + ('' + t.value).replace('\n', '') + t.josi).join(' | '))
+    })
+    console.log('===')
+    */
     tokens = joinTokenLines(lines);
     return tokens;
 }
