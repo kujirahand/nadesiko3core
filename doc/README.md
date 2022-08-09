@@ -19,7 +19,7 @@
 
 - [rules配列](https://github.com/kujirahand/nadesiko3core/blob/7db54415b74815739fdb64aa05df7da9e5ab1bdf/src/nako_lex_rules.mts#L32)
 
-### 字句解析前の細かな処理
+### 字句解析前後の細かな処理
 
 ただし、実際には、字句解析を行う前に、全角半角を揃えたり、特殊な記法を一般的な記法に置き換えたりと前置処理が行われます。
 
