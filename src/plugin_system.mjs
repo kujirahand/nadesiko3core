@@ -2130,10 +2130,21 @@ export default {
         josi: [['']],
         pure: true,
         asyncFn: true,
-        fn: function (n) {
+        fn: function (n, sys) {
             return new Promise((resolve, reject) => {
                 try {
-                    setTimeout(() => { resolve(); }, parseFloat(n) * 1000);
+                    // タイマーを仕掛ける
+                    const timerId = setTimeout(() => {
+                        // タイマー使用中リストに追加したIDを削除
+                        const i = sys.__timeout.indexOf(timerId);
+                        if (i >= 0) {
+                            sys.__timeout.splice(i, 1);
+                        }
+                        // Promiseを終了
+                        resolve();
+                    }, parseFloat(n) * 1000);
+                    // タイマー使用中リストに追加
+                    sys.__timeout.push(timerId);
                 }
                 catch (err) {
                     reject(err);
