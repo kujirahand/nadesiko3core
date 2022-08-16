@@ -1440,7 +1440,7 @@ export class NakoParser extends NakoParserBase {
         const args = [];
         let nullCount = 0;
         let valueCount = 0;
-        for (let i = 0; i < f.josi.length; i++) {
+        for (let i = f.josi.length - 1; i >= 0; i--) {
             while (true) {
                 // スタックから任意の助詞を持つ値を一つ取り出す、助詞がなければ末尾から得る
                 let popArg = this.popStack(f.josi[i]);
@@ -1463,13 +1463,14 @@ export class NakoParser extends NakoParserBase {
                         throw NakoSyntaxError.fromNode(`関数『${t.value}』の引数『${varname}』には関数オブジェクトが必要です。`, t);
                     }
                 }
-                args.push(popArg);
+                args.unshift(popArg);
                 if (i < f.josi.length - 1 || !f.isVariableJosi) {
                     break;
                 }
             }
         }
-        // 1つだけなら、変数「それ」で補完される
+        // 引数が不足しているとき(つまり、引数にnullがあるとき)、自動的に『変数「それ」』で補完される。
+        // ただし、nullが1つだけなら、変数「それ」で補完されるが、2つ以上あるときは、エラーにする
         if (nullCount >= 2 && (valueCount > 0 || t.josi === '' || keizokuJosi.indexOf(t.josi) >= 0)) {
             throw NakoSyntaxError.fromNode(`関数『${t.value}』の引数が不足しています。`, t);
         }

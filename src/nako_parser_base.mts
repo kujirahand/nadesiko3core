@@ -95,7 +95,7 @@ export class NakoParserBase {
     }
 
     // josiList にマッチする助詞を探す
-    for (let i = 0; i < this.stack.length; i++) {
+    for (let i = this.stack.length - 1; i >= 0; i--) {
       const t = this.stack[i]
       if (josiList.length === 0 || josiList.indexOf(t.josi) >= 0) {
         this.stack.splice(i, 1) // remove stack
