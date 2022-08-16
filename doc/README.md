@@ -19,15 +19,16 @@
 
 - [rules配列](https://github.com/kujirahand/nadesiko3core/blob/7db54415b74815739fdb64aa05df7da9e5ab1bdf/src/nako_lex_rules.mts#L32)
 
-### 字句解析前の細かな処理
+### 字句解析前後の細かな処理
 
 ただし、実際には、字句解析を行う前に、全角半角を揃えたり、特殊な記法を一般的な記法に置き換えたりと前置処理が行われます。
 
 - [前置処理](/src/nako_prepare.mts)
 
-また、なでしこ3では、インデント構文やDNCLモードなどをサポートしており、これは、なでしこの文法を劇的に置換する特殊モードで、字句解析の前に置換処理がおこなれます。
+また、なでしこ3では、インデント構文やDNCLモードなどをサポートしており、これは、なでしこの文法を劇的に置換する特殊モードで、[字句解析の後に置換処理](https://github.com/kujirahand/nadesiko3core/blob/4f89cbf32f45584248f00719b7f6b5d0495d6c5c/src/nako3.mts#L359)がおこなれます。
 
 - [インデント構文](/src/nako_indent.mts)
+- [インラインインデント構文](/src/nako_indent_inline.mts)
 - [DNCLモード](/src/nako_from_dncl.mjs)
 
 ## 構文解析
