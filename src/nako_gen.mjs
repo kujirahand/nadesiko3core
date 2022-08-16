@@ -1238,7 +1238,9 @@ export class NakoGen {
                             line: node.line
                         });
                     }
-                    argsA.push(`(__self.chk(${arg}, ${poolIndex}))`);
+                    // argが空になる対策 #1315
+                    const argStr = (arg === '') ? '""' : arg;
+                    argsA.push(`(__self.chk(${argStr}, ${poolIndex}))`);
                 }
             });
             argsCode = argsA.join(', ');
