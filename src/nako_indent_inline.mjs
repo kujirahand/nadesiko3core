@@ -33,7 +33,8 @@ export function convertInlineIndent(tokens) {
                 }
                 else {
                     // ここまでを挿入する
-                    lines[i - 1].push(NewEmptyToken('ここまで', '', lineICount, tFirst.line));
+                    lines[i - 1].push(NewEmptyToken('ここまで', 'ここまで', lineICount, tFirst.line));
+                    lines[i - 1].push(NewEmptyToken('eol', '', lineICount, tFirst.line));
                 }
                 blockIndents.pop();
                 if (blockIndents.length > 0) {
@@ -55,7 +56,8 @@ export function convertInlineIndent(tokens) {
     }
     if (lines.length > 0) {
         for (let i = 0; i < blockIndents.length; i++) {
-            lines[lines.length - 1].push(NewEmptyToken('ここまで'));
+            lines[lines.length - 1].push(NewEmptyToken('ここまで', 'ここまで'));
+            lines[lines.length - 1].push(NewEmptyToken('eol', ''));
         }
     }
     return joinTokenLines(lines);
@@ -72,13 +74,6 @@ export function joinTokenLines(lines) {
     }
     // console.log('@@@-----')
     return r;
-}
-function mkIndent(num) {
-    let s = '';
-    for (let i = 0; i < num; i++) {
-        s += ' ';
-    }
-    return s;
 }
 function getLastTokenWithoutEOL(line) {
     const len = line.length;
@@ -159,9 +154,9 @@ export function convertIndentSyntax(tokens) {
                     // 「違えば」などなら不要
                 }
                 else {
-                    lines[i - 1].push(NewEmptyToken('ここまで'));
+                    lines[i - 1].push(NewEmptyToken('ここまで', 'ここまで'));
+                    lines[i - 1].push(NewEmptyToken('eol', ''));
                 }
-                // console.log('@@@pop', lastI, '>=', curI, ':', line[0])
                 blockIndents.pop();
                 if (blockIndents.length > 0) {
                     lastI = blockIndents[blockIndents.length - 1];
@@ -181,7 +176,8 @@ export function convertIndentSyntax(tokens) {
         }
     }
     for (let i = 0; i < blockIndents.length; i++) {
-        lines[lines.length - 1].push(NewEmptyToken('ここまで'));
+        lines[lines.length - 1].push(NewEmptyToken('ここまで', 'ここまで'));
+        lines[lines.length - 1].push(NewEmptyToken('eol', ''));
     }
     // 再構築
     return joinTokenLines(lines);

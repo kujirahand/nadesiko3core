@@ -27,7 +27,8 @@ export function convertInlineIndent (tokens: Token[]): Token[] {
           // 挿入不要
         } else {
           // ここまでを挿入する
-          lines[i - 1].push(NewEmptyToken('ここまで', '', lineICount, tFirst.line))
+          lines[i - 1].push(NewEmptyToken('ここまで', 'ここまで', lineICount, tFirst.line))
+          lines[i - 1].push(NewEmptyToken('eol', '', lineICount, tFirst.line))
         }
         blockIndents.pop()
         if (blockIndents.length > 0) {
@@ -48,7 +49,8 @@ export function convertInlineIndent (tokens: Token[]): Token[] {
   }
   if (lines.length > 0) {
     for (let i = 0; i < blockIndents.length; i++) {
-      lines[lines.length - 1].push(NewEmptyToken('ここまで'))
+      lines[lines.length - 1].push(NewEmptyToken('ここまで', 'ここまで'))
+      lines[i - 1].push(NewEmptyToken('eol', ''))
     }
   }
   return joinTokenLines(lines)
@@ -66,14 +68,6 @@ export function joinTokenLines (lines: Token[][]): Token[] {
   }
   // console.log('@@@-----')
   return r
-}
-
-function mkIndent (num: number): string {
-  let s = ''
-  for (let i = 0; i < num; i++) {
-    s += ' '
-  }
-  return s
 }
 
 function getLastTokenWithoutEOL (line: Token[]): Token {
@@ -143,9 +137,9 @@ export function convertIndentSyntax (tokens: Token[]): Token[] {
         if (isSkipWord(line[0])) {
           // 「違えば」などなら不要
         } else {
-          lines[i - 1].push(NewEmptyToken('ここまで'))
+          lines[i - 1].push(NewEmptyToken('ここまで', 'ここまで'))
+          lines[i - 1].push(NewEmptyToken('eol', ''))
         }
-        // console.log('@@@pop', lastI, '>=', curI, ':', line[0])
         blockIndents.pop()
         if (blockIndents.length > 0) {
           lastI = blockIndents[blockIndents.length - 1]
@@ -164,7 +158,8 @@ export function convertIndentSyntax (tokens: Token[]): Token[] {
     }
   }
   for (let i = 0; i < blockIndents.length; i++) {
-    lines[lines.length - 1].push(NewEmptyToken('ここまで'))
+    lines[lines.length - 1].push(NewEmptyToken('ここまで', 'ここまで'))
+    lines[lines.length - 1].push(NewEmptyToken('eol', ''))
   }
   // 再構築
   return joinTokenLines(lines)
