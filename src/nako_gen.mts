@@ -886,7 +886,7 @@ export class NakoGen {
     // codeInit?
     if (node.checkInit) {
       const arrayDefCode = '[0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0]'
-      codeInit += `\n/*配列初期化*/if (!(${name} instanceof Array)) { ${name} = ${arrayDefCode}; console.log('初期化:${name}') };`
+      codeInit += `\n/*配列初期化*/if (!(${name} instanceof Array)) { ${name} = ${arrayDefCode}; /*console.log('初期化:${name}')*/ };`
       for (let i = 0; i < list.length - 1; i++) {
         const idx = this._convGen(list[i], true)
         codeArray += `[${idx}]`

@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "mocha ./test",
+    "test:dncl2": "mocha ./test/dncl2_test.mjs",
     "tsc": "tsc --watch",
     "build": "cnako3 batch/build_nako_version.nako3 && tsc",
     "eslint": "eslint ./src/*.mts",

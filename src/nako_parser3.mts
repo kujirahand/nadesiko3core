@@ -106,7 +106,8 @@ export class NakoParser extends NakoParserBase {
     if (this.accept(['続ける'])) { return { type: 'continue', josi: '', ...map, end: this.peekSourceMap() } }
     if (this.accept(['require', 'string', '取込'])) { return this.yRequire() }
     if (this.accept(['not', '非同期モード'])) { return this.yASyncMode() }
-    if (this.accept(['DNCLモード'])) { return this.yDNCLMode() }
+    if (this.accept(['DNCLモード'])) { return this.yDNCLMode(1) }
+    if (this.accept(['DNCL2モード'])) { return this.yDNCLMode(2) }
     if (this.accept(['not', 'string', 'モード設定'])) { return this.ySetGenMode(this.y[1].value) }
 
     // 関数呼び出し演算子
@@ -150,13 +151,17 @@ export class NakoParser extends NakoParserBase {
     return { type: 'eol', ...map, end: this.peekSourceMap() }
   }
 
-  /** @returns {Ast} */
-  yDNCLMode (): Ast {
+  /** set DNCL mode */
+  yDNCLMode (ver: number): Ast {
     const map = this.peekSourceMap()
-    // 配列インデックスは1から
-    this.arrayIndexFrom = 1
-    // 配列アクセスをJSと逆順で指定する
-    this.flagReverseArrayIndex = true
+    if (ver === 1) {
+      // 配列インデックスは1から
+      this.arrayIndexFrom = 1
+      // 配列アクセスをJSと逆順で指定する
+      this.flagReverseArrayIndex = true
+    } else {
+      // ver2はPythonに近いとのこと
+    }
     // 配列代入時自動で初期化チェックする
     this.flagCheckArrayInit = true
     return { type: 'eol', ...map, end: this.peekSourceMap() }

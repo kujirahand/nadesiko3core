@@ -11,6 +11,7 @@ import { NakoGen, generateJS, NakoGenOptions, NakoGenResult } from './nako_gen.m
 import { NakoGenASync } from './nako_gen_async.mjs'
 import { convertInlineIndent, convertIndentSyntax } from './nako_indent_inline.mjs'
 import { convertDNCL } from './nako_from_dncl.mjs'
+import { convertDNCL2 } from './nako_from_dncl2.mjs'
 import { SourceMappingOfTokenization, SourceMappingOfIndentSyntax, OffsetToLineColumn, subtractSourceMapByPreCodeLength } from './nako_source_mapping.mjs'
 import { NakoLexerError, NakoImportError, NakoSyntaxError, InternalLexerError } from './nako_errors.mjs'
 import { NakoLogger } from './nako_logger.mjs'
@@ -361,7 +362,9 @@ export class NakoCompiler {
     // インラインインデントを変換 #1215
     tokens = convertInlineIndent(tokens)
 
-    // DNCL構文 (#1140)
+    // DNCL ver2 (core #41)
+    tokens = convertDNCL2(tokens)
+    // DNCL ver1 (#1140)
     tokens = convertDNCL(tokens)
 
     // ソースコード上の位置に変換

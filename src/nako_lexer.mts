@@ -420,6 +420,12 @@ export class NakoLexer {
         case '・':
           indent += 2
           break
+        case '⎿':
+          indent += 2
+          break
+        case '｜':
+          indent += 2
+          break
         default:
           return [indent, i]
       }
