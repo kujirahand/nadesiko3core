@@ -2,6 +2,7 @@
 
 import { Token, NewEmptyToken } from './nako_types.mjs'
 import { NakoIndentError } from '../src/nako_errors.mjs'
+import { debugTokens, newToken } from './nako_tools.mjs'
 
 function isSkipWord (t: Token): boolean {
   if (t.type === '違えば') { return true }
@@ -11,24 +12,34 @@ function isSkipWord (t: Token): boolean {
 
 /** インラインインデント構文 --- 末尾の":"をインデントを考慮して"ここまで"を挿入 (#1215) */
 export function convertInlineIndent (tokens: Token[]): Token[] {
+  //
+  // 0:もし、A=0ならば:
+  // 2:  もし、B=0ならば:
+  // 4:    「A=0,B=0」を表示。
+  // 2:  違えば:
+  // 4:    「A=0,B!=0」を表示。
+  // 5:違えば:
+  // 6:  「A!=0」を表示。
+  //
   const lines: Token[][] = splitTokens(tokens, 'eol')
   const blockIndents: number[] = []
   let checkICount = -1
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    if (line.length === 0) { continue }
-    if (line[0].type === 'eol') { continue }
+    // 空行は飛ばす || コメント行だけの行も飛ばす
+    if (IsEmptyLine(line)) { continue }
     // インデントの終了を確認する必要があるか？
     if (checkICount >= 0) {
-      const lineICount: number = lines[i][0].indent
+      const lineICount: number = line[0].indent
       while (checkICount >= lineICount) {
         const tFirst: Token = line[0]
-        if (isSkipWord(tFirst)) { // 「違えば」の直前には「ここまで」不要
-          // 挿入不要
+        // console.log('@@', lineICount, '>>', checkICount, tFirst.type)
+        if (isSkipWord(tFirst) && (checkICount === lineICount)) { // 「違えば」や「エラーならば」
+          // 「ここまで」の挿入不要 / ただしネストした際の「違えば」(上記の5の状態なら必要)
         } else {
           // ここまでを挿入する
-          lines[i - 1].push(NewEmptyToken('ここまで', 'ここまで', lineICount, tFirst.line))
-          lines[i - 1].push(NewEmptyToken('eol', '', lineICount, tFirst.line))
+          lines[i - 1].push(newToken('ここまで', 'ここまで', tFirst))
+          lines[i - 1].push(newToken('eol', '\n', tFirst))
         }
         blockIndents.pop()
         if (blockIndents.length > 0) {
@@ -47,13 +58,25 @@ export function convertInlineIndent (tokens: Token[]): Token[] {
       blockIndents.push(checkICount)
     }
   }
-  if (lines.length > 0) {
+  if (lines.length > 0 && blockIndents.length > 0) {
+    // トークン情報を得るため、直近のトークンを得る
+    let t = tokens[0]
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i]
+      if (line.length > 0) {
+        t = line[line.length - 1]
+        break
+      }
+    }
+    // ここまでを差し込む
     for (let i = 0; i < blockIndents.length; i++) {
-      lines[lines.length - 1].push(NewEmptyToken('ここまで', 'ここまで'))
-      lines[i - 1].push(NewEmptyToken('eol', ''))
+      lines[lines.length - 1].push(newToken('ここまで', 'ここまで', t))
+      lines[lines.length - 1].push(newToken('eol', '\n', t))
     }
   }
-  return joinTokenLines(lines)
+  const result = joinTokenLines(lines)
+  // console.log('###', debugTokens(result))
+  return result
 }
 
 /** 行ごとに分割していたトークンをくっつける */
@@ -63,10 +86,7 @@ export function joinTokenLines (lines: Token[][]): Token[] {
     for (const t of line) {
       r.push(t)
     }
-    // debug
-    // console.log('@@join=', mkIndent(line[0] ? line[0].indent : 0), line.map(t => (t.type + '_' + t.value + t.josi + ':' + t.indent)).join(' | '))
   }
-  // console.log('@@@-----')
   return r
 }
 
@@ -101,6 +121,27 @@ export function splitTokens (tokens: Token[], delimiter: string): Token[][] {
   return result
 }
 
+/** トークン行が空かどうか調べる */
+function IsEmptyLine(line: Token[]): boolean {
+  if (line.length === 0) { return true }
+  for (let j = 0; j < line.length; j++) {
+    const ty = line[j].type
+    if (ty === 'eol' || ty === 'line_comment' || ty === 'range_comment') { continue }
+    return false
+  }
+  return true
+}
+
+/** コメントを除去した最初のトークンを返す */
+function GetLeftTokens (line: Token[]): Token {
+  for (let i = 0; i < line.length; i++) {
+    const t = line[i].type
+    if (t === 'eol' || t === 'line_comment' || t === 'range_comment') { continue }
+    return line[i]
+  }
+  return line[0]
+}
+
 // インデント構文のキーワード
 const INDENT_MODE_KEYWORDS = ['!インデント構文', '!ここまでだるい', '💡インデント構文', '💡ここまでだるい']
 
@@ -115,14 +156,15 @@ export function convertIndentSyntax (tokens: Token[]): Token[] {
       throw new NakoIndentError('インデント構文が有効化されているときに『ここまで』を使うことはできません。', t.line, t.file)
     }
   }
-  const blockIndents: number[] = []
+  const blockIndents: number[][] = []
   const lines = splitTokens(tokens, 'eol')
   let lastI = 0
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    if (line.length === 0) { continue } // 空行は飛ばす
-    if (line[0].type === 'eol') { continue } // 空行は飛ばす
-    const curI: number = line[0].indent
+    // 空行は飛ばす || コメント行だけの行も飛ばす
+    if (IsEmptyLine(line)) { continue }
+    const leftToken = GetLeftTokens(line)
+    const curI: number = leftToken.indent
     if (curI === lastI) { continue }
     // ブロックの終了?
     // 0: 3回
@@ -134,15 +176,18 @@ export function convertIndentSyntax (tokens: Token[]): Token[] {
     // ブロックの終了?
     if (lastI >= 0) {
       while (lastI > curI) {
-        if (isSkipWord(line[0])) {
-          // 「違えば」などなら不要
+        const blockIndentTopLast = blockIndents[blockIndents.length - 1][1]
+        // console.log('@@[', i, ']', lastI, '>', curI, '@', blockIndentTopLast, leftToken.type)
+        if (isSkipWord(leftToken) && blockIndentTopLast === curI) {
+          // 「違えば」などなら不要 (ただし、違えばがネストしている場合は必要)
         } else {
-          lines[i - 1].push(NewEmptyToken('ここまで', 'ここまで'))
-          lines[i - 1].push(NewEmptyToken('eol', ''))
+          const t = lines[i - 1][0]
+          lines[i - 1].push(newToken('ここまで', 'ここまで', t))
+          lines[i - 1].push(newToken('eol', '\n', t))
         }
         blockIndents.pop()
         if (blockIndents.length > 0) {
-          lastI = blockIndents[blockIndents.length - 1]
+          lastI = blockIndents[blockIndents.length - 1][0]
         } else {
           lastI = 0
           break
@@ -151,18 +196,29 @@ export function convertIndentSyntax (tokens: Token[]): Token[] {
     }
     // ブロックの開始？
     if (curI > lastI) {
-      blockIndents.push(curI)
+      blockIndents.push([curI, lastI])
       // console.log('@@@push', curI)
       lastI = curI
       continue
     }
   }
+  // 末尾に「ここまで」を追加する
   for (let i = 0; i < blockIndents.length; i++) {
-    lines[lines.length - 1].push(NewEmptyToken('ここまで', 'ここまで'))
-    lines[lines.length - 1].push(NewEmptyToken('eol', ''))
+    // トークン情報を得るため、直近のトークンを得る
+    let t = tokens[0]
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i]
+      if (line.length > 0) {
+        t = line[line.length - 1]
+        break
+      }
+    }
+    lines[lines.length - 1].push(newToken('ここまで', 'ここまで', t))
+    lines[lines.length - 1].push(newToken('eol', '\n', t))
   }
-  // 再構築
-  return joinTokenLines(lines)
+  const result = joinTokenLines(lines)
+  // console.log('###', debugTokens(result))
+  return result
 }
 
 function useIndentSynax (tokens: Token[]) : boolean {

@@ -411,6 +411,12 @@ export class NakoLexer {
         case ' ':
           indent++
           break
+        case '|':
+          indent++
+          break
+        case '｜':
+          indent += 2
+          break
         case '　':
           indent += 2
           break
@@ -423,7 +429,16 @@ export class NakoLexer {
         case '⎿':
           indent += 2
           break
-        case '｜':
+        case '└':
+          indent += 2
+          break
+        case '│':
+          indent += 2
+          break
+        case '┃':
+          indent += 2
+          break
+        case '┗':
           indent += 2
           break
         default:
@@ -449,8 +464,9 @@ export class NakoLexer {
     let indent = 0
     // 最初にインデントを数える
     const ia: number[] = this.countIndent(src)
-    indent = ia[0]
-    src = src.substring(ia[1])
+    indent = ia[0] // インデント数
+    src = src.substring(ia[1]) // 読み飛ばす文字数
+    column += ia[1]
     while (src !== '') {
       let ok = false
       // 各ルールについて
@@ -591,7 +607,7 @@ export class NakoLexer {
             isDefTest = true
             break
           }
-          case 'eol': {
+          case 'eol': { // eolの処理はほかに↑と↓にある
             isDefTest = false
             break
           }
@@ -619,6 +635,8 @@ export class NakoLexer {
         if (rule.name === 'eol') { // 改行のとき次の行のインデントを調べる
           const ia = this.countIndent(src)
           indent = ia[0]
+          column += ia[1]
+          src = src.substring(ia[1]) // インデントを飛ばす
         }
         break
       }

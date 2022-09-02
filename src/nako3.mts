@@ -356,16 +356,14 @@ export class NakoCompiler {
       const map = subtractSourceMapByPreCodeLength({ ...dest, line }, preCode)
       throw new NakoLexerError(err.msg, map.startOffset, map.endOffset, map.line, filename)
     }
-    // インデント構文を変換 #596
-    tokens = convertIndentSyntax(tokens)
-
-    // インラインインデントを変換 #1215
-    tokens = convertInlineIndent(tokens)
-
     // DNCL ver2 (core #41)
     tokens = convertDNCL2(tokens)
     // DNCL ver1 (#1140)
     tokens = convertDNCL(tokens)
+    // インデント構文を変換 #596
+    tokens = convertIndentSyntax(tokens)
+    // インラインインデントを変換 #1215
+    tokens = convertInlineIndent(tokens)
 
     // ソースコード上の位置に変換
     tokens = tokens.map((token) => {

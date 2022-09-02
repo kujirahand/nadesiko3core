@@ -4,6 +4,7 @@
 // import { NakoIndentError } from './nako_errors.mjs'
 import { NewEmptyToken } from './nako_types.mjs';
 import { joinTokenLines, splitTokens } from './nako_indent_inline.mjs';
+import { newToken } from './nako_tools.mjs';
 // DNCL2モードのキーワード
 const DNCL2_KEYWORDS = ['!DNCL2モード', '💡DNCL2モード', '!DNCL2', '💡DNCL2'];
 // 単純な置換チェック
@@ -12,7 +13,6 @@ const DNCL_SIMPLES = {
     '÷:÷': ['÷÷', '÷÷'],
     '{:{': ['[', '['],
     '}:}': [']', ']'],
-    'word:を実行': ['ここまで', 'ここまで'],
     'word:乱数': ['word', '乱数範囲'],
     'word:表示': ['word', '連続表示']
 };
@@ -23,6 +23,7 @@ export function convertDNCL2(tokens) {
     if (!useDNCL2mode(tokens)) {
         return tokens;
     }
+    console.log('###', tokens);
     // 一行ずつに分ける
     const lines = splitTokens(tokens, 'eol');
     for (let i = 0; i < lines.length; i++) {
@@ -34,25 +35,13 @@ export function convertDNCL2(tokens) {
         for (let j = 0; j < line.length; j++) {
             const c = line[j].type;
             if (c === '|' || c === '│' || c === '└' || c === '⎿' || c === '｜' || c === '└') {
+                console.log('@@@indent:', c);
                 line[j].type = 'range_comment';
                 continue;
             }
             break;
         }
-        // 後判定の繰り返しの実装のため
-        const t = line[0];
-        if (t.type === 'word' && t.value === '繰返') {
-            line.splice(0, line.length, NewEmptyToken('word', '後判定', t.indent, t.line, t.file), NewEmptyToken('word', '繰返', t.indent, t.line, t.file));
-        }
-        // ^\s*を,?(.+)になるまで(繰り返す|実行する)/
-        const fi = findTokens(line, ['word:なる', 'word:繰返']);
-        if (fi > 0) {
-            replaceAtohantei(line, fi);
-        }
-        const fi2 = findTokens(line, ['word:なる', 'word:実行']);
-        if (fi2 > 0) {
-            replaceAtohantei(line, fi2);
-        }
+        // --- 制御構文の変換 ---
         // もし(条件)でないならば → もし(条件)でなければ
         const nai = findTokens(line, ['word:ない']);
         if (nai >= 1) {
@@ -62,30 +51,14 @@ export function convertDNCL2(tokens) {
                 line.splice(nai, 1);
             }
         }
-        // 二進で表示 (255) → 二進表示(255)
-        for (;;) {
-            const ni = findTokens(line, ['word:二進', 'word:表示']);
-            if (ni < 0) {
-                break;
-            }
-            line[ni].value = '二進表示';
-            line[ni].josi = '';
-            line.splice(ni + 1, 1);
-        }
-        // '改行なしで表示' → '連続無改行表示'
-        for (;;) {
-            const ni = findTokens(line, ['word:改行', 'word:表示']);
-            if (ni < 0) {
-                break;
-            }
-            // ここ「改行なしで表示」でも「改行ありで表示」でも同じになってしまう
-            // なでしこの制限のため仕方なし
-            // 「改行ありで表示」は今のところDNCLに存在しないので無視する
-            // もし将来的に区別が必要なら、プリプロセス処理でマクロ的に置換処理を行うことで対応できると思う
+        // そうでなければ(そう|でなければ) → 違えば
+        for (let ni = 0; ni < line.length; ni++) {
             const t = line[ni];
-            t.value = '連続無改行表示';
-            t.josi = '';
-            line.splice(ni + 1, 1);
+            if (t.value === 'そう' && t.josi === 'でなければ') {
+                t.type = '違えば';
+                t.value = '違えば';
+                t.josi = '';
+            }
         }
         // 'を実行し,そうでなければ': '違えば',
         for (;;) {
@@ -149,37 +122,81 @@ export function convertDNCL2(tokens) {
             fu.josi = '';
             line.splice(ni, 2, fu);
         }
-        // を繰り返す → (除去)
+        // Iを1から100まで1(ずつ)|増やしな(が)|ら繰り返(す)
         for (;;) {
-            const ni = findTokens(line, ['word:を繰り返']);
+            const ni = findTokens(line, ['word:増', 'word:ら繰り返']);
             if (ni < 0) {
                 break;
             }
             const fu = line[ni];
-            fu.type = 'range_comment';
-            fu.value = '';
+            fu.type = 'word';
+            fu.value = '増繰返';
             fu.josi = '';
+            line.splice(ni, 2, fu);
         }
-        // 'のすべての要素を0にする'
-        // 'のすべての要素に0を代入する'
+        // Iを1から100まで1(ずつ)|増やしな(が)|ら繰り返す
         for (;;) {
-            const ni = findTokens(line, ['word:すべて', 'word:要素']);
-            if (ni >= 1) {
-                replaceAllElementV(line, ni);
-            }
-            else {
+            const ni = findTokens(line, ['word:減', 'word:ら繰り返']);
+            if (ni < 0) {
                 break;
             }
+            const fu = line[ni];
+            fu.type = 'word';
+            fu.value = '減繰返';
+            fu.josi = '';
+            line.splice(ni, 2, fu);
         }
-        // 'のすべての値を0にする'
-        for (;;) {
-            const ni = findTokens(line, ['word:すべて', 'word:値']);
-            if (ni >= 1) {
-                replaceAllElementV(line, ni);
+        // --- 配列変数周りの変換 ---
+        for (let i = 0; i < line.length; i++) {
+            // 配列|Hindoの|すべての|(要素に|値に)|10を|代入する
+            if (tokenEq([['word:配列', 'word:配列変数'], 'word', 'word:すべて', ['word:要素', 'word:値'], '*', 'word:代入'], line, i)) {
+                const varToken = line[i + 1];
+                varToken.josi = '';
+                const valToken = line[i + 4];
+                valToken.josi = '';
+                line.splice(i, 6, varToken, newToken('eq', '=', varToken), newToken('word', '配列生成Nx100'), newToken('(', '('), valToken, newToken(')', ')'));
+                i += 6; // skip
             }
-            else {
+            // Hensuの|すべての|(要素を|値を)|0に|する
+            if (tokenEq(['word', 'word:すべて', ['word:要素', 'word:値'], ['number', 'string', 'word'], 'word:する'], line, i)) {
+                const varToken = line[i];
+                varToken.josi = '';
+                const valToken = line[i + 3];
+                valToken.josi = '';
+                line.splice(i, 5, varToken, newToken('eq', '=', varToken), newToken('word', '配列生成Nx100'), newToken('(', '('), valToken, newToken(')', ')'));
+            }
+            // 配列変数 | xxを | 初期化する
+            if (tokenEq([['word:配列変数', 'word:配列'], 'word', 'word:初期化'], line, i)) {
+                const varToken = line[i + 1];
+                varToken.josi = '';
+                line.splice(i, 3, varToken, newToken('eq', '=', varToken), newToken('word', '配列生成0x100'));
+            }
+        }
+        // --- その他の変換 ---
+        // 二進で表示 (255) → 二進表示(255)
+        for (;;) {
+            const ni = findTokens(line, ['word:二進', 'word:表示']);
+            if (ni < 0) {
                 break;
             }
+            line[ni].value = '二進表示';
+            line[ni].josi = '';
+            line.splice(ni + 1, 1);
+        }
+        // '改行なしで表示' → '連続無改行表示'
+        for (;;) {
+            const ni = findTokens(line, ['word:改行', 'word:表示']);
+            if (ni < 0) {
+                break;
+            }
+            // ここ「改行なしで表示」でも「改行ありで表示」でも同じになってしまう
+            // なでしこの制限のため仕方なし
+            // 「改行ありで表示」は今のところDNCLに存在しないので無視する
+            // もし将来的に区別が必要なら、プリプロセス処理でマクロ的に置換処理を行うことで対応できると思う
+            const t = line[ni];
+            t.value = '連続無改行表示';
+            t.josi = '';
+            line.splice(ni + 1, 1);
         }
         // 一つずつチェック
         let j = 0;
@@ -209,39 +226,57 @@ export function convertDNCL2(tokens) {
         }
     }
     tokens = joinTokenLines(lines);
+    // console.log('@@@---DNCL:tokens---')
+    // console.log(debugTokens(tokens))
+    // console.log('@@@/---DNCL:tokens---')
     return tokens;
 }
-function replaceAllElementV(line, ni) {
-    //
-    // const ni = findTokens(line, ['word:すべて', 'word:要素'])
-    //
-    const t = line[ni];
-    line[ni - 1].josi = '';
-    const eq = NewEmptyToken('eq', '=', t.indent, t.line, t.file);
-    const begin = NewEmptyToken('[', '[', t.indent, t.line, t.file);
-    const end = NewEmptyToken(']', ']', t.indent, t.line, t.file);
-    end.josi = 'に';
-    const val = line[ni + 2];
-    val.josi = '';
-    const times = NewEmptyToken('number', 100, t.indent, t.line, t.file);
-    times.josi = 'を';
-    const mul = NewEmptyToken('word', '掛', t.indent, t.line, t.file);
-    line.splice(ni, 4, eq, begin, val, end, times, mul);
-}
-function replaceAtohantei(tokens, fi) {
-    // `ここまで、(${r[1]})になるまでの間`
-    const wo = findTokens(tokens, ['word:を']);
-    if (wo >= 0) {
-        tokens[wo].type = 'ここまで';
-        tokens[wo].value = 'ここまで';
+/**
+ * トークンが合致するかを確認する
+ * @param typeValues ['word:それ']のようなタイプ名と値の配列/'*'でワイルドカードが使える/":"がなればタイプだけ確認/配列で選択
+ * @param lines 差し替え
+ * @param fromIndex 検索場所
+ * @returns 合致したかどうか
+ */
+function tokenEq(typeValues, lines, fromIndex) {
+    const check = (pattern, t) => {
+        if (pattern instanceof Array) {
+            for (let i = 0; i < pattern.length; i++) {
+                if (check(pattern[i], t)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (pattern === '*') {
+            return true;
+        }
+        if (pattern.indexOf(':') < 0) {
+            if (pattern === t.type) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        const tv = `${t.type}:${t.value}`;
+        if (pattern === tv) {
+            return true;
+        }
+        return false;
+    };
+    for (let i = 0; i < typeValues.length; i++) {
+        const idx = i + fromIndex;
+        if (idx >= lines.length) {
+            return false;
+        }
+        const pat = typeValues[i];
+        const t = lines[idx];
+        if (!check(pat, t)) {
+            return false;
+        }
     }
-    const ga = findTokens(tokens, ['word:が']);
-    if (ga >= 0) {
-        tokens[ga].type = 'ここまで';
-        tokens[ga].value = 'ここまで';
-    }
-    // なる:まで(fi) 実行(fi+1)
-    tokens[fi + 1].value = '間';
+    return true;
 }
 function findTokens(tokens, findTypeValue) {
     const findA = findTypeValue.map(s => s.split(':'));
