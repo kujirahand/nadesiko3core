@@ -48,7 +48,6 @@ export const rules = [
     { name: 'lteq', pattern: /^(≦|<=|=<)/ },
     { name: 'noteq', pattern: /^(≠|<>|!=)/ },
     { name: '←', pattern: /^(←|<--)/ },
-    { name: 'eq', pattern: /^(==|🟰🟰)/ },
     { name: 'eq', pattern: /^(=|🟰)/ },
     { name: 'line_comment', pattern: /^(!|💡)(インデント構文|ここまでだるい|DNCLモード|DNCL2モード|DNCL2)[^\n]*/ },
     { name: 'not', pattern: /^(!|💡)/ },
