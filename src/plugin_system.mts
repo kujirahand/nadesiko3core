@@ -1703,26 +1703,6 @@ export default {
       throw new Error('『配列合計』で配列変数以外の値が指定されました。')
     }
   },
-  '配列生成0x100': { // @0が100個入った数値配列を生成して返す。 // @はいれつせいせい0x100
-    type: 'func',
-    josi: [],
-    pure: true,
-    fn: function () {
-      const a = []
-      for (let i = 0; i < 100; i++) { a.push(0) }
-      return a
-    }
-  },
-  '配列生成Nx100': { // @Nが100個入った数値配列を生成して返す。 // @はいれつせいせいNx100
-    type: 'func',
-    josi: [['の']],
-    pure: true,
-    fn: function (n: any) {
-      const a = []
-      for (let i = 0; i < 100; i++) { a.push(n) }
-      return a
-    }
-  },
   // @二次元配列処理
   '表ソート': { // @二次元配列AでB列目(0起点)(あるいはキー名)をキーに文字列順にソートする。Aの内容を書き換える。 // @ひょうそーと
     type: 'func',

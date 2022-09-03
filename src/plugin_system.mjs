@@ -1771,30 +1771,6 @@ export default {
             throw new Error('『配列合計』で配列変数以外の値が指定されました。');
         }
     },
-    '配列生成0x100': {
-        type: 'func',
-        josi: [],
-        pure: true,
-        fn: function () {
-            const a = [];
-            for (let i = 0; i < 100; i++) {
-                a.push(0);
-            }
-            return a;
-        }
-    },
-    '配列生成Nx100': {
-        type: 'func',
-        josi: [['の']],
-        pure: true,
-        fn: function (n) {
-            const a = [];
-            for (let i = 0; i < 100; i++) {
-                a.push(n);
-            }
-            return a;
-        }
-    },
     // @二次元配列処理
     '表ソート': {
         type: 'func',

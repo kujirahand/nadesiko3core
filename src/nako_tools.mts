@@ -37,7 +37,7 @@ export function makeIndent (n: number): string {
 }
 
 let lastTokenInfo = NewEmptyToken()
-export function newToken (type: string, value: string, templateToken: Token|undefined = undefined): Token {
+export function newToken (type: string, value: any, templateToken: Token|undefined = undefined): Token {
   if (templateToken) {
     lastTokenInfo = templateToken
   }

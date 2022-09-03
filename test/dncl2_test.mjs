@@ -52,7 +52,8 @@ describe('dncl2 (core #41)', async () => {
         'そうでなければ:\n' +
         '　　「NG」を表示。\n' +
         '', 'OK')
-    await cmp('!DNCL2\n' +
+    await cmp('' +
+        '!DNCL2\n' +
         'C=2\n' +
         'もし、C == 1ならば:\n' +
         '　　「NG」を表示。\n' +
@@ -164,5 +165,43 @@ describe('dncl2 (core #41)', async () => {
       '　　もし、(A<=C)かつ(C<=Z)ならば、(C-A)を戻す。\n' +
       '　　それは-1\n' +
       '\n', '2,1,0')
+  })
+  it('「情報」サンプル問題-当選数を決めるプログラム2', async () => {
+    await cmp('' +
+        '!DNCL2\n' +
+        'Tomei = ["Ａ党", "Ｂ党", "Ｃ党", "Ｄ党"]\n' +
+        'Tokuhyo = [1200, 660, 1440, 180]\n' +
+        'sousuu = 0\n' +
+        'giseki = 6\n' +
+        'm を 0 から 3 まで 1 ずつ増やしながら繰り返す:\n' +
+        '⎿ sousuu = sousuu + Tokuhyo[m]\n' +
+        'kizyunsuu = sousuu / giseki\n' +
+        'm を 0 から 3 まで 1 ずつ増やしながら繰り返す:\n' +
+        '⎿ 表示する(Tomei[m], "：", Tokuhyo[m] / kizyunsuu)\n' +
+        '\n', 'Ａ党：2.0689655172413794\nＢ党：1.1379310344827587\nＣ党：2.4827586206896552\nＤ党：0.3103448275862069')
+  })
+  it('「情報」サンプル問題-当選数を決めるプログラム2改', async () => {
+    await cmp('' +
+    '!DNCL2\n' +
+    'Tomei = ["Ａ党", "Ｂ党", "Ｃ党", "Ｄ党"]\n' +
+    'Tokuhyo = [1200, 660, 1440, 180]\n' +
+    'Koho = [5, 4, 2, 3]\n' +
+    'Tosen = [0, 0, 0, 0]\n' +
+    'tosenkei = 0\n' +
+    'giseki = 6\n' +
+    'm を 0 から 3 まで 1 ずつ増やしながら繰り返す:\n' +
+    '⎿ Hikaku[m] = Tokuhyo[m]\n' +
+    'tosenkei < giseki の間繰り返す:\n' +
+    '｜ max = 0\n' +
+    '｜ i を 0 から 3 まで 1 ずつ増やしながら繰り返す:\n' +
+    '｜ ｜ もし max < Hikaku[i] and Koho[i] >= Tosen[i] + 1 ならば:\n' +
+    '｜ ｜ ｜ max = Hikaku[i]\n' +
+    '｜ ⎿ ⎿ maxi = i\n' +
+    '｜ Tosen[maxi] = Tosen[maxi] + 1\n' +
+    '｜ tosenkei = tosenkei + 1\n' +
+    '⎿ Hikaku[maxi] = 切り捨て(Tokuhyo[maxi] / tosenkei)\n' +
+    'k を 0 から 3 まで 1 ずつ増やしながら繰り返す:\n' +
+    '⎿ 表示する(Tomei[k], "：", Tosen[k], "名")\n' +
+    '', 'Ａ党：3名\nＢ党：1名\nＣ党：2名\nＤ党：0名')
   })
 })

@@ -6,6 +6,9 @@ import { Token, NewEmptyToken } from './nako_types.mjs'
 import { joinTokenLines, splitTokens } from './nako_indent_inline.mjs'
 import { newToken, debugTokens } from './nako_tools.mjs'
 
+const IS_DEBUG = false
+const DNCL_ARRAY_INIT_COUNT = 30
+
 // DNCL2モードのキーワード
 const DNCL2_KEYWORDS = ['!DNCL2モード', '💡DNCL2モード', '!DNCL2', '💡DNCL2']
 
@@ -15,10 +18,11 @@ const DNCL_SIMPLES: { [key: string]: string[] } = {
   '÷:÷': ['÷÷', '÷÷'],
   '{:{': ['[', '['],
   '}:}': [']', ']'],
+  'word:and': ['and', 'かつ'],
+  'word:or': ['or', 'または'],
   'word:乱数': ['word', '乱数範囲'],
   'word:表示': ['word', '連続表示']
 }
-const IS_DEBUG = false
 
 /**
  * DNCLのソースコードをなでしこに変換する
@@ -137,7 +141,11 @@ export function convertDNCL2 (tokens: Token[]): Token[] {
         varToken.josi = ''
         const valToken = line[i + 4]
         valToken.josi = ''
-        line.splice(i, 6, varToken, newToken('eq', '=', varToken), newToken('word', '配列生成Nx100'), newToken('(', '('), valToken, newToken(')', ')'))
+        line.splice(i, 6,
+          varToken, newToken('eq', '=', varToken),
+          newToken('word', '掛'), newToken('(', '('),
+          newToken('[', '['), valToken, newToken(']', ']'), newToken('comma', ','),
+          newToken('number', DNCL_ARRAY_INIT_COUNT), newToken(')', ')'))
         i += 6 // skip
       }
       // Hensuの|すべての|(要素を|値を)|0に|する
@@ -148,7 +156,9 @@ export function convertDNCL2 (tokens: Token[]): Token[] {
         valToken.josi = ''
         line.splice(i, 5,
           varToken, newToken('eq', '=', varToken),
-          newToken('word', '配列生成Nx100'), newToken('(', '('), valToken, newToken(')', ')'))
+          newToken('word', '掛'), newToken('(', '('),
+          newToken('[', '['), valToken, newToken(']', ']'), newToken('comma', ','),
+          newToken('number', DNCL_ARRAY_INIT_COUNT), newToken(')', ')'))
       }
       // 配列変数 | xxを | 初期化する
       if (tokenEq([['word:配列変数', 'word:配列'], 'word', 'word:初期化'], line, i)) {
@@ -156,7 +166,9 @@ export function convertDNCL2 (tokens: Token[]): Token[] {
         varToken.josi = ''
         line.splice(i, 3,
           varToken, newToken('eq', '=', varToken),
-          newToken('word', '配列生成0x100'))
+          newToken('word', '掛'), newToken('(', '('),
+          newToken('[', '['), newToken('number', 0), newToken(']', ']'), newToken('comma', ','),
+          newToken('number', DNCL_ARRAY_INIT_COUNT), newToken(')', ')'))
       }
     }
 

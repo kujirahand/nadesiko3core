@@ -17,7 +17,7 @@ export const rules = [
     { name: 'eol', pattern: /^\n/ },
     { name: 'eol', pattern: /^;/ },
     // eslint-disable-next-line no-control-regex
-    { name: 'space', pattern: /^(\x20|\x09|・)+/ },
+    { name: 'space', pattern: /^(\x20|\x09|・|⎿ |└|｜)+/ },
     { name: 'comma', pattern: /^,/ },
     { name: 'line_comment', pattern: /^#[^\n]*/ },
     { name: 'line_comment', pattern: /^\/\/[^\n]*/ },
@@ -48,7 +48,8 @@ export const rules = [
     { name: 'lteq', pattern: /^(≦|<=|=<)/ },
     { name: 'noteq', pattern: /^(≠|<>|!=)/ },
     { name: '←', pattern: /^(←|<--)/ },
-    { name: 'eq', pattern: /^(==|=|🟰)/ },
+    { name: 'eq', pattern: /^(==|🟰🟰)/ },
+    { name: 'eq', pattern: /^(=|🟰)/ },
     { name: 'line_comment', pattern: /^(!|💡)(インデント構文|ここまでだるい|DNCLモード|DNCL2モード|DNCL2)[^\n]*/ },
     { name: 'not', pattern: /^(!|💡)/ },
     { name: 'gt', pattern: /^>/ },
