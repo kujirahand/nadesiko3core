@@ -4,6 +4,8 @@ import { Token, NewEmptyToken } from './nako_types.mjs'
 import { NakoIndentError } from '../src/nako_errors.mjs'
 import { debugTokens, newToken } from './nako_tools.mjs'
 
+const IS_DEBUG = false
+
 function isSkipWord (t: Token): boolean {
   if (t.type === '違えば') { return true }
   if (t.type === 'word' && t.value === 'エラー' && t.josi === 'ならば') { return true }
@@ -24,15 +26,32 @@ export function convertInlineIndent (tokens: Token[]): Token[] {
   const lines: Token[][] = splitTokens(tokens, 'eol')
   const blockIndents: number[] = []
   let checkICount = -1
+  let jsonObjLevel = 0
+  let jsonArrayLevel = 0
+  const checkJsonSyntax = (line: Token[]) => {
+    // JSONのオブジェクトがあるか？
+    line.forEach((t: Token) => {
+      if (t.type === '{') { jsonObjLevel++ }
+      if (t.type === '}') { jsonObjLevel-- }
+      if (t.type === '[') { jsonArrayLevel++ }
+      if (t.type === ']') { jsonArrayLevel-- }
+    })
+  }
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     // 空行は飛ばす || コメント行だけの行も飛ばす
     if (IsEmptyLine(line)) { continue }
+    const leftToken = GetLeftTokens(line)
+    // JSONの途中であればブロックの変更は行わない
+    if (jsonObjLevel > 0 || jsonArrayLevel > 0) {
+      checkJsonSyntax(line)
+      continue
+    }
     // インデントの終了を確認する必要があるか？
     if (checkICount >= 0) {
-      const lineICount: number = line[0].indent
+      const lineICount: number = leftToken.indent
       while (checkICount >= lineICount) {
-        const tFirst: Token = line[0]
+        const tFirst: Token = leftToken
         // console.log('@@', lineICount, '>>', checkICount, tFirst.type)
         if (isSkipWord(tFirst) && (checkICount === lineICount)) { // 「違えば」や「エラーならば」
           // 「ここまで」の挿入不要 / ただしネストした際の「違えば」(上記の5の状態なら必要)
@@ -50,6 +69,10 @@ export function convertInlineIndent (tokens: Token[]): Token[] {
         }
       }
     }
+    // JSONの途中であればブロックの変更は行わない
+    checkJsonSyntax(line)
+    if (jsonObjLevel > 0 || jsonArrayLevel > 0) { continue }
+    // 末尾の「:」をチェック
     const tLast: Token = getLastTokenWithoutEOL(line)
     if (tLast.type === ':') {
       // 末尾の「:」を削除
@@ -75,7 +98,9 @@ export function convertInlineIndent (tokens: Token[]): Token[] {
     }
   }
   const result = joinTokenLines(lines)
-  // console.log('###', debugTokens(result))
+  if (IS_DEBUG) {
+    console.log('###', debugTokens(result))
+  }
   return result
 }
 
@@ -122,7 +147,7 @@ export function splitTokens (tokens: Token[], delimiter: string): Token[][] {
 }
 
 /** トークン行が空かどうか調べる */
-function IsEmptyLine(line: Token[]): boolean {
+function IsEmptyLine (line: Token[]): boolean {
   if (line.length === 0) { return true }
   for (let j = 0; j < line.length; j++) {
     const ty = line[j].type
@@ -156,13 +181,32 @@ export function convertIndentSyntax (tokens: Token[]): Token[] {
       throw new NakoIndentError('インデント構文が有効化されているときに『ここまで』を使うことはできません。', t.line, t.file)
     }
   }
+  // JSON構文のチェック
+  let jsonObjLevel = 0
+  let jsonArrayLevel = 0
+  const checkJsonSyntax = (line: Token[]) => {
+    // JSONのオブジェクトがあるか？
+    line.forEach((t: Token) => {
+      if (t.type === '{') { jsonObjLevel++ }
+      if (t.type === '}') { jsonObjLevel-- }
+      if (t.type === '[') { jsonArrayLevel++ }
+      if (t.type === ']') { jsonArrayLevel-- }
+    })
+  }
+  // 行ごとにトークンを分割
   const blockIndents: number[][] = []
   const lines = splitTokens(tokens, 'eol')
   let lastI = 0
+  // 各行を確認する
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     // 空行は飛ばす || コメント行だけの行も飛ばす
     if (IsEmptyLine(line)) { continue }
+    // JSON構文のチェック
+    if (jsonArrayLevel > 0 || jsonObjLevel > 0) {
+      checkJsonSyntax(line)
+      continue
+    }
     const leftToken = GetLeftTokens(line)
     const curI: number = leftToken.indent
     if (curI === lastI) { continue }
@@ -194,6 +238,9 @@ export function convertIndentSyntax (tokens: Token[]): Token[] {
         }
       }
     }
+    if (jsonArrayLevel > 0 || jsonObjLevel > 0) { continue }
+    // JSON構文のチェック
+    checkJsonSyntax(line)
     // ブロックの開始？
     if (curI > lastI) {
       blockIndents.push([curI, lastI])

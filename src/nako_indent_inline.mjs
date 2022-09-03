@@ -1,7 +1,8 @@
 /** インデント構文を処理するモジュール */
 import { NewEmptyToken } from './nako_types.mjs';
 import { NakoIndentError } from '../src/nako_errors.mjs';
-import { newToken } from './nako_tools.mjs';
+import { debugTokens, newToken } from './nako_tools.mjs';
+const IS_DEBUG = false;
 function isSkipWord(t) {
     if (t.type === '違えば') {
         return true;
@@ -25,17 +26,42 @@ export function convertInlineIndent(tokens) {
     const lines = splitTokens(tokens, 'eol');
     const blockIndents = [];
     let checkICount = -1;
+    let jsonObjLevel = 0;
+    let jsonArrayLevel = 0;
+    const checkJsonSyntax = (line) => {
+        // JSONのオブジェクトがあるか？
+        line.forEach((t) => {
+            if (t.type === '{') {
+                jsonObjLevel++;
+            }
+            if (t.type === '}') {
+                jsonObjLevel--;
+            }
+            if (t.type === '[') {
+                jsonArrayLevel++;
+            }
+            if (t.type === ']') {
+                jsonArrayLevel--;
+            }
+        });
+    };
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         // 空行は飛ばす || コメント行だけの行も飛ばす
         if (IsEmptyLine(line)) {
             continue;
         }
+        const leftToken = GetLeftTokens(line);
+        // JSONの途中であればブロックの変更は行わない
+        if (jsonObjLevel > 0 || jsonArrayLevel > 0) {
+            checkJsonSyntax(line);
+            continue;
+        }
         // インデントの終了を確認する必要があるか？
         if (checkICount >= 0) {
-            const lineICount = line[0].indent;
+            const lineICount = leftToken.indent;
             while (checkICount >= lineICount) {
-                const tFirst = line[0];
+                const tFirst = leftToken;
                 // console.log('@@', lineICount, '>>', checkICount, tFirst.type)
                 if (isSkipWord(tFirst) && (checkICount === lineICount)) { // 「違えば」や「エラーならば」
                     // 「ここまで」の挿入不要 / ただしネストした際の「違えば」(上記の5の状態なら必要)
@@ -55,6 +81,12 @@ export function convertInlineIndent(tokens) {
                 }
             }
         }
+        // JSONの途中であればブロックの変更は行わない
+        checkJsonSyntax(line);
+        if (jsonObjLevel > 0 || jsonArrayLevel > 0) {
+            continue;
+        }
+        // 末尾の「:」をチェック
         const tLast = getLastTokenWithoutEOL(line);
         if (tLast.type === ':') {
             // 末尾の「:」を削除
@@ -80,7 +112,9 @@ export function convertInlineIndent(tokens) {
         }
     }
     const result = joinTokenLines(lines);
-    // console.log('###', debugTokens(result))
+    if (IS_DEBUG) {
+        console.log('###', debugTokens(result));
+    }
     return result;
 }
 /** 行ごとに分割していたトークンをくっつける */
@@ -168,13 +202,40 @@ export function convertIndentSyntax(tokens) {
             throw new NakoIndentError('インデント構文が有効化されているときに『ここまで』を使うことはできません。', t.line, t.file);
         }
     }
+    // JSON構文のチェック
+    let jsonObjLevel = 0;
+    let jsonArrayLevel = 0;
+    const checkJsonSyntax = (line) => {
+        // JSONのオブジェクトがあるか？
+        line.forEach((t) => {
+            if (t.type === '{') {
+                jsonObjLevel++;
+            }
+            if (t.type === '}') {
+                jsonObjLevel--;
+            }
+            if (t.type === '[') {
+                jsonArrayLevel++;
+            }
+            if (t.type === ']') {
+                jsonArrayLevel--;
+            }
+        });
+    };
+    // 行ごとにトークンを分割
     const blockIndents = [];
     const lines = splitTokens(tokens, 'eol');
     let lastI = 0;
+    // 各行を確認する
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         // 空行は飛ばす || コメント行だけの行も飛ばす
         if (IsEmptyLine(line)) {
+            continue;
+        }
+        // JSON構文のチェック
+        if (jsonArrayLevel > 0 || jsonObjLevel > 0) {
+            checkJsonSyntax(line);
             continue;
         }
         const leftToken = GetLeftTokens(line);
@@ -212,6 +273,11 @@ export function convertIndentSyntax(tokens) {
                 }
             }
         }
+        if (jsonArrayLevel > 0 || jsonObjLevel > 0) {
+            continue;
+        }
+        // JSON構文のチェック
+        checkJsonSyntax(line);
         // ブロックの開始？
         if (curI > lastI) {
             blockIndents.push([curI, lastI]);

@@ -186,6 +186,9 @@ export class NakoPrepare {
             if (flagStr2) {
                 if (ch2 === endOfStr) {
                     flagStr2 = false;
+                    if (endOfStr === '＊／') {
+                        endOfStr = '*/';
+                    } // 強制変換
                     res.push(new ConvertResult(str + endOfStr, src.getSourcePosition(left)));
                     i += 2;
                     left = i;
@@ -260,6 +263,16 @@ export class NakoPrepare {
                 left = i;
                 flagStr = true;
                 endOfStr = '\n';
+                str = '';
+                continue;
+            }
+            // 複数行コメント内を飛ばす
+            if (ch2 === '／＊') {
+                res.push(new ConvertResult('/*', src.getSourcePosition(left))); // 強制変換
+                i += 2;
+                left = i;
+                flagStr2 = true;
+                endOfStr = '＊／';
                 str = '';
                 continue;
             }

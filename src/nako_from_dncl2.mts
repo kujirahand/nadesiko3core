@@ -18,6 +18,7 @@ const DNCL_SIMPLES: { [key: string]: string[] } = {
   'word:乱数': ['word', '乱数範囲'],
   'word:表示': ['word', '連続表示']
 }
+const IS_DEBUG = false
 
 /**
  * DNCLのソースコードをなでしこに変換する
@@ -222,9 +223,11 @@ export function convertDNCL2 (tokens: Token[]): Token[] {
     }
   }
   tokens = joinTokenLines(lines)
-  // console.log('@@@---DNCL:tokens---')
-  // console.log(debugTokens(tokens))
-  // console.log('@@@/---DNCL:tokens---')
+  if (IS_DEBUG) {
+    console.log('@@@---DNCL:tokens---')
+    console.log(debugTokens(tokens))
+    console.log('@@@/---DNCL:tokens---')
+  }
   return tokens
 }
 

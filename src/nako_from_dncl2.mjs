@@ -4,7 +4,7 @@
 // import { NakoIndentError } from './nako_errors.mjs'
 import { NewEmptyToken } from './nako_types.mjs';
 import { joinTokenLines, splitTokens } from './nako_indent_inline.mjs';
-import { newToken } from './nako_tools.mjs';
+import { newToken, debugTokens } from './nako_tools.mjs';
 // DNCL2モードのキーワード
 const DNCL2_KEYWORDS = ['!DNCL2モード', '💡DNCL2モード', '!DNCL2', '💡DNCL2'];
 // 単純な置換チェック
@@ -16,6 +16,7 @@ const DNCL_SIMPLES = {
     'word:乱数': ['word', '乱数範囲'],
     'word:表示': ['word', '連続表示']
 };
+const IS_DEBUG = false;
 /**
  * DNCLのソースコードをなでしこに変換する
  */
@@ -226,9 +227,11 @@ export function convertDNCL2(tokens) {
         }
     }
     tokens = joinTokenLines(lines);
-    // console.log('@@@---DNCL:tokens---')
-    // console.log(debugTokens(tokens))
-    // console.log('@@@/---DNCL:tokens---')
+    if (IS_DEBUG) {
+        console.log('@@@---DNCL:tokens---');
+        console.log(debugTokens(tokens));
+        console.log('@@@/---DNCL:tokens---');
+    }
     return tokens;
 }
 /**
