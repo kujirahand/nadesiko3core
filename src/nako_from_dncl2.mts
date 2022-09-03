@@ -25,23 +25,12 @@ const IS_DEBUG = false
  */
 export function convertDNCL2 (tokens: Token[]): Token[] {
   if (!useDNCL2mode(tokens)) { return tokens }
-  console.log('###', tokens)
 
   // 一行ずつに分ける
   const lines = splitTokens(tokens, 'eol')
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     if (line.length <= 1) { continue } // 空行は飛ばす
-    // 行頭の | │└はただのインデント
-    for (let j = 0; j < line.length; j++) {
-      const c = line[j].type
-      if (c === '|' || c === '│' || c === '└' || c === '⎿' || c === '｜' || c === '└') {
-        console.log('@@@indent:', c)
-        line[j].type = 'range_comment'
-        continue
-      }
-      break
-    }
 
     // --- 制御構文の変換 ---
     // もし(条件)でないならば → もし(条件)でなければ

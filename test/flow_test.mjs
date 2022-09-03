@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import assert from 'assert'
 import { NakoCompiler } from '../src/nako3.mjs'
 
@@ -369,5 +370,46 @@ describe('flow_test', async () => {
   })
   it('ならばの直前に空白があるとエラー(#1141)', async () => {
     await cmp('A=30。もし、A>5 ならば、「OK」と表示。', 'OK')
+  })
+  it('-1を含む「もし」文が動かない core #47', async () => {
+    await cmp(
+      'A=0; もし、A != -1ならば\n' +
+      '　　「あ」と表示\n' +
+      'ここまで\n' +
+      '', 'あ')
+  })
+  it('「もし」...「でなければ」', async () => {
+    await cmp(
+      'A=0; もし、A==-1でなければ\n' +
+      '　　「あ」と表示\n' +
+      'ここまで\n' +
+      '', 'あ')
+    await cmp(
+      'A=0; もし、INT(A)==-1でなければ\n' +
+      '　　「あ」と表示\n' +
+      'ここまで\n' +
+      '', 'あ')
+    await cmp(
+      'A=0; もし、Aが-1でなければ\n' +
+      '　　「あ」と表示\n' +
+      'ここまで\n' +
+      '', 'あ')
+    await cmp(
+      'A=0; もし、Aが-5以下でなければ\n' +
+      '　　「あ」と表示\n' +
+      'ここまで\n' +
+      '', 'あ')
+  })
+  it('「もし」AがBならば', async () => {
+    await cmp(
+      'A=0; もし、Aが0ならば\n' +
+      '　　「あ」と表示\n' +
+      'ここまで\n' +
+      '', 'あ')
+    await cmp(
+      'A=0; もし、INT(A)が0ならば\n' +
+      '　　「あ」と表示\n' +
+      'ここまで\n' +
+      '', 'あ')
   })
 })

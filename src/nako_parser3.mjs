@@ -370,16 +370,38 @@ export class NakoParser extends NakoParserBase {
         if (!a) {
             return null;
         }
-        // console.log('yIFCond=', a, this.peek())
-        // チェック : AがBならば
+        // console.log('@@yIFCond=', a)
+        // チェック : Aならば
+        if (a.josi === 'ならば') {
+            return a;
+        }
+        if (a.josi === 'でなければ') {
+            a = { type: 'not', value: a, josi: '', ...map, end: this.peekSourceMap() };
+            return a;
+        }
+        // チェック : AがBならば --- 「関数B(A)」のとき
+        if ((a.josi !== '') && (this.check('func'))) {
+            // もし文で関数呼び出しがある場合
+            this.stack.push(a);
+            a = this.yCall();
+        }
+        else 
+        // チェック : AがBならば --- 「A = B」のとき
         if (a.josi === 'が') {
             const tmpI = this.index;
             const b = this.yGetArg();
-            const naraba = this.get();
-            if ((b && b.type !== 'func') && (naraba && naraba.type === 'ならば')) {
+            if (!b) {
+                throw NakoSyntaxError.fromNode('もし文の条件「AがBならば」でBがないか条件が複雑過ぎます。' +
+                    this.nodeToStr(this.peek(), { depth: 1 }, false), map);
+            }
+            if (this.check('ならば')) {
+                const naraba = this.get() || { 'value': 'ならば' };
+                b.josi = naraba.value;
+            }
+            if (b && (b.josi === 'ならば' || b.josi === 'でなければ')) {
                 return {
                     type: 'op',
-                    operator: (naraba.value === 'でなければ') ? 'noteq' : 'eq',
+                    operator: (b.josi === 'でなければ') ? 'noteq' : 'eq',
                     left: a,
                     right: b,
                     josi: '',
@@ -389,8 +411,8 @@ export class NakoParser extends NakoParserBase {
             }
             this.index = tmpI;
         }
-        if (a.josi !== '') {
-            // もし文で関数呼び出しがある場合
+        // もし文で追加の関数呼び出しがある場合
+        if (!this.check('ならば')) {
             this.stack.push(a);
             a = this.yCall();
         }
@@ -401,6 +423,7 @@ export class NakoParser extends NakoParserBase {
             throw NakoSyntaxError.fromNode('もし文で『ならば』がないか、条件が複雑過ぎます。' + this.nodeToStr(this.peek(), { depth: 1 }, false) + 'の直前に『ならば』を書いてください。', smap);
         }
         const naraba = this.get();
+        // 否定形のチェック
         if (naraba && naraba.value === 'でなければ') {
             a = {
                 type: 'not',
