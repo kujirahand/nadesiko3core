@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import assert from 'assert'
 import { NakoLexer } from '../src/nako_lexer.mjs'
 import { NakoLogger } from '../src/nako_logger.mjs'
