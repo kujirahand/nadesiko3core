@@ -4,6 +4,7 @@ import path from 'path';
 import com from '../index.mjs';
 import * as url from 'url';
 import { NakoGenOptions } from '../src/nako_gen.mjs';
+import PluginSnako from './plugin_snako.mjs';
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 /** コマンドラインオプション */
 class CommandOptions {
@@ -17,7 +18,7 @@ class CommandOptions {
     }
 }
 /** メイン処理 */
-function main(argvOrg) {
+async function main(argvOrg) {
     // コマンドラインオプションを確認
     const argv = [...argvOrg];
     const opt = new CommandOptions();
@@ -43,6 +44,7 @@ function main(argvOrg) {
     }
     // なでしこのコンパイラを生成
     const nako = new com.NakoCompiler();
+    nako.addPluginObject('PluginSnako', PluginSnako);
     // 実行前にイベントを挟みたいとき
     nako.addListener('beforeRun', (g) => {
         g.__varslist[0]['ナデシコ種類'] = 'snako';
@@ -59,7 +61,7 @@ function main(argvOrg) {
     });
     // -e オプションを実行したとき
     if (opt.evalStr) {
-        nako.run(opt.evalStr);
+        await nako.runAsync(opt.evalStr, 'main.nako3');
         return;
     }
     // パラメータが空だったとき
@@ -74,7 +76,7 @@ function main(argvOrg) {
         convert(nako, code, opt);
     }
     // 実行
-    nako.run(code, opt.filename);
+    await nako.runAsync(code, opt.filename);
 }
 // -c オプションを指定したとき
 function convert(nako, code, opt) {
@@ -102,4 +104,4 @@ function showHelp() {
     console.log('[使い方] node snako.mjs [-c] (source) ... convert');
 }
 /** メイン処理を実行 */
-main(process.argv);
+await main(process.argv);

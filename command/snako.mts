@@ -7,6 +7,7 @@ import { NakoGlobal } from '../src/nako_global.mjs'
 import * as url from 'url'
 import { NakoGenOptions } from '../src/nako_gen.mjs'
 import { NakoCompiler } from '../src/nako3.mjs'
+import PluginSnako from './plugin_snako.mjs'
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
 
 /** コマンドラインオプション */
@@ -28,7 +29,7 @@ class CommandOptions {
 }
 
 /** メイン処理 */
-function main (argvOrg: string[]): void {
+async function main (argvOrg: string[]) {
   // コマンドラインオプションを確認
   const argv: string[] = [...argvOrg]
   const opt: CommandOptions = new CommandOptions()
@@ -52,6 +53,7 @@ function main (argvOrg: string[]): void {
   }
   // なでしこのコンパイラを生成
   const nako = new com.NakoCompiler()
+  nako.addPluginObject('PluginSnako', PluginSnako)
   // 実行前にイベントを挟みたいとき
   nako.addListener('beforeRun', (g: NakoGlobal) => {
     g.__varslist[0]['ナデシコ種類'] = 'snako'
@@ -68,7 +70,7 @@ function main (argvOrg: string[]): void {
   })
   // -e オプションを実行したとき
   if (opt.evalStr) {
-    nako.run(opt.evalStr)
+    await nako.runAsync(opt.evalStr, 'main.nako3')
     return
   }
   // パラメータが空だったとき
@@ -81,14 +83,14 @@ function main (argvOrg: string[]): void {
   // -c オプションが指定されたとき
   if (opt.flagConvert) { convert(nako, code, opt) }
   // 実行
-  nako.run(code, opt.filename)
+  await nako.runAsync(code, opt.filename)
 }
 
 // -c オプションを指定したとき
 function convert (nako: NakoCompiler, code: string, opt: CommandOptions): void {
   // オプションを指定
   const genOpt = new NakoGenOptions(
-    false, 
+    false,
     ['nako_errors.mjs', 'nako_core_version.mjs', 'plugin_system.mjs'],
     'self.__varslist[0][\'ナデシコ種類\'] = \'snako\'')
   // スタンドアロンコードを生成
@@ -113,4 +115,4 @@ function showHelp (): void {
 }
 
 /** メイン処理を実行 */
-main(process.argv)
+await main(process.argv)
