@@ -5,6 +5,7 @@ import { opPriority } from './nako_parser_const.mjs';
 // (memo)「回」「間」「繰返」「反復」「抜」「続」「戻」「代入」などは _replaceWord で word から変換
 /** @types {Record<string, string>} */
 import reservedWords from './nako_reserved_words.mjs';
+import { isIndentChars } from './nako_indent_chars.mjs';
 // 助詞の一覧
 import { josiRE, removeJosiMap, tararebaMap } from './nako_josi_list.mjs';
 // 字句解析ルールの一覧
@@ -420,43 +421,11 @@ export class NakoLexer {
         let indent = 0;
         for (let i = 0; i < src.length; i++) {
             const c = src.charAt(i);
-            switch (c) {
-                case ' ':
-                    indent++;
-                    break;
-                case '|':
-                    indent++;
-                    break;
-                case '｜':
-                    indent += 2;
-                    break;
-                case '　':
-                    indent += 2;
-                    break;
-                case '\t':
-                    indent += 4;
-                    break;
-                case '・':
-                    indent += 2;
-                    break;
-                case '⎿':
-                    indent += 2;
-                    break;
-                case '└':
-                    indent += 2;
-                    break;
-                case '│':
-                    indent += 2;
-                    break;
-                case '┃':
-                    indent += 2;
-                    break;
-                case '┗':
-                    indent += 2;
-                    break;
-                default:
-                    return [indent, i];
+            const n = isIndentChars(c);
+            if (n === 0) {
+                return [indent, i];
             }
+            indent += n;
         }
         return [indent, src.length];
     }
