@@ -104,4 +104,4 @@ function showHelp() {
     console.log('[使い方] node snako.mjs [-c] (source) ... convert');
 }
 /** メイン処理を実行 */
-await main(process.argv);
+main(process.argv);

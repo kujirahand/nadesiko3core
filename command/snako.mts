@@ -115,4 +115,4 @@ function showHelp (): void {
 }
 
 /** メイン処理を実行 */
-await main(process.argv)
+main(process.argv)
