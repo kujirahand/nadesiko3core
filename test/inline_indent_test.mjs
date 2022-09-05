@@ -154,6 +154,11 @@ describe('inline_indent_test', async () => {
       '', '1\n1\n1')
     await cmp('' +
       '3回:\n' +
+      '    「1」と表示。\n' +
+      '\t「2」と表示。\n' +
+      '', '1\n2\n1\n2\n1\n2')
+    await cmp('' +
+      '3回:\n' +
       '　┗━「1」と表示。\n' +
       '    「2」と表示。\n' +
       '', '1\n2\n1\n2\n1\n2')

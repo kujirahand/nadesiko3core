@@ -4,6 +4,7 @@
 export function isIndentChars (ch: string): number {
   const code = ch.charCodeAt(0)
   // 特別なコード
+  if (ch === '\t') { return 4 }
   if (ch === ' ' || ch === '|') { return 1 }
   if (ch === '・' || ch === '　') { return 2 }
   if (ch === '⏋' || ch === '⏌') { return 2 } // 0x23CB, 0x23CC
