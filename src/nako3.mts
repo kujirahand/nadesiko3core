@@ -101,6 +101,7 @@ export class NakoCompiler {
   numFailures: number; // エラーレポートの数を記録
   public version: string;
   public coreVersion: string;
+  public filename: string;
   /**
    * @param {undefined | {'useBasicPlugin':true|false}} options
    */
@@ -118,12 +119,8 @@ export class NakoCompiler {
     // バージョンを設定
     this.version = coreVersion.version
     this.coreVersion = coreVersion.version
-    /**
-     * @type {NakoGlobal[]}
-     */
     this.__globals = [] // 生成した NakoGlobal のインスタンスを保持
     this.__globalObj = null
-    /** @type {Record<string, Record<string, NakoFunction>>} */
     this.__module = {} // requireなどで取り込んだモジュールの一覧
     this.pluginFunclist = {} // プラグインで定義された関数
     this.funclist = {} // プラグインで定義された関数 + ユーザーが定義した関数
@@ -134,6 +131,7 @@ export class NakoCompiler {
     this.codeGenerateor = {} // コードジェネレータ
 
     this.logger = new NakoLogger()
+    this.filename = 'main.nako3'
 
     /**
      * 取り込み文を置換するためのオブジェクト。
@@ -233,7 +231,7 @@ export class NakoCompiler {
   _loadDependencies (code: string, filename: string, preCode: string, tools: LoaderTool) {
     const dependencies: Dependencies = {}
     const compiler = new NakoCompiler({ useBasicPlugin: true })
-
+    const defaultNamespace: string = NakoLexer.filenameToModName(this.filename)
     /**
      * @param {any} item
      * @param {any} tasks
@@ -256,7 +254,8 @@ export class NakoCompiler {
         // preDefineFuncはトークン列に変更を加えるため、事前にクローンしておく。
         // 「プラグイン名設定」を行う (#956)
         const modName = NakoLexer.filenameToModName(item.filePath)
-        code = `『${modName}』にプラグイン名設定;` + code + ';『メイン』にプラグイン名設定;'
+        code = `『${modName}』にプラグイン名設定;『${modName}』に名前空間設定;` + code +
+          `『メイン』にプラグイン名設定;『${defaultNamespace}』に名前空間設定。`
         const tokens = this.rawtokenize(code, 0, item.filePath)
         dependencies[item.filePath].tokens = tokens
         const funclist = {}
@@ -560,8 +559,7 @@ export class NakoCompiler {
     }
 
     // convertTokenで消されるコメントのトークンを残す
-    /** @type {TokenWithSourceMap[]} */
-    const commentTokens = tokens.filter((t) => t.type === 'line_comment' || t.type === 'range_comment')
+    const commentTokens: Token[] = tokens.filter((t) => t.type === 'line_comment' || t.type === 'range_comment')
       .map((v) => ({ ...v })) // clone
 
     tokens = this.converttoken(tokens, true, filename)
@@ -783,8 +781,7 @@ export class NakoCompiler {
     const nakoGlobal = this.getNakoGlobal(options, out.gen)
     // 実行
     this.evalJS(out.runtimeEnv, nakoGlobal)
-    // メモ
-    // (check) https://github.com/kujirahand/nadesiko3core/issues/52
+    // (現状動いていないことを通知する) https://github.com/kujirahand/nadesiko3core/issues/52
     this.getLogger().info('runSyncが呼ばれました')
     return nakoGlobal
   }

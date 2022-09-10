@@ -17,6 +17,7 @@ export default {
             // 言語バージョンを設定
             sys.__v0['ナデシコバージョン'] = sys.version;
             sys.__v0['ナデシコ言語バージョン'] = sys.coreVersion;
+            sys.__namespace = '*';
             // なでしこの関数や変数を探して返す
             sys.__findVar = function (nameStr, def) {
                 if (typeof nameStr === 'function') {
@@ -2788,6 +2789,15 @@ export default {
         pure: true,
         fn: function (s, sys) {
             sys.__v0['プラグイン名'] = s;
+        },
+        return_none: true
+    },
+    '名前空間設定': {
+        type: 'func',
+        josi: [['に', 'へ']],
+        pure: true,
+        fn: function (s, sys) {
+            sys.__namespace = s;
         },
         return_none: true
     },

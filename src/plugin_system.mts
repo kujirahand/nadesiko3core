@@ -18,6 +18,7 @@ export default {
       // 言語バージョンを設定
       sys.__v0['ナデシコバージョン'] = sys.version
       sys.__v0['ナデシコ言語バージョン'] = sys.coreVersion
+      sys.__namespace = '*'
       // なでしこの関数や変数を探して返す
       sys.__findVar = function (nameStr: any, def: any): any {
         if (typeof nameStr === 'function') { return nameStr }
@@ -2637,12 +2638,21 @@ export default {
   },
   // @プラグイン管理
   'プラグイン名': { type: 'const', value: 'メイン' }, // @ぷらぐいんめい
-  'プラグイン名設定': { // @プラグイン名をSに変更する // @プラグインめいせってい
+  'プラグイン名設定': { // @プラグイン名をSに変更する(システムにより自動的に「メイン」あるいはプラグインのファイル名が呼ばれる) // @プラグインめいせってい
     type: 'func',
     josi: [['に', 'へ']],
     pure: true,
     fn: function (s: string, sys: any) {
       sys.__v0['プラグイン名'] = s
+    },
+    return_none: true
+  },
+  '名前空間設定': { // @名前空間が変更される // @なまえくうかんせってい
+    type: 'func',
+    josi: [['に', 'へ']],
+    pure: true,
+    fn: function (s: string, sys: any) {
+      sys.__namespace = s
     },
     return_none: true
   },

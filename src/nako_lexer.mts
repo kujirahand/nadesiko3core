@@ -268,9 +268,13 @@ export class NakoLexer {
       if (i <= 0) { return 'eol' }
       return tokens[i - 1].type
     }
-    const modSelf = (tokens.length > 0) ? NakoLexer.filenameToModName(tokens[0].file) : 'main.nako3'
+    let modSelf = (tokens.length > 0) ? NakoLexer.filenameToModName(tokens[0].file) : 'main.nako3'
     while (i < tokens.length) {
       const t = tokens[i]
+      // モジュール名の変更に対応
+      if ((t.type === 'word' || t.type === 'func') && t.value === '名前空間設定') {
+        modSelf = tokens[i - 1].value
+      }
       // 関数を強制的に置換( word => func )
       if (t.type === 'word' && t.value !== 'それ') {
         // 関数を変換
