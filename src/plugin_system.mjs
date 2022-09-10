@@ -26,12 +26,25 @@ export default {
                 if (sys.__locals[nameStr]) {
                     return sys.__locals[nameStr];
                 }
-                const modName = ((typeof sys.__modName) !== 'undefined') ? sys.__modName : 'inline';
-                const gname = (nameStr.indexOf('__') >= 0) ? nameStr : modName + '__' + nameStr;
-                for (let i = 2; i >= 0; i--) {
-                    const scope = sys.__varslist[i];
-                    if (scope[gname]) {
-                        return scope[gname];
+                // 名前空間が指定されている場合
+                if (nameStr.indexOf('__') >= 0) {
+                    for (let i = 2; i >= 0; i--) {
+                        const varScope = sys.__varslist[i];
+                        if (varScope[nameStr]) {
+                            return varScope[nameStr];
+                        }
+                    }
+                    return def;
+                }
+                // 名前空間を参照して関数・変数名を解決する
+                const modList = sys.__modList ? sys.__modList : [sys.__modName];
+                for (const modName of modList) {
+                    const gname = modName + '__' + nameStr;
+                    for (let i = 2; i >= 0; i--) {
+                        const scope = sys.__varslist[i];
+                        if (scope[gname]) {
+                            return scope[gname];
+                        }
                     }
                 }
                 return def;

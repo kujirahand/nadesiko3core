@@ -261,6 +261,7 @@ export class NakoGen {
     code += 'const __v0 = self.__v0 = self.__varslist[0];\n'
     code += 'const __v1 = self.__v1 = self.__varslist[1];\n'
     code += 'const __vars = self.__vars = self.__varslist[2];\n'
+    code += `const __modList = self.__modList = ${JSON.stringify(com.getModList())}\n`
     // 定数を埋め込む
     code += 'self.constPools = ' + JSON.stringify(this.constPools) + ';\n'
     // なでしこの関数定義を行う
@@ -437,9 +438,6 @@ export class NakoGen {
       case 'nop':
         break
       case 'block':
-        // eslint-disable-next-line no-case-declarations
-        const modName: string = NakoLexer.filenameToModName(node.file || '')
-        code += `;__self.__modName='${modName}';\n`
         if (!node.block) { return code }
         // eslint-disable-next-line no-case-declarations
         const blocks: any = (node.block instanceof Array) ? node.block : [node.block]
@@ -1226,6 +1224,11 @@ export class NakoGen {
     const argsOpts = argsInfo[1]
     // function
     this.usedFuncSet.add(funcName)
+    if (funcName === '名前空間設定') {
+      return `\n// --- 名前空間(${args[0]}) ---\n__varslist[0]['名前空間設定'](${args[0]}, __self);__self.__modName=${args[0]};\n`
+    } else if (funcName === 'プラグイン名設定') {
+      return `\n__varslist[0]['プラグイン名設定'](${args[0]}, __self);\n`
+    }
 
     // 関数呼び出しで、引数の末尾にthisを追加する-システム情報を参照するため
     args.push('__self')

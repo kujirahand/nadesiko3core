@@ -82,6 +82,10 @@ export class NakoCompiler {
         // 関数一覧を設定
         this.lexer.setFuncList(this.funclist);
     }
+    /** モジュール(名前空間)の一覧を取得する */
+    getModList() {
+        return this.lexer.modList;
+    }
     getLogger() {
         return this.logger;
     }
@@ -254,6 +258,12 @@ export class NakoCompiler {
     rawtokenize(code, line, filename, preCode = '') {
         if (!code.startsWith(preCode)) {
             throw new Error('codeの先頭にはpreCodeを含める必要があります。');
+        }
+        // 名前空間のモジュールリストに自身を追加
+        const modName = NakoLexer.filenameToModName(filename);
+        const modList = this.getModList();
+        if (modList.indexOf(modName) < 0) {
+            modList.unshift(modName);
         }
         // 全角半角の統一処理
         const preprocessed = this.prepare.convert(code);
