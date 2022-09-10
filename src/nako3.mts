@@ -769,7 +769,7 @@ export class NakoCompiler {
   }
 
   /**
-   * 同期的になでしこのプログラムcodeを実行する
+   * 同期的になでしこのプログラムcodeを実行する (ただし正しく動かない #52)
    * @param code なでしこのプログラム
    * @param filename ファイル名
    * @param options オプション
@@ -783,6 +783,9 @@ export class NakoCompiler {
     const nakoGlobal = this.getNakoGlobal(options, out.gen)
     // 実行
     this.evalJS(out.runtimeEnv, nakoGlobal)
+    // メモ
+    // (check) https://github.com/kujirahand/nadesiko3core/issues/52
+    this.getLogger().info('runSyncが呼ばれました')
     return nakoGlobal
   }
 
