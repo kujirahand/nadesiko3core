@@ -144,3 +144,19 @@ export interface NakoEvent {
   eventName: NakoComEventName
   callback: (event: any) => void
 }
+
+/**
+ * デバッグに関する型
+ */
+export type NakoDebugEventName = 'line'
+
+export interface NakoDebugEvent {
+  eventName: NakoDebugEventName
+  forceStop: boolean
+}
+
+export interface NakoDebugOption {
+  useDebug: boolean
+  waitTime: number // sec
+  messageAction?: string
+}

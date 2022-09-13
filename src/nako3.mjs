@@ -61,6 +61,7 @@ export class NakoCompiler {
         this.nakoFuncList = {}; // __v1に配置するJavaScriptのコードで定義された関数
         this.eventList = []; // 実行前に環境を変更するためのイベント
         this.codeGenerateor = {}; // コードジェネレータ
+        this.debugOption = { useDebug: false, waitTime: 0 };
         this.logger = new NakoLogger();
         this.filename = 'main.nako3';
         /**
@@ -626,6 +627,7 @@ export class NakoCompiler {
      * @param isReset
      * @param isTest テストかどうか。stringの場合は1つのテストのみ。
      * @param [preCode]
+     * @deprecated 代わりにrunAsyncメソッドを使ってください。(core #52)
      */
     async _run(code, fname, isReset, isTest, preCode = '') {
         const opts = newCompilerOptions({
@@ -669,11 +671,12 @@ export class NakoCompiler {
         this.eventList.filter(o => o.eventName === 'finish').map(e => e.callback(nakoGlobal));
     }
     /**
-     * 同期的になでしこのプログラムcodeを実行する (ただし正しく動かない #52)
+     * 同期的になでしこのプログラムcodeを実行する
      * @param code なでしこのプログラム
      * @param filename ファイル名
      * @param options オプション
      * @returns 実行に利用したグローバルオブジェクト
+     * @deprecated 代わりにrunAsyncメソッドを使ってください。(core #52)
      */
     runSync(code, filename, options = undefined) {
         // コンパイル
@@ -683,8 +686,6 @@ export class NakoCompiler {
         const nakoGlobal = this.getNakoGlobal(options, out.gen);
         // 実行
         this.evalJS(out.runtimeEnv, nakoGlobal);
-        // (現状動いていないことを通知する) https://github.com/kujirahand/nadesiko3core/issues/52
-        this.getLogger().info('runSyncが呼ばれました');
         return nakoGlobal;
     }
     /**
@@ -747,6 +748,7 @@ export class NakoCompiler {
      * @param code
      * @param fname
      * @param [preCode]
+     * @deprecated 代わりに runAsync を使ってください。
      */
     run(code, fname = 'main.nako3', preCode = '') {
         const options = newCompilerOptions();
@@ -860,7 +862,9 @@ export class NakoCompiler {
         this.pluginFunclist[key] = cloneAsJSON(this.funclist[key]);
         this.__varslist[0][key] = fn;
     }
-    // (非推奨) 互換性のため ... 関数を追加する
+    /** (非推奨) 互換性のため ... 関数を追加する
+     * @deprecated 代わりにaddFuncを使ってください
+    */
     setFunc(key, josi, fn, returnNone = true, asyncFn = false) {
         this.addFunc(key, josi, fn, returnNone, asyncFn);
     }
@@ -872,7 +876,9 @@ export class NakoCompiler {
     getFunc(key) {
         return this.funclist[key];
     }
-    /** (非推奨) 同期的になでしこのプログラムcodeを実行する */
+    /** 同期的になでしこのプログラムcodeを実行する
+     * @deprecated 代わりにrunAsyncメソッドを使ってください。(core #52)
+     */
     _runEx(code, filename, opts, preCode = '', nakoGlobal = undefined) {
         // コンパイル
         opts.preCode = preCode;
@@ -881,11 +887,12 @@ export class NakoCompiler {
         }
         return this.runSync(code, filename, opts);
     }
-    /** (非推奨) 同期的に実行
+    /** 同期的になでしこのプログラムcodeを実行する
      * @param code
      * @param fname
      * @param opts
      * @param [preCode]
+     * @deprecated 代わりにrunAsyncメソッドを使ってください。(core #52)
      */
     runEx(code, fname, opts, preCode = '') {
         return this._runEx(code, fname, opts, preCode);

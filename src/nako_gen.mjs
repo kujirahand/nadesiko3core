@@ -91,6 +91,7 @@ export class NakoGen {
         this.warnUndefinedCallingUserFunc = 1;
         this.warnUndefinedCallingSystemFunc = 1;
         this.warnUndefinedCalledUserFuncArgs = 1;
+        this.debugOption = com.debugOption;
     }
     static isValidIdentifier(name) {
         // TODO: いらなそうな部分は削る
@@ -123,8 +124,21 @@ export class NakoGen {
             }
             this.lastLineNo = lineNo;
         }
+        // 実行行のデータ
+        const lineDataJSON = JSON.stringify(lineNo);
+        // デバッグ実行か
+        let debugCode = '';
+        if (this.debugOption.useDebug) {
+            if (this.debugOption.messageAction) {
+                debugCode += `window.postMessage({action:'${this.debugOption.messageAction}',` +
+                    `line: ${lineDataJSON}});`;
+            }
+            if ((node.line + incLine) >= 1) {
+                debugCode += `await __v0['秒待'](${this.debugOption.waitTime},__self);`;
+            }
+        }
         // 例: __v0.line='l1:main.nako3'
-        return `__v0.line=${JSON.stringify(lineNo)};`;
+        return `__v0.line=${lineDataJSON};` + debugCode;
     }
     /**
      * ローカル変数のJavaScriptコードを生成する。
@@ -190,6 +204,7 @@ export class NakoGen {
         code += 'const __v1 = self.__v1 = self.__varslist[1];\n';
         code += 'const __vars = self.__vars = self.__varslist[2];\n';
         code += `const __modList = self.__modList = ${JSON.stringify(com.getModList())}\n`;
+        code += '__v0.line = 0;\n';
         // 定数を埋め込む
         code += 'self.constPools = ' + JSON.stringify(this.constPools) + ';\n';
         // なでしこの関数定義を行う
@@ -1541,6 +1556,7 @@ export class NakoGen {
  * @param opt
  */
 export function generateJS(com, ast, opt) {
+    // NakoGenのインスタンスを作成
     const gen = new NakoGen(com);
     // ※ [関数定義に関するコード生成のヒント]
     // ※ 関数の名前だけを(1)で登録して、(2)で実際に関数のコードを生成する。
@@ -1557,7 +1573,7 @@ export function generateJS(com, ast, opt) {
         js += '\n__self._runTests(__tests);\n';
     }
     // async method
-    if (gen.numAsyncFn > 0) {
+    if (gen.numAsyncFn > 0 || gen.debugOption.useDebug) {
         const asyncMain = '__nako3async' + (new Date()).getTime() + '_' + ('' + Math.random()).replace('.', '_') + '__';
         js = `
 // --------------------------------------------------
@@ -1575,8 +1591,11 @@ ${asyncMain}.call(self, self).catch(err => {
 `;
     }
     else {
+        const syncMain = '__nako3sync' + (new Date()).getTime() + '_' + ('' + Math.random()).replace('.', '_') + '__';
         js = `
 // --------------------------------------------------
+// <nadesiko3::gen::syncMode>
+function ${syncMain}(self) {
 try {
   ${jsInit}
   ${js}
@@ -1584,6 +1603,9 @@ try {
   self.numFailures++
   throw self.logger.runtimeError(err, self.__v0.line)
 }
+} // end of ${syncMain}
+${syncMain}(self)
+// </nadesiko3::gen::syncMode>
 // --------------------------------------------------
 `;
     }

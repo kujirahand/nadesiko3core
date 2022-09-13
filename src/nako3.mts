@@ -2,7 +2,7 @@
  * nadesiko v3
  */
 // types
-import { Token, Ast, FuncList, FuncListItem, FuncArgs, NakoEvent, CompilerOptions, NakoComEventName } from './nako_types.mjs'
+import { Token, Ast, FuncList, FuncListItem, FuncArgs, NakoEvent, CompilerOptions, NakoComEventName, NakoDebugOption } from './nako_types.mjs'
 // parser / lexer
 import { NakoParser } from './nako_parser3.mjs'
 import { NakoLexer } from './nako_lexer.mjs'
@@ -102,6 +102,7 @@ export class NakoCompiler {
   public version: string;
   public coreVersion: string;
   public filename: string;
+  public debugOption: NakoDebugOption;
   /**
    * @param {undefined | {'useBasicPlugin':true|false}} options
    */
@@ -129,6 +130,7 @@ export class NakoCompiler {
     this.nakoFuncList = {} // __v1に配置するJavaScriptのコードで定義された関数
     this.eventList = [] // 実行前に環境を変更するためのイベント
     this.codeGenerateor = {} // コードジェネレータ
+    this.debugOption = { useDebug: false, waitTime: 0 }
 
     this.logger = new NakoLogger()
     this.filename = 'main.nako3'
@@ -731,6 +733,7 @@ export class NakoCompiler {
    * @param isReset
    * @param isTest テストかどうか。stringの場合は1つのテストのみ。
    * @param [preCode]
+   * @deprecated 代わりにrunAsyncメソッドを使ってください。(core #52)
    */
   async _run (code: string, fname: string, isReset: boolean, isTest: boolean, preCode = ''): Promise<NakoGlobal> {
     const opts: CompilerOptions = newCompilerOptions({
@@ -776,11 +779,12 @@ export class NakoCompiler {
   }
 
   /**
-   * 同期的になでしこのプログラムcodeを実行する (ただし正しく動かない #52)
+   * 同期的になでしこのプログラムcodeを実行する
    * @param code なでしこのプログラム
    * @param filename ファイル名
    * @param options オプション
    * @returns 実行に利用したグローバルオブジェクト
+   * @deprecated 代わりにrunAsyncメソッドを使ってください。(core #52)
    */
   public runSync (code: string, filename: string, options: CompilerOptions|undefined = undefined): NakoGlobal {
     // コンパイル
@@ -790,8 +794,6 @@ export class NakoCompiler {
     const nakoGlobal = this.getNakoGlobal(options, out.gen)
     // 実行
     this.evalJS(out.runtimeEnv, nakoGlobal)
-    // (現状動いていないことを通知する) https://github.com/kujirahand/nadesiko3core/issues/52
-    this.getLogger().info('runSyncが呼ばれました')
     return nakoGlobal
   }
 
@@ -856,6 +858,7 @@ export class NakoCompiler {
    * @param code
    * @param fname
    * @param [preCode]
+   * @deprecated 代わりに runAsync を使ってください。
    */
   run (code: string, fname = 'main.nako3', preCode = ''): NakoGlobal {
     const options = newCompilerOptions()
@@ -970,7 +973,9 @@ export class NakoCompiler {
     this.__varslist[0][key] = fn
   }
 
-  // (非推奨) 互換性のため ... 関数を追加する
+  /** (非推奨) 互換性のため ... 関数を追加する
+   * @deprecated 代わりにaddFuncを使ってください
+  */
   public setFunc (key: string, josi: FuncArgs, fn: any, returnNone = true, asyncFn = false): void {
     this.addFunc(key, josi, fn, returnNone, asyncFn)
   }
@@ -984,7 +989,9 @@ export class NakoCompiler {
     return this.funclist[key]
   }
 
-  /** (非推奨) 同期的になでしこのプログラムcodeを実行する */
+  /** 同期的になでしこのプログラムcodeを実行する
+   * @deprecated 代わりにrunAsyncメソッドを使ってください。(core #52)
+   */
   private _runEx (code: string, filename: string, opts: CompilerOptions, preCode = '', nakoGlobal: NakoGlobal|undefined = undefined): NakoGlobal {
     // コンパイル
     opts.preCode = preCode
@@ -992,11 +999,12 @@ export class NakoCompiler {
     return this.runSync(code, filename, opts)
   }
 
-  /** (非推奨) 同期的に実行
+  /** 同期的になでしこのプログラムcodeを実行する
    * @param code
    * @param fname
    * @param opts
    * @param [preCode]
+   * @deprecated 代わりにrunAsyncメソッドを使ってください。(core #52)
    */
   public runEx (code: string, fname: string, opts: CompilerOptions, preCode = '') {
     return this._runEx(code, fname, opts, preCode)

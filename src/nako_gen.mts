@@ -4,8 +4,7 @@
  */
 
 import { NakoSyntaxError } from './nako_errors.mjs'
-import { NakoLexer } from './nako_lexer.mjs'
-import { Ast, FuncList, FuncArgs, Token } from './nako_types.mjs'
+import { Ast, FuncList, FuncArgs, Token, NakoDebugOption } from './nako_types.mjs'
 import { NakoCompiler } from './nako3.mjs'
 
 // なでしこで定義した関数の開始コードと終了コード
@@ -75,6 +74,7 @@ export class NakoGen {
   // 変数管理
   private varslistSet: VarsSet[]; // [システム変数一覧, グローバル変数一覧, ローカル変数一覧]で変数セットを記録
   private varsSet: VarsSet; // ローカルな変数を記録
+  public debugOption: NakoDebugOption;
   // public
   numAsyncFn: number;
   __self: NakoCompiler;
@@ -164,6 +164,8 @@ export class NakoGen {
     this.warnUndefinedCallingUserFunc = 1
     this.warnUndefinedCallingSystemFunc = 1
     this.warnUndefinedCalledUserFuncArgs = 1
+
+    this.debugOption = com.debugOption
   }
 
   static isValidIdentifier (name: string) {
@@ -194,8 +196,21 @@ export class NakoGen {
       if (lineNo === this.lastLineNo) { return '' }
       this.lastLineNo = lineNo
     }
+    // 実行行のデータ
+    const lineDataJSON = JSON.stringify(lineNo)
+    // デバッグ実行か
+    let debugCode = ''
+    if (this.debugOption.useDebug) {
+      if (this.debugOption.messageAction) {
+        debugCode += `window.postMessage({action:'${this.debugOption.messageAction}',` +
+          `line: ${lineDataJSON}});`
+      }
+      if ((node.line + incLine) >= 1) {
+        debugCode += `await __v0['秒待'](${this.debugOption.waitTime},__self);`
+      }
+    }
     // 例: __v0.line='l1:main.nako3'
-    return `__v0.line=${JSON.stringify(lineNo)};`
+    return `__v0.line=${lineDataJSON};` + debugCode
   }
 
   /**
@@ -262,6 +277,7 @@ export class NakoGen {
     code += 'const __v1 = self.__v1 = self.__varslist[1];\n'
     code += 'const __vars = self.__vars = self.__varslist[2];\n'
     code += `const __modList = self.__modList = ${JSON.stringify(com.getModList())}\n`
+    code += '__v0.line = 0;\n'
     // 定数を埋め込む
     code += 'self.constPools = ' + JSON.stringify(this.constPools) + ';\n'
     // なでしこの関数定義を行う
@@ -1611,6 +1627,7 @@ export interface NakoGenResult {
  * @param opt
  */
 export function generateJS (com: NakoCompiler, ast: Ast, opt: NakoGenOptions): NakoGenResult {
+  // NakoGenのインスタンスを作成
   const gen = new NakoGen(com)
 
   // ※ [関数定義に関するコード生成のヒント]
@@ -1632,7 +1649,7 @@ export function generateJS (com: NakoCompiler, ast: Ast, opt: NakoGenOptions): N
     js += '\n__self._runTests(__tests);\n'
   }
   // async method
-  if (gen.numAsyncFn > 0) {
+  if (gen.numAsyncFn > 0 || gen.debugOption.useDebug) {
     const asyncMain = '__nako3async' + (new Date()).getTime() + '_' + ('' + Math.random()).replace('.', '_') + '__'
     js = `
 // --------------------------------------------------
@@ -1649,8 +1666,11 @@ ${asyncMain}.call(self, self).catch(err => {
 // --------------------------------------------------
 `
   } else {
+    const syncMain = '__nako3sync' + (new Date()).getTime() + '_' + ('' + Math.random()).replace('.', '_') + '__'
     js = `
 // --------------------------------------------------
+// <nadesiko3::gen::syncMode>
+function ${syncMain}(self) {
 try {
   ${jsInit}
   ${js}
@@ -1658,6 +1678,9 @@ try {
   self.numFailures++
   throw self.logger.runtimeError(err, self.__v0.line)
 }
+} // end of ${syncMain}
+${syncMain}(self)
+// </nadesiko3::gen::syncMode>
 // --------------------------------------------------
 `
   }
