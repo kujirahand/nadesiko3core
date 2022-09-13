@@ -158,6 +158,8 @@ export default {
   'OK': { type: 'const', value: true }, // @OK
   'NG': { type: 'const', value: false }, // @NG
   'キャンセル': { type: 'const', value: 0 }, // @きゃんせる
+  'TRUE': { type: 'const', value: true }, // @TRUE
+  'FALSE': { type: 'const', value: false }, // @FALSE
   'PI': { type: 'const', value: Math.PI }, // @PI
   '空': { type: 'const', value: '' }, // @から
   'NULL': { type: 'const', value: null }, // @NULL

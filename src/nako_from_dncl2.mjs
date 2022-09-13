@@ -17,6 +17,7 @@ const DNCL_SIMPLES = {
     '}:}': [']', ']'],
     'word:and': ['and', 'かつ'],
     'word:or': ['or', 'または'],
+    'word:not': ['not', '!'],
     'word:乱数': ['word', '乱数範囲'],
     'word:表示': ['word', '連続表示']
 };

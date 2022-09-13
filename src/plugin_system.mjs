@@ -171,6 +171,8 @@ export default {
     'OK': { type: 'const', value: true },
     'NG': { type: 'const', value: false },
     'キャンセル': { type: 'const', value: 0 },
+    'TRUE': { type: 'const', value: true },
+    'FALSE': { type: 'const', value: false },
     'PI': { type: 'const', value: Math.PI },
     '空': { type: 'const', value: '' },
     'NULL': { type: 'const', value: null },

@@ -204,4 +204,28 @@ describe('dncl2 (core #41)', async () => {
     '⎿ 表示する(Tomei[k], "：", Tosen[k], "名")\n' +
     '', 'Ａ党：3名\nＢ党：1名\nＣ党：2名\nＤ党：0名')
   })
+  it('and/or/not', async () => {
+    const TRUE = '1'
+    const FALSE = '0'
+    await cmp('' +
+        '!DNCL2\n' +
+        '(not 真)を表示' +
+        '\n', FALSE)
+    await cmp('' +
+        '!DNCL2\n' +
+        '(真 and 真)を表示' +
+        '\n', TRUE)
+    await cmp('' +
+        '!DNCL2\n' +
+        '(真 and 偽)を表示' +
+        '\n', FALSE)
+    await cmp('' +
+        '!DNCL2\n' +
+        '(真 or 偽)を表示' +
+        '\n', TRUE)
+    await cmp('' +
+        '!DNCL2\n' +
+        '(偽 or 偽)を表示' +
+        '\n', FALSE)
+  })
 })
