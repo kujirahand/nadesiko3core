@@ -716,7 +716,7 @@ export class NakoGen {
         }
         // ブロックを解析
         const oldUsedAsyncFn = this.usedAsyncFn;
-        this.usedAsyncFn = false;
+        this.usedAsyncFn = false || this.debugOption.useDebug;
         const block = this._convGen(node.block, false);
         code += block.split('\n').map((line) => '  ' + line).join('\n') + '\n';
         // 関数の最後に、変数「それ」をreturnするようにする
