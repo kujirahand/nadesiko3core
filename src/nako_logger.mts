@@ -77,7 +77,7 @@ interface NakoLoggerListener {
  * error() は引数にエラーオブジェクトを受け取ることもでき、その場合エラーオブジェクトからエラーメッセージとエラー位置が取り出される。
  */
 export class NakoLogger {
-  private listeners: NakoLoggerListener[];
+  private listeners: NakoLoggerListener[]
   private logs: string
   private position: string
   public constructor () {

@@ -8,25 +8,25 @@ import { CompilerOptions, FuncList } from './nako_types.mjs'
  * コンパイルされたなでしこのプログラムで、グローバル空間のthisが指すオブジェクト
  */
 export class NakoGlobal {
-  guid: number;
-  version: string;
-  coreVersion: string;
-  __locals: {[key: string]: any};
-  __varslist: {[key: string]: any}[];
-  __code: string[];
-  __callstack: any[];
-  __stack: any[];
-  __labels: {[key: string]: any};
-  __genMode: string;
-  __module: {[key: string]: any};
-  pluginfiles: {[key: string]: FuncList};
-  index: number;
-  nextIndex: number;
-  numFailures: number;
-  gen: NakoGen;
-  logger: NakoLogger;
-  compiler: NakoCompiler;
-  lastJSCode: string;
+  guid: number
+  version: string
+  coreVersion: string
+  __locals: {[key: string]: any}
+  __varslist: {[key: string]: any}[]
+  __code: string[]
+  __callstack: any[]
+  __stack: any[]
+  __labels: {[key: string]: any}
+  __genMode: string
+  __module: {[key: string]: any}
+  pluginfiles: {[key: string]: FuncList}
+  index: number
+  nextIndex: number
+  numFailures: number
+  gen: NakoGen
+  logger: NakoLogger
+  compiler: NakoCompiler
+  lastJSCode: string
   /**
    * @param compiler
    * @param gen

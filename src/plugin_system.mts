@@ -573,6 +573,7 @@ export default {
       if (!(args instanceof Array)) { args = [args] }
 
       // 実行
+      // eslint-disable-next-line prefer-spread
       return name.apply(null, args)
     }
   },

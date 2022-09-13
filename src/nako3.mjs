@@ -537,6 +537,7 @@ export class NakoCompiler {
             this.usedFuncs.add(block.name);
         }
         astQueue.push([block, block.block]);
+        // eslint-disable-next-line prefer-spread
         blockQueue.push.apply(blockQueue, [block.value].concat(block.args));
     }
     deleteUnNakoFuncs() {

@@ -56,30 +56,30 @@ export class NakoGenOptions {
  * 構文木からJSのコードを生成するクラス
  */
 export class NakoGen {
-  private nakoFuncList: FuncList; // なでしこ自身で定義した関数の一覧
-  private nakoTestFuncs: FuncList; // テストのための関数
-  private usedFuncSet: Set<string>; // 利用があった関数をメモする
-  private usedAsyncFn: boolean; // 非同期関数が使われているか判定
-  private loopId: number; // ループを生成する際にダミーのループ変数を管理するため
-  private flagLoop: boolean; // 変換中のソースがループの中かどうかを判定する
-  private constPools: Array<any>; // 定数プール用
+  private nakoFuncList: FuncList // なでしこ自身で定義した関数の一覧
+  private nakoTestFuncs: FuncList // テストのための関数
+  private usedFuncSet: Set<string> // 利用があった関数をメモする
+  private usedAsyncFn: boolean // 非同期関数が使われているか判定
+  private loopId: number // ループを生成する際にダミーのループ変数を管理するため
+  private flagLoop: boolean // 変換中のソースがループの中かどうかを判定する
+  private constPools: Array<any> // 定数プール用
   // コード生成オプション
-  private speedMode: SpeedMode;
-  private performanceMonitor: PerformanceMonitor;
-  private warnUndefinedVar: boolean;
-  private warnUndefinedReturnUserFunc: number;
-  private warnUndefinedCallingUserFunc: number;
-  private warnUndefinedCallingSystemFunc: number;
-  private warnUndefinedCalledUserFuncArgs: number;
+  private speedMode: SpeedMode
+  private performanceMonitor: PerformanceMonitor
+  private warnUndefinedVar: boolean
+  private warnUndefinedReturnUserFunc: number
+  private warnUndefinedCallingUserFunc: number
+  private warnUndefinedCallingSystemFunc: number
+  private warnUndefinedCalledUserFuncArgs: number
   // 変数管理
-  private varslistSet: VarsSet[]; // [システム変数一覧, グローバル変数一覧, ローカル変数一覧]で変数セットを記録
-  private varsSet: VarsSet; // ローカルな変数を記録
-  public debugOption: NakoDebugOption;
+  private varslistSet: VarsSet[] // [システム変数一覧, グローバル変数一覧, ローカル変数一覧]で変数セットを記録
+  private varsSet: VarsSet // ローカルな変数を記録
+  public debugOption: NakoDebugOption
   // public
-  numAsyncFn: number;
-  __self: NakoCompiler;
-  genMode: string;
-  lastLineNo: string | null; // `l123:main.nako3`形式
+  numAsyncFn: number
+  __self: NakoCompiler
+  genMode: string
+  lastLineNo: string | null // `l123:main.nako3`形式
 
   /** constructor
    * @param com コンパイラのインスタンス

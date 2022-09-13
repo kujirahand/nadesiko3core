@@ -19,11 +19,11 @@ import { NakoLexerError, InternalLexerError } from './nako_errors.mjs'
 import { Token, FuncList, FuncArgs } from './nako_types.mjs'
 
 export class NakoLexer {
-  public logger: NakoLogger;
-  public funclist: FuncList;
-  public modList: string[];
-  public result: Token[];
-  public modName: string;
+  public logger: NakoLogger
+  public funclist: FuncList
+  public modList: string[]
+  public result: Token[]
+  public modName: string
   /**
    * @param logger
    */

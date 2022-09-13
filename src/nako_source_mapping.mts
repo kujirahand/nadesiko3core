@@ -6,11 +6,11 @@ interface PreprocessItem {
 
 /** prepareとtokenizeのソースマッピング */
 export class SourceMappingOfTokenization {
-  private readonly sourceCodeLength: number;
-  private readonly preprocessed: PreprocessItem[];
-  private readonly cumulativeSum: number[];
-  private lastIndex: number;
-  private lastPreprocessedCodePosition: number;
+  private readonly sourceCodeLength: number
+  private readonly preprocessed: PreprocessItem[]
+  private readonly cumulativeSum: number[]
+  private lastIndex: number
+  private lastPreprocessedCodePosition: number
   /**
      * @param {number} sourceCodeLength
      * @param {PreprocessItem[]} preprocessed
@@ -73,11 +73,11 @@ export class SourceMappingOfTokenization {
 }
 
 export class SourceMappingOfIndentSyntax {
-  private lines: { offset: number, len: number }[];
-  private readonly linesInsertedByIndentationSyntax: number[];
-  private readonly linesDeletedByIndentationSyntax: { lineNumber: number, len: number }[];
-  lastLineNumber: number;
-  lastOffset: number;
+  private lines: { offset: number, len: number }[]
+  private readonly linesInsertedByIndentationSyntax: number[]
+  private readonly linesDeletedByIndentationSyntax: { lineNumber: number, len: number }[]
+  lastLineNumber: number
+  lastOffset: number
   /**
      * @param {string} codeAfterProcessingIndentationSyntax
      * @param {readonly number[]} linesInsertedByIndentationSyntax
@@ -181,9 +181,9 @@ export class SourceMappingOfIndentSyntax {
 
 /** offsetから (line, column) へ変換する。 */
 export class OffsetToLineColumn {
-  private lineOffsets: number[];
-  private lastLineNumber: number;
-  private lastOffset: number;
+  private lineOffsets: number[]
+  private lastLineNumber: number
+  private lastOffset: number
   /**
      * @param {string} code
      */

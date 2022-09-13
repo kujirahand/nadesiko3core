@@ -4,12 +4,12 @@ import { Ast, Token, SourceMap } from './nako_types.mjs'
  * なでしこ言語が投げる全てのエラーが継承するクラス
  */
 export class NakoError extends Error {
-  public type: string;
-  public tag: string;
-  public msg: string;
-  public file: string | undefined;
-  public line: number | undefined;
-  public positionJa: string;
+  public type: string
+  public tag: string
+  public msg: string
+  public file: string | undefined
+  public line: number | undefined
+  public positionJa: string
 
   constructor (tag: string, msg: string, file: string | undefined = undefined, line: number | undefined = undefined) {
     // エラー位置を分かりやすく日本語に変換
@@ -43,8 +43,8 @@ export class NakoIndentError extends NakoError {
 
 // コンパイラの内部でのみ使うエラー。投げられたらtryでキャッチしてLexerErrorへ変更する。
 export class InternalLexerError extends NakoError {
-  public preprocessedCodeStartOffset: number;
-  public preprocessedCodeEndOffset: number;
+  public preprocessedCodeStartOffset: number
+  public preprocessedCodeEndOffset: number
   /**
    * @param {string} msg
    * @param {number} preprocessedCodeStartOffset
@@ -63,8 +63,8 @@ export class InternalLexerError extends NakoError {
 }
 
 export class NakoLexerError extends NakoError {
-  public startOffset: number;
-  public endOffset: number;
+  public startOffset: number
+  public endOffset: number
   /**
    * @param {string} msg
    * @param {number | null} startOffset
@@ -89,8 +89,8 @@ export class NakoLexerError extends NakoError {
 }
 
 export class NakoSyntaxError extends NakoError {
-  public startOffset: number | undefined;
-  public endOffset: number | undefined;
+  public startOffset: number | undefined
+  public endOffset: number | undefined
   /**
    * @param {string} msg
    * @param {Ast} first
@@ -126,7 +126,7 @@ export class NakoSyntaxError extends NakoError {
 }
 
 export class NakoRuntimeError extends NakoError {
-  public lineNo: string | undefined;
+  public lineNo: string | undefined
   /**
    * @param error エラー
    * @param lineNo 発生行

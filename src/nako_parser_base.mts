@@ -5,24 +5,24 @@ import { FuncList, FuncListItem, Token, Ast, SourceMap, NewEmptyToken } from './
  * なでしこの構文解析のためのユーティリティクラス
  */
 export class NakoParserBase {
-  public logger: NakoLogger;
-  protected stackList: any[];
-  protected tokens: Token[];
-  protected stack: any[];
-  protected index: number;
-  protected y: any[];
-  public modName: string;
-  public modList: string[];
-  public funclist: FuncList;
-  public usedFuncs: Set<string>;
-  protected funcLevel: number;
-  protected usedAsyncFn: boolean;
-  protected localvars: FuncList;
-  public genMode: string;
-  protected arrayIndexFrom: number;
-  protected flagReverseArrayIndex: boolean;
-  protected flagCheckArrayInit: boolean;
-  protected recentlyCalledFunc: FuncListItem[];
+  public logger: NakoLogger
+  protected stackList: any[]
+  protected tokens: Token[]
+  protected stack: any[]
+  protected index: number
+  protected y: any[]
+  public modName: string
+  public modList: string[]
+  public funclist: FuncList
+  public usedFuncs: Set<string>
+  protected funcLevel: number
+  protected usedAsyncFn: boolean
+  protected localvars: FuncList
+  public genMode: string
+  protected arrayIndexFrom: number
+  protected flagReverseArrayIndex: boolean
+  protected flagCheckArrayInit: boolean
+  protected recentlyCalledFunc: FuncListItem[]
 
   constructor (logger: NakoLogger) {
     this.logger = logger

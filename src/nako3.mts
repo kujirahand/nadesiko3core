@@ -75,34 +75,35 @@ export function newCompilerOptions (initObj: any = {}): CompilerOptions {
 
 /** なでしこコンパイラ */
 export class NakoCompiler {
-  private nakoFuncList: FuncList;
-  private funclist: FuncList;
-  private pluginFunclist: Record<string, FuncListItem>;
-  private pluginfiles: Record<string, any>;
-  private commandlist: Set<string>;
-  private prepare: NakoPrepare;
-  private parser: NakoParser;
-  private lexer: NakoLexer;
-  private dependencies: Dependencies;
-  private usedFuncs: Set<string>;
-  private codeGenerateor: {[key: string]: any};
-  protected logger: NakoLogger;
-  protected eventList: NakoEvent[];
+  private nakoFuncList: FuncList
+  private funclist: FuncList
+  private pluginFunclist: Record<string, FuncListItem>
+  private pluginfiles: Record<string, any>
+  private commandlist: Set<string>
+  private prepare: NakoPrepare
+  private parser: NakoParser
+  private lexer: NakoLexer
+  private dependencies: Dependencies
+  private usedFuncs: Set<string>
+  private codeGenerateor: {[key: string]: any}
+  protected logger: NakoLogger
+  protected eventList: NakoEvent[]
   // global objects
-  __varslist: NakoVars[];
-  __locals: NakoVars;
-  __self: NakoCompiler;
-  __vars: NakoVars;
-  __v0: NakoVars;
-  __v1: NakoVars;
-  __globals: NakoGlobal[];
-  __globalObj: NakoGlobal|null; // 現在のNakoGlobalオブジェクト
-  __module: Record<string, Record<string, FuncListItem>>;
-  numFailures: number; // エラーレポートの数を記録
-  public version: string;
-  public coreVersion: string;
-  public filename: string;
-  public debugOption: NakoDebugOption;
+  __varslist: NakoVars[]
+  __locals: NakoVars
+  // eslint-disable-next-line no-use-before-define
+  __self: NakoCompiler
+  __vars: NakoVars
+  __v0: NakoVars
+  __v1: NakoVars
+  __globals: NakoGlobal[]
+  __globalObj: NakoGlobal|null // 現在のNakoGlobalオブジェクト
+  __module: Record<string, Record<string, FuncListItem>>
+  numFailures: number // エラーレポートの数を記録
+  public version: string
+  public coreVersion: string
+  public filename: string
+  public debugOption: NakoDebugOption
   /**
    * @param {undefined | {'useBasicPlugin':true|false}} options
    */
@@ -646,6 +647,7 @@ export class NakoCompiler {
       this.usedFuncs.add(block.name as string)
     }
     astQueue.push([block, block.block as Ast])
+    // eslint-disable-next-line prefer-spread
     blockQueue.push.apply(blockQueue, [block.value].concat(block.args))
   }
 

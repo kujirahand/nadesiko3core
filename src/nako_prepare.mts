@@ -4,9 +4,9 @@
  * ただし、コメントや文字列の中は変換しないように考慮して変換する。
  */
 class ReplaceHistory {
-  from: number;
-  to: number;
-  index: number;
+  from: number
+  to: number
+  index: number
   constructor (from: number, to: number, index: number) {
     this.from = from
     this.to = to
@@ -15,8 +15,8 @@ class ReplaceHistory {
 }
 
 class ConvertResult {
-  public text: string;
-  public sourcePosition: number;
+  public text: string
+  public sourcePosition: number
   constructor (text: string, sourcePosition: number) {
     this.text = text
     this.sourcePosition = sourcePosition
@@ -27,8 +27,8 @@ class ConvertResult {
  * 置換後の位置から置換前の位置へマッピングできる文字列
  */
 export class Replace {
-  history: ReplaceHistory[];
-  private code: string;
+  history: ReplaceHistory[]
+  private code: string
   constructor (code: string) {
     this.history = []
     this.code = code
@@ -77,7 +77,8 @@ export class Replace {
  */
 export class NakoPrepare {
   // 唯一のインスタンス
-  private static _instance: NakoPrepare;
+  // eslint-disable-next-line no-use-before-define
+  private static _instance: NakoPrepare
   /** 唯一のインスタンスを返す */
   public static getInstance (): NakoPrepare {
     if (!NakoPrepare._instance) {
@@ -86,7 +87,7 @@ export class NakoPrepare {
     return NakoPrepare._instance
   }
 
-  private convertTable: Map<number, string>;
+  private convertTable: Map<number, string>
   private constructor () {
     // 単純な変換テーブル
     this.convertTable = new Map([

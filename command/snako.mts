@@ -12,12 +12,12 @@ const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
 
 /** コマンドラインオプション */
 class CommandOptions {
-  isDebug: boolean;
-  filename: string;
-  nodePath: string;
-  scriptPath: string;
-  evalStr: string;
-  flagConvert: boolean;
+  isDebug: boolean
+  filename: string
+  nodePath: string
+  scriptPath: string
+  evalStr: string
+  flagConvert: boolean
   constructor () {
     this.nodePath = ''
     this.scriptPath = ''
