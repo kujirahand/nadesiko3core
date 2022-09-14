@@ -643,6 +643,7 @@ export class NakoCompiler {
     clearPlugins() {
         // 他に実行している「なでしこ」があればクリアする
         this.__globals.forEach((sys) => {
+            sys.__varslist[0].forceClose = true; // core #56
             sys.reset();
         });
         this.__globals = []; // clear

@@ -92,6 +92,8 @@ export class NakoGlobal {
      * 毎プラグインの「!クリア」関数を実行
      */
     clearPlugins() {
+        // 実行している関数をすべて終了させる
+        // プラグインのクリア関数を呼び出す
         const clearName = '!クリア';
         for (const pname in this.pluginfiles) {
             const po = this.__module[pname];
