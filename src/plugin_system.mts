@@ -672,7 +672,7 @@ export default {
   },
   '終': { // @終わる // @終わる
     type: 'func',
-    josi: [['の']],
+    josi: [],
     pure: true,
     fn: function (sys: any) {
       // デバッグモードでなければ例外を投げることでプログラムを終了させる
