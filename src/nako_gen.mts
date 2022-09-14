@@ -201,13 +201,19 @@ export class NakoGen {
     // デバッグ実行か
     let debugCode = ''
     if (this.debugOption.useDebug) {
+      // messageAction
       if (this.debugOption.messageAction) {
         debugCode += `window.postMessage({action:'${this.debugOption.messageAction}',` +
           `line: ${lineDataJSON}});`
       }
+      // waitTime
       if ((node.line + incLine) >= 1) {
-        debugCode += `await __v0['秒待'](${this.debugOption.waitTime},__self);`
+        if (this.debugOption.waitTime > 0) {
+          debugCode += `await __v0['秒待'](${this.debugOption.waitTime},__self);`
+        }
       }
+      // end
+      debugCode += 'if(__v0.forceClose){return-1};'
     }
     // 例: __v0.line='l1:main.nako3'
     return `__v0.line=${lineDataJSON};` + debugCode
@@ -278,6 +284,8 @@ export class NakoGen {
     code += 'const __vars = self.__vars = self.__varslist[2];\n'
     code += `const __modList = self.__modList = ${JSON.stringify(com.getModList())}\n`
     code += '__v0.line = 0;\n'
+    code += '__v0.forceClose = false;\n'
+    code += `__v0.useDebug = ${this.debugOption.useDebug};\n`
     // 定数を埋め込む
     code += 'self.constPools = ' + JSON.stringify(this.constPools) + ';\n'
     // なでしこの関数定義を行う
@@ -473,7 +481,7 @@ export class NakoGen {
         code += this.convCheckLoop(node, 'continue')
         break
       case 'end':
-        code += '__varslist[0][\'終\']();'
+        code += '__v0[\'終\'](__self);'
         break
       case 'number':
         code += node.value
@@ -1644,29 +1652,36 @@ export function generateJS (com: NakoCompiler, ast: Ast, opt: NakoGenOptions): N
   // (3) JSコードを実行するための事前ヘッダ部分の生成
   const jsInit = gen.getDefFuncCode(com, opt)
 
+  // ランダムな関数名を生成
+  const funcID = '' + (new Date()).getTime() + '_' + Math.floor(0xFFFFFFFF * Math.random())
   // テストの実行
   if (js && opt.isTest) {
     js += '\n__self._runTests(__tests);\n'
   }
   // async method
   if (gen.numAsyncFn > 0 || gen.debugOption.useDebug) {
-    const asyncMain = '__nako3async' + (new Date()).getTime() + '_' + ('' + Math.random()).replace('.', '_') + '__'
+    const asyncMain = '__eval_nako3async_' + funcID + '__'
     js = `
 // --------------------------------------------------
-// <nadesiko3::gen::async times="${gen.numAsyncFn}">
+// <nadesiko3::gen::async id="${funcID}" times="${gen.numAsyncFn}">
 async function ${asyncMain}(self) {
 ${jsInit}
 ${js}
 } // end of ${asyncMain}
-${asyncMain}.call(self, self).catch(err => {
+${asyncMain}.call(self, self)
+.then(() => {
+  // ok
+})
+.catch(err => {
+  if (err.message === '__終わる__') { return }
   self.numFailures++
   throw self.logger.runtimeError(err, self.__v0.line)
 })
-// <nadesiko3::gen::async>
+// </nadesiko3::gen::async id="${funcID}">
 // --------------------------------------------------
 `
   } else {
-    const syncMain = '__nako3sync' + (new Date()).getTime() + '_' + ('' + Math.random()).replace('.', '_') + '__'
+    const syncMain = '__eval_nako3sync_' + funcID + '__'
     js = `
 // --------------------------------------------------
 // <nadesiko3::gen::syncMode>
@@ -1675,6 +1690,7 @@ try {
   ${jsInit}
   ${js}
 } catch (err) {
+  if (err.message === '__終わる__') { return }
   self.numFailures++
   throw self.logger.runtimeError(err, self.__v0.line)
 }

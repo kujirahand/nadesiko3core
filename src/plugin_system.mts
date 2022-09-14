@@ -670,6 +670,16 @@ export default {
       }
     }
   },
+  '終': { // @終わる // @終わる
+    type: 'func',
+    josi: [['の']],
+    pure: true,
+    fn: function (sys: any) {
+      // デバッグモードでなければ例外を投げることでプログラムを終了させる
+      sys.__v0.forceClose = true
+      if (!sys.__v0.useDebug) { throw new Error('__終わる__') }
+    }
+  },
 
   // @型変換
   '変数型確認': { // @変数Vの型を返す // @へんすうかたかくにん
