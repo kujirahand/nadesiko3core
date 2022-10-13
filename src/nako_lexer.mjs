@@ -606,7 +606,8 @@ export class NakoLexer {
                     preprocessedCodeOffset: srcOffset,
                     preprocessedCodeLength: (srcLength - src.length) - srcOffset
                 });
-                if (rule.name === 'eol') { // 改行のとき次の行のインデントを調べる
+                // 改行のとき次の行のインデントを調べる。なお、改行の後は必ずcolumnが1になる。インデント構文のため、一行に2つ以上の文を含むときを考慮する。(core #66)
+                if (rule.name === 'eol' && column === 1) {
                     const ia = this.countIndent(src);
                     indent = ia[0];
                     column += ia[1];
