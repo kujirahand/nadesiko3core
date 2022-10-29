@@ -857,7 +857,17 @@ export class NakoGen {
             const idx = this._convGen(list[i], true);
             code += '[' + idx + ']';
         }
-        const value = this._convGen(node.value, true);
+        // value
+        let value = null;
+        if (this.speedMode.invalidSore === 0) {
+            value = this.varname('それ');
+        }
+        if (node.value) {
+            value = this._convGen(node.value, true);
+        }
+        if (value == null) {
+            throw NakoSyntaxError.fromNode('代入する先の変数名がありません。', node);
+        }
         code += ' = ' + value + ';\n';
         // generate code
         const src = this.convLineno(node, false) + codeInit + code;
