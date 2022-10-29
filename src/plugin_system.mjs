@@ -143,7 +143,9 @@ export default {
         josi: [],
         pure: false,
         fn: function (sys) {
-            sys.__exec('全タイマー停止', [sys]);
+            if (sys.__exec) {
+                sys.__exec('全タイマー停止', [sys]);
+            }
             if (sys.__genMode === '非同期モード') {
                 sys.__stopAsync(sys);
             }
