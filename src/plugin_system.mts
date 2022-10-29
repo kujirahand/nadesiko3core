@@ -18,7 +18,7 @@ export default {
       // 言語バージョンを設定
       sys.__v0['ナデシコバージョン'] = sys.version
       sys.__v0['ナデシコ言語バージョン'] = sys.coreVersion
-      sys.__namespace = '*'
+      sys.__namespaceList = []
       // なでしこの関数や変数を探して返す
       sys.__findVar = function (nameStr: any, def: any): any {
         if (typeof nameStr === 'function') { return nameStr }
@@ -2671,12 +2671,29 @@ export default {
     },
     return_none: true
   },
-  '名前空間設定': { // @名前空間が変更される // @なまえくうかんせってい
+  '名前空間': { type: 'const', value: '' }, // @なまえくうかん
+  '名前空間設定': { // @名前空間をSに設定する(システムにより自動的に変更される。ファイル名から拡張子を削ったもの) // @なまえくうかんせってい
     type: 'func',
     josi: [['に', 'へ']],
     pure: true,
     fn: function (s: string, sys: any) {
-      sys.__namespace = s
+      // push namespace
+      sys.__namespaceList.push([sys.__v0['名前空間'], sys.__v0['プラグイン名']])
+      sys.__v0['名前空間'] = s
+    },
+    return_none: true
+  },
+  '名前空間ポップ': { // @システム利用のため呼ぶべからず。(名前空間を一つ前の値に戻す) // @なまえくうかんぽっぷ
+    type: 'func',
+    josi: [],
+    pure: true,
+    fn: function (sys: any) {
+      // pop namespace
+      const a = sys.__namespaceList.pop()
+      if (a) {
+        sys.__v0['名前空間'] = a[0]
+        sys.__v0['プラグイン名'] = a[1]
+      }
     },
     return_none: true
   },

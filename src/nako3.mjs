@@ -159,7 +159,6 @@ export class NakoCompiler {
     _loadDependencies(code, filename, preCode, tools) {
         const dependencies = {};
         const compiler = new NakoCompiler({ useBasicPlugin: true });
-        const defaultNamespace = NakoLexer.filenameToModName(this.filename);
         /**
          * @param {any} item
          * @param {any} tasks
@@ -182,8 +181,7 @@ export class NakoCompiler {
                 // preDefineFuncはトークン列に変更を加えるため、事前にクローンしておく。
                 // 「プラグイン名設定」を行う (#956)
                 const modName = NakoLexer.filenameToModName(item.filePath);
-                code = `『${modName}』にプラグイン名設定;『${modName}』に名前空間設定;` + code +
-                    `『メイン』にプラグイン名設定;『${defaultNamespace}』に名前空間設定。`;
+                code = `『${modName}』に名前空間設定;『${modName}』にプラグイン名設定;` + code + ';名前空間ポップ;';
                 const tokens = this.rawtokenize(code, 0, item.filePath);
                 dependencies[item.filePath].tokens = tokens;
                 const funclist = {};
@@ -685,7 +683,7 @@ export class NakoCompiler {
         options = newCompilerOptions(options);
         const out = this.compileFromCode(code, filename, options);
         // 実行前に環境を生成
-        const nakoGlobal = this.getNakoGlobal(options, out.gen);
+        const nakoGlobal = this.getNakoGlobal(options, out.gen, filename);
         // 実行
         this.evalJS(out.runtimeEnv, nakoGlobal);
         return nakoGlobal;
@@ -702,12 +700,12 @@ export class NakoCompiler {
         options = newCompilerOptions(options);
         const out = this.compileFromCode(code, filename, options);
         // 実行前に環境を生成
-        const nakoGlobal = this.getNakoGlobal(options, out.gen);
+        const nakoGlobal = this.getNakoGlobal(options, out.gen, filename);
         // 実行
         this.evalJS(out.runtimeEnv, nakoGlobal);
         return nakoGlobal;
     }
-    getNakoGlobal(options, gen) {
+    getNakoGlobal(options, gen, filename) {
         // オプションを参照
         let g = options.nakoGlobal;
         if (!g) {
@@ -718,6 +716,8 @@ export class NakoCompiler {
             else {
                 g = new NakoGlobal(this, gen, (this.__globals.length + 1));
             }
+            // 名前空間を設定
+            g.__varslist[0]['名前空間'] = NakoLexer.filenameToModName(filename);
         }
         if (this.__globals.indexOf(g) < 0) {
             this.__globals.push(g);
