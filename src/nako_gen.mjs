@@ -900,6 +900,7 @@ export class NakoGen {
         // ループ条件を確認
         const kara = this._convGen(node.from, true);
         const made = this._convGen(node.to, true);
+        const flagDown = node.flagDown;
         let inc = '1';
         if (node.inc !== null || node.inc === undefined || node.inc === 'null') {
             inc = this._convGen(node.inc, true);
@@ -922,9 +923,11 @@ export class NakoGen {
             `    ${block}\n` +
             '  };\n' +
             '} else { // down\n' +
-            `  for (let ${varI} = ${varFrom}; ${varI} >= ${varTo}; ${varI}-= ${inc}) {\n` +
-            `    ${sorePrefex}${word} = ${varI};` + '\n' +
-            `    ${block}\n` +
+            `  if (${flagDown}) {` +
+            `    for (let ${varI} = ${varFrom}; ${varI} >= ${varTo}; ${varI}-= ${inc}) {\n` +
+            `      ${sorePrefex}${word} = ${varI};` + '\n' +
+            `      ${block}\n` +
+            '    }\n' +
             '  };\n' +
             `};\n//[/FOR id=${idLoop}]\n`;
         return this.convLineno(node, false) + code;

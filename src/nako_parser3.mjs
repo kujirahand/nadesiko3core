@@ -975,6 +975,7 @@ export class NakoParser extends NakoParserBase {
     }
     /** @returns {Ast | null} */
     yFor() {
+        let flagDown = true; // AからBまでの時、A>=Bを許容するかどうか
         const map = this.peekSourceMap();
         if (this.check('繰返') || this.check('増繰返') || this.check('減繰返')) {
             // pass
@@ -987,8 +988,10 @@ export class NakoParser extends NakoParserBase {
         const incdec = this.stack.pop();
         if (incdec) {
             if (incdec.type === 'word' && (incdec.value === '増' || incdec.value === '減')) {
-                kurikaesu.type = incdec.value + kurikaesu.type;
-                // ↑ typeを増繰返 | 減繰返 に変換
+                if (incdec.value === '増') {
+                    flagDown = false;
+                }
+                kurikaesu.type = incdec.value + kurikaesu.type; // typeを増繰返 | 減繰返 に変換
             }
             else {
                 // 普通の繰り返しの場合
@@ -998,6 +1001,9 @@ export class NakoParser extends NakoParserBase {
         let vInc = null;
         if (kurikaesu.type === '増繰返' || kurikaesu.type === '減繰返') {
             vInc = this.popStack(['ずつ']);
+            if (kurikaesu.type === '増繰返') {
+                flagDown = false;
+            }
         }
         const vTo = this.popStack(['まで']);
         const vFrom = this.popStack(['から']);
@@ -1035,6 +1041,7 @@ export class NakoParser extends NakoParserBase {
             from: vFrom,
             to: vTo,
             inc: vInc,
+            flagDown,
             word,
             block: block || [],
             josi: '',
