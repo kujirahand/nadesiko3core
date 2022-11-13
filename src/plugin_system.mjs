@@ -1736,6 +1736,14 @@ export default {
             throw new Error('『配列ポップ』で配列以外の処理。');
         }
     },
+    '配列プッシュ': {
+        type: 'func',
+        josi: [['に', 'へ'], ['を']],
+        pure: true,
+        fn: function (a, b, sys) {
+            return sys.__exec('配列追加', [a, b, sys]);
+        }
+    },
     '配列追加': {
         type: 'func',
         josi: [['に', 'へ'], ['を']],

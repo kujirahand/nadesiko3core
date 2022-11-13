@@ -1664,6 +1664,14 @@ export default {
       throw new Error('『配列ポップ』で配列以外の処理。')
     }
   },
+  '配列プッシュ': { // @配列Aの末尾にNを追加。Aの内容を書き換える。(『配列追加』と同じ) // @はいれつぷっしゅ
+    type: 'func',
+    josi: [['に', 'へ'], ['を']],
+    pure: true,
+    fn: function (a: any, b: any, sys: any) {
+      return sys.__exec('配列追加', [a, b, sys])
+    }
+  },
   '配列追加': { // @配列Aの末尾にBを追加して返す。Aの内容を書き換える。 // @はいれつついか
     type: 'func',
     josi: [['に', 'へ'], ['を']],
