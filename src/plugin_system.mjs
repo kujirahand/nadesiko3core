@@ -1822,6 +1822,18 @@ export default {
             return result;
         }
     },
+    '配列要素作成': {
+        type: 'func',
+        josi: [['を'], ['だけ']],
+        pure: true,
+        fn: function (a, b) {
+            const result = [];
+            for (let i = 0; i < b; i++) {
+                result.push(a);
+            }
+            return result;
+        }
+    },
     '配列関数適用': {
         type: 'func',
         josi: [['を'], ['へ', 'に']],

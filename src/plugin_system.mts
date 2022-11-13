@@ -1748,6 +1748,18 @@ export default {
       return result
     }
   },
+  '配列要素作成': { // @値AをB個持つ配列を生成して返す。 // @はいれつようそさくせい
+    type: 'func',
+    josi: [['を'], ['だけ']],
+    pure: true,
+    fn: function (a: number, b: number) {
+      const result: number[] = []
+      for (let i = 0; i < b; i++) {
+        result.push(a)
+      }
+      return result
+    }
+  },
   '配列関数適用': { // @引数を1つ持つ関数Fを、配列Aの全要素に適用した、新しい配列を返す。 // @はいれつかんすうてきよう
     type: 'func',
     josi: [['を'], ['へ', 'に']],
