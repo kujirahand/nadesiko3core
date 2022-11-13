@@ -1728,6 +1728,54 @@ export default {
       throw new Error('『配列合計』で配列変数以外の値が指定されました。')
     }
   },
+  '配列連番作成': { // @AからBまでの連番配列を生成して返す。 // @はいれつれんばんさくせい
+    type: 'func',
+    josi: [['から'], ['まで', 'の']],
+    pure: true,
+    fn: function (a: number, b: number) {
+      const result: number[] = []
+      for (let i = a; i <= b; i++) {
+        result.push(i)
+      }
+      return result
+    }
+  },
+  '配列関数適用': { // @引数を1つ持つ関数Fを、配列Aの全要素に適用した、新しい配列を返す。 // @はいれつかんすうてきよう
+    type: 'func',
+    josi: [['を'], ['へ', 'に']],
+    pure: true,
+    fn: function (f: any, a: any, sys: any) {
+      let ufunc: any = f
+      if (typeof f === 'string') { ufunc = sys.__findFunc(f, '配列関数適用') }
+      const result: any = []
+      for (const e of a) {
+        result.push(ufunc(e))
+      }
+      return result
+    }
+  },
+  '配列マップ': { // @引数を1つ持つ関数Fを、配列Aの全要素に適用した、新しい配列を返す。(『配列関数適用』と同じ) // @はいれつまっぷ
+    type: 'func',
+    josi: [['を'], ['へ', 'に']],
+    pure: true,
+    fn: function (f: any, a: any, sys: any) {
+      return sys.__exec('配列関数適用', [f, a, sys])
+    }
+  },
+  '配列フィルタ': { // @引数を1つ持ち真偽を返す関数Fを利用して、配列Aの要素をフィルタして、新しい配列として返す。 // @はいれつふぃるた
+    type: 'func',
+    josi: [['で', 'の'], ['を', 'について']],
+    pure: true,
+    fn: function (f: any, a: any, sys: any) {
+      let ufunc: any = f
+      if (typeof f === 'string') { ufunc = sys.__findFunc(f, '配列フィルタ') }
+      const result: any = []
+      for (const e of a) {
+        if (ufunc(e)) { result.push(e) }
+      }
+      return result
+    }
+  },
   // @二次元配列処理
   '表ソート': { // @二次元配列AでB列目(0起点)(あるいはキー名)をキーに文字列順にソートする。Aの内容を書き換える。 // @ひょうそーと
     type: 'func',

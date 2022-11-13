@@ -1802,6 +1802,60 @@ export default {
             throw new Error('『配列合計』で配列変数以外の値が指定されました。');
         }
     },
+    '配列連番作成': {
+        type: 'func',
+        josi: [['から'], ['まで', 'の']],
+        pure: true,
+        fn: function (a, b) {
+            const result = [];
+            for (let i = a; i <= b; i++) {
+                result.push(i);
+            }
+            return result;
+        }
+    },
+    '配列関数適用': {
+        type: 'func',
+        josi: [['を'], ['へ', 'に']],
+        pure: true,
+        fn: function (f, a, sys) {
+            let ufunc = f;
+            if (typeof f === 'string') {
+                ufunc = sys.__findFunc(f, '配列関数適用');
+            }
+            const result = [];
+            for (const e of a) {
+                result.push(ufunc(e));
+            }
+            return result;
+        }
+    },
+    '配列マップ': {
+        type: 'func',
+        josi: [['を'], ['へ', 'に']],
+        pure: true,
+        fn: function (f, a, sys) {
+            return sys.__exec('配列関数適用', [f, a, sys]);
+        }
+    },
+    '配列フィルタ': {
+        type: 'func',
+        josi: [['で', 'の'], ['を', 'について']],
+        pure: true,
+        fn: function (f, a, sys) {
+            let ufunc = f;
+            if (typeof f === 'string') {
+                ufunc = sys.__findFunc(f, '配列フィルタ');
+            }
+            const result = [];
+            for (const e of a) {
+                if (ufunc(e)) {
+                    result.push(e);
+                }
+            }
+            return result;
+        }
+    },
     // @二次元配列処理
     '表ソート': {
         type: 'func',
