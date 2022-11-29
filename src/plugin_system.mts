@@ -1738,7 +1738,7 @@ export default {
   },
   '配列連番作成': { // @AからBまでの連番配列を生成して返す。 // @はいれつれんばんさくせい
     type: 'func',
-    josi: [['から'], ['まで', 'の']],
+    josi: [['から'], ['までの', 'まで', 'の']],
     pure: true,
     fn: function (a: number, b: number) {
       const result: number[] = []
