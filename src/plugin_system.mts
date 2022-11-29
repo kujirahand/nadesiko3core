@@ -577,6 +577,29 @@ export default {
       return name.apply(null, args)
     }
   },
+  'ASYNC': { // @なでしこのユーザー関数定義でASYNC(非同期関数である)ことを宣言する // @ASYNC
+    type: 'func',
+    josi: [],
+    asyncFn: true,
+    fn: async function () {
+      // empty
+    },
+    return_none: true
+  },
+  'AWAIT実行': { // @JavaScriptの非同期関数(Promise/async関数)のFを引数ARGSでawait実行する // @JSかんすうAWAIT
+    type: 'func',
+    josi: [['を'], ['で']],
+    asyncFn: true,
+    fn: async function (f: any, args: any, sys: any) {
+      // nameが文字列ならevalして関数を得る
+      if (typeof f === 'string') {
+        f = sys.__findFunc(f, 'JS関数AWAIT')
+      }
+      if (typeof f !== 'function') { throw new Error('JS関数AWAITで第一引数が文字列で実行できません。') }
+      // 実行
+      return await f(...args)
+    }
+  },
   'JSメソッド実行': { // @JavaScriptのオブジェクトOBJのメソッドMを引数ARGS(配列)で実行する // @JSめそっどじっこう
     type: 'func',
     josi: [['の'], ['を'], ['で']],

@@ -600,6 +600,31 @@ export default {
             return name.apply(null, args);
         }
     },
+    'ASYNC': {
+        type: 'func',
+        josi: [],
+        asyncFn: true,
+        fn: async function () {
+            // empty
+        },
+        return_none: true
+    },
+    'AWAIT実行': {
+        type: 'func',
+        josi: [['を'], ['で']],
+        asyncFn: true,
+        fn: async function (f, args, sys) {
+            // nameが文字列ならevalして関数を得る
+            if (typeof f === 'string') {
+                f = sys.__findFunc(f, 'JS関数AWAIT');
+            }
+            if (typeof f !== 'function') {
+                throw new Error('JS関数AWAITで第一引数が文字列で実行できません。');
+            }
+            // 実行
+            return await f(...args);
+        }
+    },
     'JSメソッド実行': {
         type: 'func',
         josi: [['の'], ['を'], ['で']],
@@ -1812,7 +1837,7 @@ export default {
     },
     '配列連番作成': {
         type: 'func',
-        josi: [['から'], ['まで', 'の']],
+        josi: [['から'], ['までの', 'まで', 'の']],
         pure: true,
         fn: function (a, b) {
             const result = [];
