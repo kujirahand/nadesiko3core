@@ -592,10 +592,8 @@ export default {
     asyncFn: true,
     fn: async function (f: any, args: any, sys: any) {
       // nameが文字列ならevalして関数を得る
-      if (typeof f === 'string') {
-        f = sys.__findFunc(f, 'JS関数AWAIT')
-      }
-      if (typeof f !== 'function') { throw new Error('JS関数AWAITで第一引数が文字列で実行できません。') }
+      if (typeof f === 'string') { f = sys.__findFunc(f, 'AWAIT実行') }
+      if (!(f instanceof Function)) { throw new Error('『AWAIT実行』の第一引数はなでしこ関数名かFunction型で指定してください。') }
       // 実行
       return await f(...args)
     }
