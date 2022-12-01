@@ -331,7 +331,7 @@ export default {
   },
   '倍': { // @AのB倍を求める // @ばい
     type: 'func',
-    josi: [['の'], ['']],
+    josi: [['の', 'を'], ['']],
     pure: true,
     fn: function (a: any, b: any) {
       return a * b
