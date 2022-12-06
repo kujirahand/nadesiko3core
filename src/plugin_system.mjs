@@ -344,7 +344,7 @@ export default {
     },
     '倍': {
         type: 'func',
-        josi: [['の'], ['']],
+        josi: [['の', 'を'], ['']],
         pure: true,
         fn: function (a, b) {
             return a * b;
@@ -476,7 +476,7 @@ export default {
     },
     '範囲内': {
         type: 'func',
-        josi: [['が'], ['から'], ['の']],
+        josi: [['が'], ['から'], ['の', 'までの']],
         pure: true,
         fn: function (v, a, b) {
             return (a <= v) && (v <= b);
@@ -1833,6 +1833,20 @@ export default {
                 return v;
             }
             throw new Error('『配列合計』で配列変数以外の値が指定されました。');
+        }
+    },
+    '配列入替': {
+        type: 'func',
+        josi: [['の'], ['と'], ['を']],
+        pure: true,
+        fn: function (a, i, j) {
+            if (!(a instanceof Array)) {
+                throw new Error('『配列入替』の第1引数には配列を指定してください。');
+            }
+            const tmp = a[i];
+            a[i] = a[j];
+            a[j] = tmp;
+            return a;
         }
     },
     '配列連番作成': {

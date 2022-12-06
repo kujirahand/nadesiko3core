@@ -1757,6 +1757,20 @@ export default {
       throw new Error('『配列合計』で配列変数以外の値が指定されました。')
     }
   },
+  '配列入替': { // @配列Aの(0から数えて)I番目とJ番目の要素を入れ替えて返す。Aの内容を書き換える。// @はいれついれかえ
+    type: 'func',
+    josi: [['の'], ['と'], ['を']],
+    pure: true,
+    fn: function (a: any, i: number, j: number) {
+      if (!(a instanceof Array)) {
+        throw new Error('『配列入替』の第1引数には配列を指定してください。')
+      }
+      const tmp = a[i]
+      a[i] = a[j]
+      a[j] = tmp
+      return a
+    }
+  },
   '配列連番作成': { // @AからBまでの連番配列を生成して返す。 // @はいれつれんばんさくせい
     type: 'func',
     josi: [['から'], ['までの', 'まで', 'の']],
