@@ -140,11 +140,12 @@ export class NakoParser extends NakoParserBase {
         }
         // 関数呼び出し演算子
         if (this.check2(['func', '←'])) {
-            return this.yCallOp();
+            const word = this.get() || NewEmptyToken();
+            throw NakoSyntaxError.fromNode(`関数代入演算子『←』は廃止されました。『${word.value}←』の部分。`, word);
         }
         if (this.check2(['func', 'eq'])) {
             const word = this.get() || NewEmptyToken();
-            throw NakoSyntaxError.fromNode(`関数『${word.value}』に代入できません。『←』を使ってください。`, word);
+            throw NakoSyntaxError.fromNode(`関数『${word.value}』に代入できません。`, word);
         }
         // 先読みして初めて確定する構文
         if (this.accept([this.ySpeedMode])) {
@@ -1545,89 +1546,6 @@ export class NakoParser extends NakoParserBase {
         funcNode.meta = f;
         this.pushStack(funcNode);
         return null;
-    }
-    /** 関数呼び出し演算子 #891
-     * @returns {Ast | null} */
-    yCallOp() {
-        if (!this.check2(['func', '←'])) {
-            return null;
-        }
-        const map = this.peekSourceMap();
-        // 関数名を得る
-        const word = this.get();
-        if (word == null) {
-            throw new Error('関数が取得できません。');
-        }
-        try {
-            const op = this.get();
-            if (op == null) {
-                throw new Error('関数呼び出し演算子が取得できません。');
-            }
-            const funcName = word.value;
-            // 関数の引数なしをチェック
-            if (!word.meta) {
-                throw new Error('関数本体を取得できません。');
-            }
-            if (!word.meta.josi) {
-                throw new Error('関数の引数情報を取得できません。');
-            }
-            const argCount = word.meta.josi.length;
-            if (argCount === 0) {
-                throw NakoSyntaxError.fromNode(`引数がない関数『${funcName}』を関数呼び出し演算子で呼び出すことはできません。`, word);
-            }
-            // 引数を順に取得
-            const curStackPos = this.stack.length;
-            while (!this.isEOF()) {
-                const t = this.yGetArg();
-                if (t) {
-                    this.pushStack(t);
-                    if ((this.stack.length - curStackPos) === argCount) {
-                        break;
-                    }
-                    continue;
-                }
-                break;
-            }
-            // この場合第一引数の省略は認めない
-            const realArgCount = this.stack.length - curStackPos;
-            if (realArgCount !== argCount) {
-                throw NakoSyntaxError.fromNode(`関数『${funcName}』呼び出しで引数の数(${realArgCount})が定義(${argCount})と違います。`, word);
-            }
-            // 引数を取り出す
-            const tmpList = this.stack.splice(curStackPos, argCount);
-            // 引数が1つなら助詞は省略が可能。ただし、引数が2つ以上の時、正しく助詞の順序を入れ替える
-            let argList = tmpList;
-            if (argCount >= 2) {
-                argList = [];
-                const defList = word.meta.josi;
-                defList.forEach((josiList, i) => {
-                    for (let j = 0; j < tmpList.length; j++) {
-                        const t = tmpList[j];
-                        if (josiList.indexOf(t.josi) >= 0) {
-                            argList[i] = t;
-                            return;
-                        }
-                    }
-                    const josiStr = josiList.join(',');
-                    throw new Error(`助詞『${josiStr}』が見当たりません。`);
-                });
-            }
-            this.usedFuncs.add(funcName);
-            // funcノードを返す
-            return {
-                type: 'func',
-                name: funcName,
-                args: argList,
-                setter: true,
-                josi: '',
-                ...map,
-                end: this.peekSourceMap()
-            };
-        }
-        catch (err) {
-            this.logger.debug(`${this.nodeToStr(word, { depth: 0 }, true)}の関数呼び出しで引数(『←』以降)が読み取れません。`, word);
-            throw NakoSyntaxError.fromNode(`${this.nodeToStr(word, { depth: 0 }, false)}の関数呼び出しでエラーがあります。\n${err.message}`, word);
-        }
     }
     /** @returns {Ast | null} */
     yLet() {
