@@ -151,7 +151,7 @@ function cbWordParser(src, isTrimOkurigana = true) {
     while (src !== '') {
         // 1文字以上のとき
         if (res.length > 0) {
-            // 「かつ」「または」なら分割する
+            // 「かつ」「または」なら分割する (#1379 core#84)
             const jsw = wordSpecial.exec(src);
             if (jsw) {
                 break;
