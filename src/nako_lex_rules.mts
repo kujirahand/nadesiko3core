@@ -8,6 +8,7 @@ const kanakanji = /^[\u3005\u4E00-\u9FCF_a-zA-Z0-9ァ-ヶー\u2460-\u24FF\u2776-
 const hira = /^[ぁ-ん]/
 const allHiragana = /^[ぁ-ん]+$/
 const wordHasIjoIka = /^.+(以上|以下|超|未満)$/
+const wordSpecial = /^(かつ|または)/
 const errorRead = (ch: string): any => {
   return function () { throw new Error('突然の『' + ch + '』があります。') }
 }
@@ -164,12 +165,16 @@ function cbWordParser (src: string, isTrimOkurigana = true): NakoLexParseResult 
   let res = ''
   let josi = ''
   while (src !== '') {
+    // 1文字以上のとき
     if (res.length > 0) {
+      // 「かつ」「または」なら分割する
+      const jsw = wordSpecial.exec(src)
+      if (jsw) { break }
       // 助詞の判定
       const j = josiRE.exec(src)
       if (j) {
         josi = j[0].replace(/^\s+/, '')
-        src = src.substr(j[0].length)
+        src = src.substring(j[0].length)
         // 助詞の直後にある「,」を飛ばす #877
         if (src.charAt(0) === ',') { src = src.substr(1) }
         break
@@ -179,18 +184,19 @@ function cbWordParser (src: string, isTrimOkurigana = true): NakoLexParseResult 
     const m = kanakanji.exec(src)
     if (m) {
       res += m[0]
-      src = src.substr(m[0].length)
+      src = src.substring(m[0].length)
       continue
     }
     // ひらがな？
     const h = hira.test(src)
     if (h) {
       res += src.charAt(0)
-      src = src.substr(1)
+      src = src.substring(1)
       continue
     }
     break // other chars
   }
+  // --- 単語分割における特殊ルール ---
   // 「間」の特殊ルール (#831)
   // 「等しい間」や「一致する間」なら「間」をsrcに戻す。ただし「システム時間」はそのままにする。
   if (/[ぁ-ん]間$/.test(res)) {
@@ -202,11 +208,12 @@ function cbWordParser (src: string, isTrimOkurigana = true): NakoLexParseResult 
   if (ii) {
     src = ii[1] + josi + src
     josi = ''
-    res = res.substr(0, res.length - ii[1].length)
+    res = res.substring(0, res.length - ii[1].length)
   }
   // 助詞「こと」「である」「です」などは「＊＊すること」のように使うので削除 #936 #939 #974
   if (removeJosiMap[josi]) { josi = '' }
 
+  // 送り仮名の省略ルール
   // 漢字カタカナ英語から始まる語句 --- 送り仮名を省略
   if (isTrimOkurigana) {
     res = trimOkurigana(res)

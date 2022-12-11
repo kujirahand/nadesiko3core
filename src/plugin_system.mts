@@ -463,7 +463,7 @@ export default {
   },
   '範囲内': { // @VがAからBの範囲内か // @はんいない
     type: 'func',
-    josi: [['が'], ['から'], ['の','までの']],
+    josi: [['が'], ['から'], ['の', 'までの']],
     pure: true,
     fn: function (v: any, a: any, b: any) {
       return (a <= v) && (v <= b)
