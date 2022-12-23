@@ -1861,17 +1861,34 @@ export class NakoParser extends NakoParserBase {
     if (this.check2([['func', 'word'], '(']) && this.peekDef().josi === '') {
       const f = this.peek()
       if (this.accept([['func', 'word'], '(', this.yGetArgParen, ')'])) {
-        const funcName: string = this.getVarNameRef(this.y[0]).value
+        const ff = this.getVarNameRef(this.y[0])
+        const args = this.y[2]
+        const funcName: string = ff.value
         this.usedFuncs.add(funcName)
+        // 引数の個数をチェック
+        const meta = ff.meta
+        if (meta && meta.josi) {
+          // 引数の個数が異なる場合
+          if ((meta.josi.length - 1) === args.length) {
+            args.unshift({ type: 'word', value: 'それ' })
+          } else if (meta.josi.length === args.length) {
+            // ok
+          } else if (meta.isVariableJosi) {
+            // ok
+          } else { // 引数の個数が違う
+            throw NakoSyntaxError.fromNode(`関数『${ff.value}』で引数${args.length}個が指定されましたが、${meta.josi.length}個の引数を指定してください。`, ff)
+          }
+        }
         return {
           type: 'func',
           name: funcName,
-          args: this.y[2],
+          args,
           josi: this.y[3].josi,
           ...map,
           end: this.peekSourceMap()
         }
-      } else { throw NakoSyntaxError.fromNode('C風関数呼び出しのエラー', f || NewEmptyToken()) }
+      }
+      throw NakoSyntaxError.fromNode('C風関数呼び出しのエラー', f || NewEmptyToken())
     }
     // 関数呼び出し演算子(core #83)で廃止
     if (this.check2(['func', '←'])) { throw new Error('関数呼び出し演算子は廃止されました。') }
