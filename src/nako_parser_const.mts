@@ -29,7 +29,7 @@ export const opPriority: {[key: string]: number} = {
   '^': 6
 }
 
-export const keizokuJosi: string[] = [
+export const RenbunJosi: string[] = [
   'いて', 'えて', 'きて', 'けて', 'して', 'って', 'にて', 'みて', 'めて', 'ねて', 'には', 'んで'
 ]
 

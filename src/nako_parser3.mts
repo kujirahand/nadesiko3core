@@ -1,7 +1,7 @@
 /**
  * nadesiko v3 parser
  */
-import { opPriority, keizokuJosi, operatorList } from './nako_parser_const.mjs'
+import { opPriority, RenbunJosi, operatorList } from './nako_parser_const.mjs'
 import { NakoParserBase } from './nako_parser_base.mjs'
 import { NakoSyntaxError } from './nako_errors.mjs'
 import { NakoLexer } from './nako_lexer.mjs'
@@ -135,7 +135,7 @@ export class NakoParser extends NakoParserBase {
     // 関数呼び出しの他、各種構文の実装
     if (this.accept([this.yCall])) {
       const c1 = this.y[0]
-      if (c1.josi === 'して') { // 連文をblockとして接続する(もし構文などのため)
+      if (RenbunJosi.indexOf(c1.josi || '') >= 0) { // 連文をblockとして接続する(もし構文などのため)
         if (this.stack.length >= 1) { // スタックの余剰をチェック
           const report = this.makeStackBalanceReport()
           throw NakoSyntaxError.fromNode(report, c1)
@@ -1209,7 +1209,7 @@ export class NakoParser extends NakoParserBase {
           const t: Ast|null = this.yValue()
           if (t) {
             const josi = t.josi || ''
-            if (t.type === 'func' && (t.josi === '' || keizokuJosi.indexOf(josi) >= 0)) {
+            if (t.type === 'func' && (t.josi === '' || RenbunJosi.indexOf(josi) >= 0)) {
               t.josi = ''
               return t // 関数なら値とする
             }
@@ -1324,7 +1324,7 @@ export class NakoParser extends NakoParserBase {
     }
     // 引数が不足しているとき(つまり、引数にnullがあるとき)、自動的に『変数「それ」』で補完される。
     // ただし、nullが1つだけなら、変数「それ」で補完されるが、2つ以上あるときは、エラーにする
-    if (nullCount >= 2 && (valueCount > 0 || t.josi === '' || keizokuJosi.indexOf(t.josi) >= 0)) {
+    if (nullCount >= 2 && (valueCount > 0 || t.josi === '' || RenbunJosi.indexOf(t.josi) >= 0)) {
       throw NakoSyntaxError.fromNode(`関数『${t.value}』の引数が不足しています。`, t)
     }
     this.usedFuncs.add(t.value)
@@ -1351,7 +1351,7 @@ export class NakoParser extends NakoParserBase {
     if (t.josi === '') { return funcNode }
 
     // 「**して、**」の場合も一度切る
-    if (keizokuJosi.indexOf(t.josi) >= 0) {
+    if (RenbunJosi.indexOf(t.josi) >= 0) {
       funcNode.josi = 'して'
       return funcNode
     }
@@ -1745,7 +1745,8 @@ export class NakoParser extends NakoParserBase {
       return this.popStack()
     }
     // それが連文か確認
-    if (t1.josi !== 'して') { return t1 } // 連文ではない
+    if (RenbunJosi.indexOf(t1.josi || '') < 0) { return t1 } // 連文ではない
+
     // 連文なら右側を読んで左側とくっつける
     const t2 = this.yCalc()
     if (!t2) { return t1 }
@@ -1838,10 +1839,19 @@ export class NakoParser extends NakoParserBase {
       if (!tt) { throw new Error('[System Error] 正しく値が取れませんでした。') }
       const f = this.getVarNameRef(tt)
       this.usedFuncs.add(f.value)
+      // 引数の個数をチェック
+      const meta = f.meta
+      const args: any = []
+      if (!meta) { throw NakoSyntaxError.fromNode(`一語関数『${f.name}』は存在しません。`, tt) }
+      if (meta.josi && meta.josi.length === 1) {
+        args.push({ type: 'word', value: 'それ' })
+      } else if (meta.josi && meta.josi.length >= 2) {
+        throw NakoSyntaxError.fromNode(`関数『${f.name}』で引数が指定されていません。${meta.josi.length}個の引数を指定してください。`, tt)
+      }
       return {
         type: 'func',
         name: f.value,
-        args: [],
+        args,
         josi: f.josi,
         ...map,
         end: this.peekSourceMap()

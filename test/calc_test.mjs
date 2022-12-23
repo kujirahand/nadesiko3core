@@ -154,4 +154,8 @@ describe('calc_test.js', async () => {
     await errorTest('3の「  あああ  」の「あ」を「え」に置換して空白除去して表示', 'NakoSyntaxError', '未解決の単語があります')
     await errorTest('9の1に2を足して5を足して表示', 'NakoSyntaxError', '未解決の単語があります')
   })
+  it('代入文における連文 #88', async () => {
+    await cmp('N=「あああ」の「あ」を「え」に置換して空白除去。Nを表示。', 'えええ')
+    await errorTest('N=30の「あああ」の「あ」を「え」に置換して空白除去。Nを表示。', 'NakoSyntaxError', '未解決の単語があります')
+  })
 })

@@ -28,7 +28,7 @@ export const opPriority = {
     // ^
     '^': 6
 };
-export const keizokuJosi = [
+export const RenbunJosi = [
     'いて', 'えて', 'きて', 'けて', 'して', 'って', 'にて', 'みて', 'めて', 'ねて', 'には', 'んで'
 ];
 export const operatorList = [];
