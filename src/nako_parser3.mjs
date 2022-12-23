@@ -53,6 +53,42 @@ export class NakoParser extends NakoParserBase {
         }
         return { type: 'block', block: blocks, ...map, end: this.peekSourceMap(), genMode: this.genMode };
     }
+    /** 余剰スタックのレポートを作る */
+    makeStackBalanceReport() {
+        const words = [];
+        this.stack.forEach((t) => {
+            let w = this.nodeToStr(t, { depth: 1 }, false);
+            if (t.josi) {
+                w += t.josi;
+            }
+            words.push(w);
+        });
+        const desc = words.join(',');
+        // 最近使った関数の使い方レポートを作る #1093
+        let descFunc = '';
+        const chA = 'A'.charCodeAt(0);
+        for (const f of this.recentlyCalledFunc) {
+            descFunc += ' - ';
+            let no = 0;
+            const josiA = f.josi;
+            if (josiA) {
+                for (const arg of josiA) {
+                    const ch = String.fromCharCode(chA + no);
+                    descFunc += ch;
+                    if (arg.length === 1) {
+                        descFunc += arg[0];
+                    }
+                    else {
+                        descFunc += `(${arg.join('|')})`;
+                    }
+                    no++;
+                }
+            }
+            descFunc += f.name + '\n';
+        }
+        this.recentlyCalledFunc = [];
+        return `未解決の単語があります: [${desc}]\n次の命令の可能性があります:\n${descFunc}`;
+    }
     yEOL() {
         // 行末のチェック #1009
         const eol = this.get();
@@ -61,39 +97,8 @@ export class NakoParser extends NakoParserBase {
         }
         // 余剰スタックの確認
         if (this.stack.length > 0) {
-            /** 余剰スタックのレポートを作る */
-            const words = [];
-            this.stack.forEach((t) => {
-                let w = this.nodeToStr(t, { depth: 1 }, false);
-                if (t.josi) {
-                    w += t.josi;
-                }
-                words.push(w);
-            });
-            const desc = words.join(',');
-            // 最近使った関数の使い方レポートを作る #1093
-            let descFunc = '';
-            const chA = 'A'.charCodeAt(0);
-            for (const f of this.recentlyCalledFunc) {
-                descFunc += ' - ';
-                let no = 0;
-                const josiA = f.josi;
-                if (josiA) {
-                    for (const arg of josiA) {
-                        const ch = String.fromCharCode(chA + no);
-                        descFunc += ch;
-                        if (arg.length === 1) {
-                            descFunc += arg[0];
-                        }
-                        else {
-                            descFunc += `(${arg.join('|')})`;
-                        }
-                        no++;
-                    }
-                }
-                descFunc += f.name + '\n';
-            }
-            throw NakoSyntaxError.fromNode(`未解決の単語があります: [${desc}]\n次の命令の可能性があります:\n${descFunc}`, eol);
+            const report = this.makeStackBalanceReport();
+            throw NakoSyntaxError.fromNode(report, eol);
         }
         this.recentlyCalledFunc = [];
         return eol;
@@ -166,7 +171,11 @@ export class NakoParser extends NakoParserBase {
         // 関数呼び出しの他、各種構文の実装
         if (this.accept([this.yCall])) {
             const c1 = this.y[0];
-            if (c1.josi === 'して') { // 連文をblockとして接続する(もし構文、逐次実行構文などのため)
+            if (c1.josi === 'して') { // 連文をblockとして接続する(もし構文などのため)
+                if (this.stack.length >= 1) { // スタックの余剰をチェック
+                    const report = this.makeStackBalanceReport();
+                    throw NakoSyntaxError.fromNode(report, c1);
+                }
                 const c2 = this.ySentence();
                 if (c2 !== null) {
                     return {

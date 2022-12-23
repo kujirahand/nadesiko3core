@@ -7,6 +7,16 @@ describe('calc_test.js', async () => {
     const nako = new NakoCompiler()
     assert.strictEqual((await nako.runAsync(code)).log, res)
   }
+  const errorTest = async (/** @type {string} */ code, /** @type {string} */ errorType, /** @type {string} */ partOfErrorStr) => {
+    const nako = new NakoCompiler()
+    try {
+      await nako.runAsync(code)
+    } catch (err) {
+      console.log('@@@', err)
+      assert.strictEqual(errorType, err.type)
+      assert.strictEqual(err.msg.indexOf(partOfErrorStr) >= 0, true)
+    }
+  }
   it('basic', async () => {
     await cmp('3を表示', '3')
     await cmp('3.14を表示', '3.14')
@@ -137,5 +147,11 @@ describe('calc_test.js', async () => {
     await cmp('3.14のINT+2を表示。', '5')
     await cmp('3の5倍×2を表示', '30')
     await cmp('1+3の2倍×2を表示', '16')
+  })
+  it('連文呼び出しにおけるスタックの余剰チェックを厳しくする #87', async () => {
+    await cmp('3に5を足して2を掛けて表示', '16')
+    await cmp('「  あああ  」の「あ」を「え」に置換して空白除去して表示', 'えええ')
+    await errorTest('3の「  あああ  」の「あ」を「え」に置換して空白除去して表示', 'NakoSyntaxError', '未解決の単語があります')
+    await errorTest('9の1に2を足して5を足して表示', 'NakoSyntaxError', '未解決の単語があります')
   })
 })
