@@ -1437,18 +1437,26 @@ export class NakoGen {
         if (value == null) {
             throw NakoSyntaxError.fromNode('加算する先の変数名がありません。', node);
         }
-        // 変数名
-        const name = node.name.value;
-        let res = this.findVar(name);
+        // 配列への代入か(core#86)
         let code = '';
-        if (res === null) {
-            this.varsSet.names.add(name);
-            res = this.findVar(name);
-            if (!res) {
-                throw new Error('『増』または『減』で変数が見当たりません。');
-            }
+        let jsName;
+        const nodeName = node.name;
+        if (nodeName.type === '配列参照') {
+            jsName = this.convRefArray(nodeName);
         }
-        const jsName = res.js;
+        else {
+            // 変数名
+            const name = nodeName.value;
+            let res = this.findVar(name);
+            if (res === null) {
+                this.varsSet.names.add(name);
+                res = this.findVar(name);
+                if (!res) {
+                    throw new Error('『増』または『減』で変数が見当たりません。');
+                }
+            }
+            jsName = res.js;
+        }
         // 自動初期化するか
         code += `if (typeof(${jsName}) === 'undefined') { ${jsName} = 0; }`;
         code += `${jsName} += ${value}`;
