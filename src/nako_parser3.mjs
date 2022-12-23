@@ -1390,7 +1390,7 @@ export class NakoParser extends NakoParserBase {
             if (this.check2([['func', 'word'], '('])) { // C言語風
                 const cur = this.peek();
                 if (cur && cur.josi === '') {
-                    const t = this.yValue();
+                    const t = this.yValue(); // yValueにてC言語風呼び出しをパース
                     if (t) {
                         const josi = t.josi || '';
                         if (t.type === 'func' && (t.josi === '' || RenbunJosi.indexOf(josi) >= 0)) {
@@ -2088,10 +2088,7 @@ export class NakoParser extends NakoParserBase {
                 const meta = ff.meta;
                 if (meta && meta.josi) {
                     // 引数の個数が異なる場合
-                    if ((meta.josi.length - 1) === args.length) {
-                        args.unshift({ type: 'word', value: 'それ' });
-                    }
-                    else if (meta.josi.length === args.length) {
+                    if (meta.josi.length === args.length) {
                         // ok
                     }
                     else if (meta.isVariableJosi) {
