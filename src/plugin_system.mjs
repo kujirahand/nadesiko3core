@@ -2212,7 +2212,7 @@ export default {
         pure: true,
         fn: function (a, key) {
             if (a instanceof Object) { // オブジェクトのキーを返す
-                if (a[key]) {
+                if (key in a) {
                     delete a[key];
                 }
                 return a;

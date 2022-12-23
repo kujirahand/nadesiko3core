@@ -2085,7 +2085,7 @@ export default {
     pure: true,
     fn: function (a: any, key: any) {
       if (a instanceof Object) { // オブジェクトのキーを返す
-        if (a[key]) { delete a[key] }
+        if (key in a) { delete a[key] }
         return a
       }
       throw new Error('『辞書キー削除』でハッシュ以外が与えられました。')
