@@ -25,7 +25,7 @@
 - [plugin_promise](./src/plugin_promise.mts) --- プロミス機能を実現するための関数群
 - [plugin_test](./src/plugin_test.mts) --- テストを記述するための関数群
 
-# 本ライブラリの使い方
+## 本ライブラリの使い方
 
 例えば、`npm install nadesiko3core`でなでしこ3言語エンジンをインストールしたら、以下のプログラムを記述します。
 `hoge.mjs`という名前で保存します。そして、以下のようなプログラムを記述します。
@@ -45,26 +45,23 @@ console.log(g.log) // ← 「表示」した内容がlogに入っている
 
 なお、本リポジトリにも、[簡易版のコマンドラインツール(snako)](/command/snako.mts)を収録しています。以下は簡単な使い方です。
 
-```
+```sh
 # ファイル sample/hello.nako3 を実行
-$ node command/snako.mjs sample/hello.nako3
-
+node command/snako.mjs sample/hello.nako3
 # その場でコードを実行
-$ node command/snako.mjs -e "1+2を表示"
+node command/snako.mjs -e "1+2を表示"
 ```
 
 ### 簡易コマンドラインをグローバルインストールして使う場合
 
 簡易コマンドライン(snako)を手軽に利用したい場合は、次のように実行します。
 
-```
-$ npm install -g nadesiko3core
-$ snako -e "1+2を表示"
-$ snako nadesiko3core/sample/hello.nako3
+```sh
+npm install -g nadesiko3core
+snako -e "1+2を表示"
+snako nadesiko3core/sample/hello.nako3
 ```
 
 ## なでしこの内部構造について
 
 なでしこの内部構造の仕組みについては、[こちら](/doc/README.md)に詳しく書かれています。
-
-
