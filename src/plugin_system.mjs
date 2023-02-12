@@ -15,6 +15,7 @@ export default {
         pure: false,
         fn: function (sys) {
             // 言語バージョンを設定
+            sys.isDebug = false;
             sys.__v0['ナデシコバージョン'] = sys.version;
             sys.__v0['ナデシコ言語バージョン'] = sys.coreVersion;
             sys.__namespaceList = [];
@@ -2301,18 +2302,9 @@ export default {
         type: 'func',
         josi: [['']],
         pure: true,
-        fn: function (n, sys) {
-            if (sys.__genMode === '非同期モード') {
-                const sysenv = sys.setAsync(sys);
-                setTimeout(() => {
-                    sys.compAsync(sys, sysenv);
-                }, n * 1000);
-                return;
-            }
-            if (sys.resolve === undefined) {
-                throw new Error('『秒待機』命令は『!非同期モード』で使ってください。');
-            }
-            sys.__exec('秒逐次待機', [n, sys]);
+        asyncFn: true,
+        fn: async function (n, sys) {
+            await sys.__exec('秒待', [n, sys]);
         },
         return_none: true
     },
@@ -2320,21 +2312,9 @@ export default {
         type: 'func',
         josi: [['']],
         pure: true,
-        fn: function (n, sys) {
-            if (sys.resolve === undefined) {
-                throw new Error('『秒逐次待機』命令は『逐次実行』構文と一緒に使ってください。');
-            }
-            const resolve = sys.resolve;
-            // const reject = sys.reject
-            sys.resolveCount++;
-            const timerId = setTimeout(function () {
-                const idx = sys.__timeout.indexOf(timerId);
-                if (idx >= 0) {
-                    sys.__timeout.splice(idx, 1);
-                }
-                resolve();
-            }, n * 1000);
-            sys.__timeout.unshift(timerId);
+        asyncFn: true,
+        fn: async function (n, sys) {
+            await sys.__exec('秒待', [n, sys]);
         },
         return_none: true
     },
@@ -2819,6 +2799,15 @@ export default {
         pure: true,
         fn: function (s) {
             throw new Error(s);
+        }
+    },
+    '__DEBUG': {
+        type: 'func',
+        josi: [],
+        pure: true,
+        fn: function (sys) {
+            sys.isDebug = true;
+            console.log(sys);
         }
     },
     'グローバル関数一覧取得': {

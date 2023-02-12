@@ -16,6 +16,7 @@ export default {
     pure: false,
     fn: function (sys: any) {
       // 言語バージョンを設定
+      sys.isDebug = false
       sys.__v0['ナデシコバージョン'] = sys.version
       sys.__v0['ナデシコ言語バージョン'] = sys.coreVersion
       sys.__namespaceList = []
@@ -2163,40 +2164,23 @@ export default {
     },
     return_none: true
   },
-  '秒待機': { // @ 「!非同期モード」または「逐次実行構文」にて、N秒の間待機する(将来的に『秒待』と同じになる予定) // @びょうたいき
+  '秒待機': { // @ N秒の間待機する(『秒待』と同じ) // @びょうたいき
     type: 'func',
     josi: [['']],
     pure: true,
-    fn: function (n: any, sys: any) {
-      if (sys.__genMode === '非同期モード') {
-        const sysenv = sys.setAsync(sys)
-        setTimeout(() => {
-          sys.compAsync(sys, sysenv)
-        }, n * 1000)
-        return
-      }
-      if (sys.resolve === undefined) {
-        throw new Error('『秒待機』命令は『!非同期モード』で使ってください。')
-      }
-      sys.__exec('秒逐次待機', [n, sys])
+    asyncFn: true,
+    fn: async function (n: any, sys: any) {
+      await sys.__exec('秒待', [n, sys])
     },
     return_none: true
   },
-  '秒逐次待機': { // @ (非推奨) 逐次実行構文にて、N秒の間待機する // @びょうちくじたいき
+  '秒逐次待機': { // @ (非推奨) 逐次実行構文にて、N秒の間待機する (廃止予定) // @びょうちくじたいき
     type: 'func',
     josi: [['']],
     pure: true,
-    fn: function (n: any, sys: any) {
-      if (sys.resolve === undefined) { throw new Error('『秒逐次待機』命令は『逐次実行』構文と一緒に使ってください。') }
-      const resolve = sys.resolve
-      // const reject = sys.reject
-      sys.resolveCount++
-      const timerId = setTimeout(function () {
-        const idx = sys.__timeout.indexOf(timerId)
-        if (idx >= 0) { sys.__timeout.splice(idx, 1) }
-        resolve()
-      }, n * 1000)
-      sys.__timeout.unshift(timerId)
+    asyncFn: true,
+    fn: async function (n: any, sys: any) {
+      await sys.__exec('秒待', [n, sys])
     },
     return_none: true
   },
@@ -2660,6 +2644,15 @@ export default {
     pure: true,
     fn: function (s: any) {
       throw new Error(s)
+    }
+  },
+  '__DEBUG': { // @デバッグモードにする // @__DEBUG
+    type: 'func',
+    josi: [],
+    pure: true,
+    fn: function (sys: any) {
+      sys.isDebug = true
+      console.log(sys)
     }
   },
   'グローバル関数一覧取得': { // @グローバル変数にある関数一覧を取得 // @ぐろーばるかんすういちらんしゅとく
