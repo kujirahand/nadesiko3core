@@ -5,9 +5,9 @@ export default {
     type: 'const',
     value: {
       pluginName: 'plugin_system', // プラグインの名前
-      pluginVersion: '3.3.38', // プラグインのバージョン
+      pluginVersion: '3.4.5', // プラグインのバージョン
       nakoRuntime: ['wnako', 'cnako', 'phpnako'], // 対象ランタイム
-      nakoVersion: '^3.3.38' // 要求なでしこバージョン
+      nakoVersion: '^3.4.5' // 要求なでしこバージョン
     }
   },
   '初期化': {
@@ -2170,7 +2170,8 @@ export default {
     pure: true,
     asyncFn: true,
     fn: async function (n: any, sys: any) {
-      await sys.__exec('秒待', [n, sys])
+      const p = sys.__exec('秒待', [n, sys])
+      return await p
     },
     return_none: true
   },
@@ -2180,7 +2181,8 @@ export default {
     pure: true,
     asyncFn: true,
     fn: async function (n: any, sys: any) {
-      await sys.__exec('秒待', [n, sys])
+      const p = sys.__exec('秒待', [n, sys])
+      return await p
     },
     return_none: true
   },

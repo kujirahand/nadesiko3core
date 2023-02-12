@@ -1088,6 +1088,7 @@ export class NakoGen {
             `if (${expr}) {\n  ${block}\n}` + falseBlock + ';\n';
     }
     convTikuji(node) {
+        // #1164 により「逐次実行」構文は近いうちに廃止する
         const pid = this.loopId++;
         // gen tikuji blocks
         const curName = `__tikuji${pid}`;
@@ -1096,7 +1097,7 @@ export class NakoGen {
         for (let i = 0; i < blocks.length; i++) {
             const block = this._convGen(blocks[i], false).replace(/\s+$/, '') + '\n';
             const blockLineNo = this.convLineno(blocks[i], true);
-            const blockCode = `${curName}.push(function(resolve, reject) {\n` +
+            const blockCode = `${curName}.push(async function(resolve, reject) {\n` +
                 '  __self.resolve = resolve;\n' +
                 '  __self.reject = reject;\n' +
                 '  __self.resolveCount = 0;\n' +
@@ -1119,10 +1120,10 @@ export class NakoGen {
         // gen run block
         code += '__self.resolve = undefined;\n';
         code += `const ${curName}__resolve = function(){\n`;
-        code += '  setTimeout(function(){\n';
+        code += '  setTimeout(async function(){\n';
         code += `    if (${curName}.length == 0) {return}\n`;
         code += `    const f = ${curName}.shift()\n`;
-        code += `    f(${curName}__resolve, ${curName}__reject);\n`;
+        code += `    await f(${curName}__resolve, ${curName}__reject);\n`;
         code += '  }, 0);\n';
         code += '};\n';
         code += `${curName}__resolve()\n`;
