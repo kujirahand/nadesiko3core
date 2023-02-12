@@ -1691,7 +1691,9 @@ ${asyncMain}.call(self, self)
 .catch(err => {
   if (err.message === '__終わる__') { return }
   self.numFailures++
-  throw self.logger.runtimeError(err, self.__v0.line)
+  // send errors to logger
+  let rterr = self.logger.runtimeError(err, self.__v0.line)
+  self.logger.error(rterr)
 })
 // </nadesiko3::gen::async id="${funcID}">
 // --------------------------------------------------
