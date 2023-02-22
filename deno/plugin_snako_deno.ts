@@ -3,7 +3,7 @@
  * 簡単なファイル読み書きのプラグイン
  */
 import path from 'node:path'
-import { execSync } from "https://deno.land/std@0.176.0/node/child_process.ts"
+import { exec, OutputMode } from "https://deno.land/x/exec/mod.ts"
 
 export default {
   '初期化': {
@@ -38,8 +38,8 @@ export default {
     pure: true,
     asyncFn: true,
     fn: async function (f: string): Promise<string> {
-      const res = await fetch(new URL(f))
-      return await res.text()
+      const text = await Deno.readTextFile(f)
+      return text
     }
   },
   '開': { // @ ファイルFの内容を読む // @ひらく
@@ -48,16 +48,17 @@ export default {
     pure: true,
     asynfFn: true,
     fn: async function (f: string): Promise<string> {
-      const res = await fetch(new URL(f))
-      return await res.text()
+      const text = await Deno.readTextFile(f)
+      return text
     }
   },
   '保存': { // @ 文字列SをファイルFに保存 // @ほぞん
     type: 'func',
     josi: [['を'], ['に', 'へ']],
     pure: true,
-    fn: function (s: string, f: string): void {
-      Deno.writeFileSync(f, s, 'utf-8')
+    asyncFn: true,
+    fn: async function (s: string, f: string): Promise<void> {
+      await Deno.writeTextFile(f, s)
     },
     return_none: true
   },
@@ -65,9 +66,12 @@ export default {
     type: 'func',
     josi: [['を']],
     pure: true,
-    fn: function (s: string) {
-      const r = execSync(s)
-      return r.toString()
+    asyncFn: true,
+    fn: async function (s: string): Promise<string> {
+      const options = { output: OutputMode.Capture, verbose: false }
+      const exeRes = await exec(s, options)
+      const result = exeRes.output
+      return result
     }
   },
   'ファイル名抽出': { // @フルパスのファイル名Sからファイル名部分を抽出して返す // @ふぁいるめいちゅうしゅつ

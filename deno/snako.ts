@@ -7,7 +7,7 @@ import fs from 'node:fs'
 import * as url from 'node:url'
 import { NakoGenOptions } from '../src/nako_gen.mjs'
 import { NakoCompiler } from '../src/nako3.mjs'
-import PluginSnako from './plugin_snako_deno.mts'
+import PluginSnako from './plugin_snako_deno.ts'
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
 
 /** コマンドラインオプション */
