@@ -88,8 +88,8 @@ export interface Ast {
     false_block?: Ast[] | Ast; // if
     from?: Ast[] | Ast; // for
     to?: Ast[] | Ast; // for
-    inc?: Ast[] | Ast | null; // for
-    word?: Ast | null; // for
+    inc?: Ast[] | Ast | null | string; // for
+    word?: Ast | Token | null; // for
     flagDown?: boolean; // for
     name?: Token | Ast | null | string;
     names?: Ast[];

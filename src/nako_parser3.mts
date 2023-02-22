@@ -94,7 +94,7 @@ export class NakoParser extends NakoParserBase {
       throw NakoSyntaxError.fromNode(report, eol)
     }
     this.recentlyCalledFunc = []
-    return eol as Ast
+    return eol as any // Token to Ast
   }
 
   /** @returns {Ast | null} */
@@ -232,7 +232,7 @@ export class NakoParser extends NakoParserBase {
         break
       }
       const t = this.get()
-      if (t) { a.push(t as Ast) }
+      if (t) { a.push(t as any) } // Token to Ast
       if (this.check('comma')) { this.get() }
     }
     return a
@@ -633,7 +633,7 @@ export class NakoParser extends NakoParserBase {
       let op = this.peek()
       if (op && opPriority[op.type]) {
         op = this.getCur()
-        args.push(op as Ast)
+        args.push(op as any) // Token to Ast
         // 演算子後の値を取得
         const v = this.yValue()
         if (v === null) {
@@ -1011,7 +1011,7 @@ export class NakoParser extends NakoParserBase {
         // 違えば
         skippedKokomade = false
         isDefaultClause = true
-        cond = this.get() as Ast // skip 違えば
+        cond = this.get() as any // skip 違えば // Token to Ast
         if (this.check('comma')) { this.get() } // skip ','
       } else {
         // ＊＊＊ならば
@@ -1793,7 +1793,7 @@ export class NakoParser extends NakoParserBase {
     if (this.check('comma')) { this.get() }
 
     // プリミティブな値
-    if (this.checkTypes(['number', 'string'])) { return this.getCur() as Ast }
+    if (this.checkTypes(['number', 'string'])) { return this.getCur() as any } // Token To Ast
 
     // 丸括弧
     if (this.check('(')) { return this.yValueKakko() }
@@ -1981,7 +1981,7 @@ export class NakoParser extends NakoParserBase {
         if (ast.index && ast.index.length === 0) { throw NakoSyntaxError.fromNode(`配列『${word.value}』アクセスで指定ミス`, word) }
         return ast
       }
-      return word as Ast
+      return word as any // Token to Ast
     }
     return null
   }
@@ -2052,14 +2052,14 @@ export class NakoParser extends NakoParserBase {
         const w = this.getCur()
         w.type = 'string'
         a.push({
-          key: w as Ast,
-          value: w as Ast
+          key: w as any, // Token to Ast
+          value: w as any
         })
       } else if (this.checkTypes(['string', 'number'])) {
         const w = this.getCur()
         a.push({
-          key: w as Ast,
-          value: w as Ast
+          key: w as any, // Token to Ast
+          value: w as any
         })
       } else { throw NakoSyntaxError.fromNode('辞書オブジェクトの宣言で末尾の『}』がありません。', firstToken) }
 

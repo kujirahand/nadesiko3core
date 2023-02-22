@@ -963,7 +963,7 @@ export class NakoGen {
     const made = this._convGen(node.to as Ast, true)
     const flagDown = node.flagDown
     let inc = '1'
-    if (node.inc !== null || node.inc === undefined || node.inc === 'null') {
+    if (node.inc && node.inc !== 'null') {
       inc = this._convGen(node.inc as Ast, true)
     }
     // ループ内のブロック内容を得る

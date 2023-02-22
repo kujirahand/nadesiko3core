@@ -101,7 +101,7 @@ export class NakoParser extends NakoParserBase {
             throw NakoSyntaxError.fromNode(report, eol);
         }
         this.recentlyCalledFunc = [];
-        return eol;
+        return eol; // Token to Ast
     }
     /** @returns {Ast | null} */
     ySentence() {
@@ -273,7 +273,7 @@ export class NakoParser extends NakoParserBase {
             const t = this.get();
             if (t) {
                 a.push(t);
-            }
+            } // Token to Ast
             if (this.check('comma')) {
                 this.get();
             }
@@ -710,7 +710,7 @@ export class NakoParser extends NakoParserBase {
             let op = this.peek();
             if (op && opPriority[op.type]) {
                 op = this.getCur();
-                args.push(op);
+                args.push(op); // Token to Ast
                 // 演算子後の値を取得
                 const v = this.yValue();
                 if (v === null) {
@@ -1164,7 +1164,7 @@ export class NakoParser extends NakoParserBase {
                 // 違えば
                 skippedKokomade = false;
                 isDefaultClause = true;
-                cond = this.get(); // skip 違えば
+                cond = this.get(); // skip 違えば // Token to Ast
                 if (this.check('comma')) {
                     this.get();
                 } // skip ','
@@ -2003,7 +2003,7 @@ export class NakoParser extends NakoParserBase {
         // プリミティブな値
         if (this.checkTypes(['number', 'string'])) {
             return this.getCur();
-        }
+        } // Token To Ast
         // 丸括弧
         if (this.check('(')) {
             return this.yValueKakko();
@@ -2211,7 +2211,7 @@ export class NakoParser extends NakoParserBase {
                 }
                 return ast;
             }
-            return word;
+            return word; // Token to Ast
         }
         return null;
     }
