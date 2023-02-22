@@ -53,6 +53,58 @@ class NakoCode {
  */
 export class NakoGenASync {
     /**
+     * @param com
+     * @param {Ast} ast
+     * @param {boolean | string} isTest 文字列なら1つのテストだけを実行する
+     */
+    static generate(com, ast, isTest) {
+        const gen = new NakoGenASync(com);
+        // ユーザー定義関数をシステムに登録する
+        gen.registerFunction(ast);
+        // JSコードを生成する
+        let js = gen.convGen(ast, !!isTest);
+        // JSコードを実行するための事前ヘッダ部分の生成
+        js = gen.getDefFuncCode(isTest) + js;
+        com.getLogger().trace('--- generate(非同期モード) ---\n' + js);
+        // テストの実行
+        if (js && isTest) {
+            js += '\n__self._runTests(__tests);\n';
+        }
+        return {
+            // なでしこの実行環境ありの場合
+            runtimeEnv: js,
+            // JavaScript単体で動かす場合
+            standalone: `\
+const nakoVersion = ${JSON.stringify(nakoVersion)};
+${NakoError.toString()}
+${NakoRuntimeError.toString()}
+this.logger = {
+  error(message) { console.error(message) },
+  send(level, message) { console.log(message) },
+};
+this.__varslist = [{}, {}, {}];
+this.__vars = this.__varslist[2];
+this.__module = {};
+this.__locals = {};
+this.__labels = {};
+this.__code = [];
+this.__callstack = [];
+this.__stack = [];
+this.__genMode = '非同期モード';
+try {
+  ${gen.getVarsCode()}
+  ${js}
+} catch (err) {
+  if (!(err instanceof NakoRuntimeError)) {
+    err = new NakoRuntimeError(err, this.__varslist[0].line);
+  }
+  this.logger.error(err);
+  throw err;
+}`,
+            gen // コード生成に使ったNakoGenのインスタンス
+        };
+    }
+    /**
      * @param com コンパイラのインスタンス
      */
     constructor(com) {
@@ -139,58 +191,6 @@ export class NakoGenASync {
             userFunction: 0,
             systemFunction: 0,
             systemFunctionBody: 0 // システム関数(呼び出しコードを除く)
-        };
-    }
-    /**
-     * @param com
-     * @param {Ast} ast
-     * @param {boolean | string} isTest 文字列なら1つのテストだけを実行する
-     */
-    static generate(com, ast, isTest) {
-        const gen = new NakoGenASync(com);
-        // ユーザー定義関数をシステムに登録する
-        gen.registerFunction(ast);
-        // JSコードを生成する
-        let js = gen.convGen(ast, !!isTest);
-        // JSコードを実行するための事前ヘッダ部分の生成
-        js = gen.getDefFuncCode(isTest) + js;
-        com.getLogger().trace('--- generate(非同期モード) ---\n' + js);
-        // テストの実行
-        if (js && isTest) {
-            js += '\n__self._runTests(__tests);\n';
-        }
-        return {
-            // なでしこの実行環境ありの場合
-            runtimeEnv: js,
-            // JavaScript単体で動かす場合
-            standalone: `\
-const nakoVersion = ${JSON.stringify(nakoVersion)};
-${NakoError.toString()}
-${NakoRuntimeError.toString()}
-this.logger = {
-  error(message) { console.error(message) },
-  send(level, message) { console.log(message) },
-};
-this.__varslist = [{}, {}, {}];
-this.__vars = this.__varslist[2];
-this.__module = {};
-this.__locals = {};
-this.__labels = {};
-this.__code = [];
-this.__callstack = [];
-this.__stack = [];
-this.__genMode = '非同期モード';
-try {
-  ${gen.getVarsCode()}
-  ${js}
-} catch (err) {
-  if (!(err instanceof NakoRuntimeError)) {
-    err = new NakoRuntimeError(err, this.__varslist[0].line);
-  }
-  this.logger.error(err);
-  throw err;
-}`,
-            gen // コード生成に使ったNakoGenのインスタンス
         };
     }
     /**

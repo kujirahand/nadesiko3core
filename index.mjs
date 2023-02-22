@@ -4,6 +4,8 @@ import { NakoLogger } from './src/nako_logger.mjs';
 import { NakoError, NakoRuntimeError, NakoImportError } from './src/nako_errors.mjs';
 import { NakoParser } from './src/nako_parser3.mjs';
 import { NakoPrepare } from './src/nako_prepare.mjs';
+import { NakoGen, NakoGenOptions } from './src/nako_gen.mjs';
+import { NakoGlobal } from './src/nako_global.mjs';
 export default {
     // version
     version: coreVersion,
@@ -17,5 +19,8 @@ export default {
     NakoImportError,
     // tools etc..
     NakoParser,
-    NakoPrepare
+    NakoPrepare,
+    NakoGen,
+    NakoGenOptions,
+    NakoGlobal,
 };
