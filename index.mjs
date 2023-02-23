@@ -1,5 +1,5 @@
 import coreVersion from './src/nako_core_version.mjs';
-import { NakoCompiler } from './src/nako3.mjs';
+import { NakoCompiler, newCompilerOptions } from './src/nako3.mjs';
 import { NakoLogger } from './src/nako_logger.mjs';
 import { NakoError, NakoRuntimeError, NakoImportError } from './src/nako_errors.mjs';
 import { NakoParser } from './src/nako_parser3.mjs';
@@ -11,6 +11,7 @@ export default {
     version: coreVersion,
     // compiler
     NakoCompiler,
+    newCompilerOptions,
     // loggger
     NakoLogger,
     // error

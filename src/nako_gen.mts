@@ -1445,6 +1445,7 @@ export class NakoGen {
   convRenbun (node: Ast): string {
     const right = this._convGen(node.right as Ast, true)
     const left = this._convGen(node.left as Ast, false)
+    this.numAsyncFn++
     return `/*連文*/await (async function(){ ${left}; return ${right} }).call(this)`
   }
 

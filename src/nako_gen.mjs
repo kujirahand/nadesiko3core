@@ -1380,6 +1380,7 @@ export class NakoGen {
     convRenbun(node) {
         const right = this._convGen(node.right, true);
         const left = this._convGen(node.left, false);
+        this.numAsyncFn++;
         return `/*連文*/await (async function(){ ${left}; return ${right} }).call(this)`;
     }
     convOp(node) {
