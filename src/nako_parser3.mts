@@ -5,7 +5,7 @@ import { opPriority, RenbunJosi, operatorList } from './nako_parser_const.mjs'
 import { NakoParserBase } from './nako_parser_base.mjs'
 import { NakoSyntaxError } from './nako_errors.mjs'
 import { NakoLexer } from './nako_lexer.mjs'
-import { Token, Ast, FuncListItem, FuncArgs, NewEmptyToken, SourceMap } from './nako_types.mjs'
+import { Token, Ast, FuncListItem, FuncListItemType, FuncArgs, NewEmptyToken, SourceMap } from './nako_types.mjs'
 
 /**
  * 構文解析を行うクラス
@@ -1130,12 +1130,12 @@ export class NakoParser extends NakoParserBase {
     const sadameru = this.get() // 定める
     if (sadameru === null) { return null }
     const word = this.popStack(['を'])
-    const value = this.popStack(['へ', 'に'])
+    const value = this.popStack(['へ', 'に', 'と'])
     if (!word || (word.type !== 'word' && word.type !== 'func' && word.type !== '配列参照')) {
       throw NakoSyntaxError.fromNode('『定める』文で定数が見当たりません。『(定数名)を(値)に定める』のように使います。', sadameru)
     }
     // 変数を生成する
-    const nameToken = this.getVarName(word)
+    const nameToken = this.createVar(word, true)
     return {
       type: 'def_local_var',
       name: nameToken,
@@ -1338,13 +1338,17 @@ export class NakoParser extends NakoParserBase {
       end: this.peekSourceMap()
     }
 
-    // 「プラグイン名設定」ならば、そこでスコープを変更することを意味する
+    // 「プラグイン名設定」ならば、そこでスコープを変更することを意味する (#1112)
     if (funcNode.name === 'プラグイン名設定') {
       if (args.length > 0 && args[0]) {
         let fname: string = '' + args[0].value
         if (fname === 'メイン') { fname = '' + args[0].file }
+        this.namespaceStack.push(this.modName)
         this.modName = NakoLexer.filenameToModName(fname)
       }
+    } else if (funcNode.name === '名前空間ポップ') { // (#1409)
+      const space = this.namespaceStack.pop()
+      if (space) { this.modName = space }
     }
 
     // 言い切りならそこで一度切る
@@ -1417,12 +1421,12 @@ export class NakoParser extends NakoParserBase {
 
     // ローカル変数定義
     if (this.accept(['word', 'とは'])) {
-      const word = this.getVarName(this.y[0])
+      const wordToken = this.y[0]
       if (!this.checkTypes(['変数', '定数'])) {
-        throw NakoSyntaxError.fromNode('ローカル変数『' + word.value + '』の定義エラー', word)
+        throw NakoSyntaxError.fromNode('ローカル変数『' + wordToken.value + '』の定義エラー', wordToken)
       }
-
-      const vtype = this.getCur() // 変数
+      const vtype = this.getCur() // 変数 or 定数
+      const word = this.createVar(wordToken, vtype.type === '定数')
       // 初期値がある？
       let value = null
       if (this.check('eq')) {
@@ -1441,7 +1445,7 @@ export class NakoParser extends NakoParserBase {
     }
     // ローカル変数定義（その２）
     if (this.accept(['変数', 'word', 'eq', this.yCalc])) {
-      const word = this.getVarName(this.y[1])
+      const word = this.createVar(this.y[1], false)
       return {
         type: 'def_local_var',
         name: word,
@@ -1453,7 +1457,7 @@ export class NakoParser extends NakoParserBase {
     }
 
     if (this.accept(['定数', 'word', 'eq', this.yCalc])) {
-      const word = this.getVarName(this.y[1])
+      const word = this.createVar(this.y[1], true)
       return {
         type: 'def_local_var',
         name: word,
@@ -1477,7 +1481,7 @@ export class NakoParser extends NakoParserBase {
       } else {
         throw NakoSyntaxError.fromNode('複数定数の代入文でエラー。『定数[A,B,C]=[1,2,3]』の書式で記述してください。', this.y[0])
       }
-      names.value = this.getVarNameList(names.value)
+      names.value = this.createVarList(names.value, true)
       return {
         type: 'def_local_varlist',
         names: names.value,
@@ -1500,7 +1504,7 @@ export class NakoParser extends NakoParserBase {
       } else {
         throw NakoSyntaxError.fromNode('複数変数の代入文でエラー。『変数[A,B,C]=[1,2,3]』の書式で記述してください。', this.y[0])
       }
-      names.value = this.getVarNameList(names.value)
+      names.value = this.createVarList(names.value, false)
       return {
         type: 'def_local_varlist',
         names: names.value,
@@ -1516,7 +1520,7 @@ export class NakoParser extends NakoParserBase {
       // 2 word
       if (this.accept(['word', 'comma', 'word', 'eq', this.yCalc])) {
         let names = [this.y[0], this.y[2]]
-        names = this.getVarNameList(names)
+        names = this.createVarList(names, false)
         return {
           type: 'def_local_varlist',
           names,
@@ -1529,7 +1533,7 @@ export class NakoParser extends NakoParserBase {
       // 3 word
       if (this.accept(['word', 'comma', 'word', 'comma', 'word', 'eq', this.yCalc])) {
         let names = [this.y[0], this.y[2], this.y[4]]
-        names = this.getVarNameList(names)
+        names = this.createVarList(names, false)
         return {
           type: 'def_local_varlist',
           names,
@@ -1542,7 +1546,7 @@ export class NakoParser extends NakoParserBase {
       // 4 word
       if (this.accept(['word', 'comma', 'word', 'comma', 'word', 'comma', 'word', 'eq', this.yCalc])) {
         let names = [this.y[0], this.y[2], this.y[4], this.y[6]]
-        names = this.getVarNameList(names)
+        names = this.createVarList(names, false)
         return {
           type: 'def_local_varlist',
           names,
@@ -1555,7 +1559,7 @@ export class NakoParser extends NakoParserBase {
       // 5 word
       if (this.accept(['word', 'comma', 'word', 'comma', 'word', 'comma', 'word', 'comma', 'word', 'eq', this.yCalc])) {
         let names = [this.y[0], this.y[2], this.y[4], this.y[6], this.y[8]]
-        names = this.getVarNameList(names)
+        names = this.createVarList(names, false)
         return {
           type: 'def_local_varlist',
           names,
@@ -1986,6 +1990,23 @@ export class NakoParser extends NakoParserBase {
     return null
   }
 
+  /** 変数を生成 */
+  createVar (word: Token|Ast, isConst: boolean): Token|Ast {
+    let gname = word.value
+    const typeName: FuncListItemType = isConst ? 'const' : 'var'
+    if (this.funcLevel === 0) {
+      // global ?
+      if (gname.indexOf('__') < 0) { gname = this.modName + '__' + gname }
+      this.funclist[gname] = { type: typeName, value: '' }
+      word.value = gname
+      return word
+    } else {
+      // local
+      this.localvars[gname] = { type: typeName, value: '' }
+      return word
+    }
+  }
+
   /** 変数名を検索して解決する
    * @param {Ast|Token} word
    * @return {Ast|Token}
@@ -1993,18 +2014,12 @@ export class NakoParser extends NakoParserBase {
   getVarName (word: Token|Ast): Token|Ast {
     // check word name
     const f = this.findVar(word.value)
-    if (!f) { // 変数が見つからない
-      if (this.funcLevel === 0) { // global
-        let gname = word.value
-        if (gname.indexOf('__') < 0) { gname = this.modName + '__' + word.value }
-        this.funclist[gname] = { type: 'var', value: '' }
-        word.value = gname
-      } else { // local
-        this.localvars[word.value] = { type: 'var', value: '' }
-      }
-    } else if (f && f.scope === 'global') {
-      word.value = f.name
+    if (f) {
+      if (f && f.scope === 'global') { word.value = f.name }
+      return word
     }
+    // 変数が見つからない
+    this.createVar(word, false)
     return word
   }
 
@@ -2023,9 +2038,9 @@ export class NakoParser extends NakoParserBase {
   }
 
   /** 複数の変数名を検索して解決する */
-  getVarNameList (words: Token[]): Token[] {
+  createVarList (words: Token[], isConst: boolean): Token[] {
     for (let i = 0; i < words.length; i++) {
-      words[i] = this.getVarName(words[i]) as Token
+      words[i] = this.createVar(words[i], isConst) as Token
     }
     return words
   }

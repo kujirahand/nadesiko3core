@@ -7,9 +7,10 @@ import { NakoGlobal } from './nako_global.mjs'
 // 関数に関する定義
 export type FuncArgs = string[][]
 
+export type FuncListItemType = 'func' | 'var' | 'const' | 'test_func'
 // FuncListの定義
 export interface FuncListItem {
-  type: 'func' | 'var' | 'const' | 'test_func';
+  type: FuncListItemType;
   value?: any;
   josi?: FuncArgs;
   isVariableJosi?: boolean;

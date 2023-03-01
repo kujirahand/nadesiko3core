@@ -17,6 +17,7 @@ export class NakoParserBase {
         this.y = [];
         /** モジュル名 @type {string} */
         this.modName = 'inline';
+        this.namespaceStack = [];
         /**
          * 利用するモジュールの名前一覧
          * @type {Array<string>}
