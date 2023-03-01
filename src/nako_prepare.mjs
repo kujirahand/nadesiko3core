@@ -65,13 +65,6 @@ export class Replace {
  *    for https://github.com/kujirahand/nadesiko3/issues/94
  */
 export class NakoPrepare {
-    /** 唯一のインスタンスを返す */
-    static getInstance() {
-        if (!NakoPrepare._instance) {
-            NakoPrepare._instance = new NakoPrepare();
-        }
-        return NakoPrepare._instance;
-    }
     constructor() {
         // 単純な変換テーブル
         this.convertTable = new Map([
@@ -123,6 +116,13 @@ export class NakoPrepare {
             [0x2796, '-'],
             [0x2797, '÷'] // ÷の絵文字 (#1183)
         ]);
+    }
+    /** 唯一のインスタンスを返す */
+    static getInstance() {
+        if (!NakoPrepare._instance) {
+            NakoPrepare._instance = new NakoPrepare();
+        }
+        return NakoPrepare._instance;
     }
     // 一文字だけ変換
     /**

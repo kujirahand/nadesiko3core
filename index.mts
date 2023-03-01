@@ -23,5 +23,5 @@ export default {
   NakoPrepare,
   NakoGen,
   NakoGenOptions,
-  NakoGlobal,
+  NakoGlobal
 }
