@@ -1564,7 +1564,8 @@ export default {
         josi: [['を', 'が']],
         pure: true,
         fn: function (s) {
-            return (String(s).match(/^[0-9.]+$/) !== null);
+            const checkerRE = /^[+\-＋－]?([0-9０-９]*)(([\.．][0-9０-９]+)?|([\.．][0-9０-９]+[eEｅＥ][+\-＋－]?[0-9０-９]+)?)$/;
+            return String(s).match(checkerRE) !== null;
         }
     },
     // @配列操作

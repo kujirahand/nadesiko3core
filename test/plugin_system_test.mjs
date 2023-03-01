@@ -326,6 +326,12 @@ describe('plugin_system_test', async () => {
   it('数列か判定', async () => {
     await cmp('「12345」が数列か判定して表示。', 'true')
     await cmp('「あいうえお」が数列か判定して表示。', 'false')
+    // #1423 による修正
+    await cmp('「-12345」が数列か判定して表示。', 'true')
+    await cmp('「123-45」が数列か判定して表示。', 'false')
+    await cmp('「12.345」が数列か判定して表示。', 'true')
+    await cmp('「1.23.45」が数列か判定して表示。', 'false')
+    await cmp('「1.234E-5」が数列か判定して表示。', 'true')
   })
   it('XOR', async () => {
     await cmp('XOR(0xFF, 0xF)を表示。', '240')

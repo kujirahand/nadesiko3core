@@ -13,7 +13,7 @@
     "build": "node command/snako.mjs batch/build_nako_version.nako3 && tsc",
     "eslint": "eslint ./src/*.mts",
     "eslint:fix": "eslint ./src/*.mts --fix",
-    "hello": "node command/snako.mjs -e '「hello」を表示'"
+    "hello": "node command/snako.mjs -e \"「hello」を表示\""
   },
   "bin": {
     "snako": "command/snako.mjs"
