@@ -68,21 +68,6 @@ export class NakoLexerError extends NakoError {
 export class NakoSyntaxError extends NakoError {
     /**
      * @param {string} msg
-     * @param {Ast} first
-     * @param {Ast} [last]
-     */
-    static fromNode(msg, first, last = undefined) {
-        if (!first) {
-            return new NakoSyntaxError(msg, undefined, undefined, undefined, undefined);
-        }
-        const startOffset = typeof first.startOffset === 'number' ? first.startOffset : undefined;
-        const endOffset = (last && typeof last.endOffset === 'number')
-            ? last.endOffset
-            : (typeof first.endOffset === 'number' ? first.endOffset : undefined);
-        return new NakoSyntaxError(msg, first.line, startOffset, endOffset, first.file);
-    }
-    /**
-     * @param {string} msg
      * @param {number | undefined} line
      * @param {number | undefined} startOffset
      * @param {number | undefined} endOffset
@@ -95,6 +80,21 @@ export class NakoSyntaxError extends NakoError {
         this.line = line;
         this.startOffset = startOffset;
         this.endOffset = endOffset;
+    }
+    /**
+     * @param {string} msg
+     * @param {Ast} first
+     * @param {Ast} [last]
+     */
+    static fromNode(msg, first, last = undefined) {
+        if (!first) {
+            return new NakoSyntaxError(msg, undefined, undefined, undefined, undefined);
+        }
+        const startOffset = typeof first.startOffset === 'number' ? first.startOffset : undefined;
+        const endOffset = (last && typeof last.endOffset === 'number')
+            ? last.endOffset
+            : (typeof first.endOffset === 'number' ? first.endOffset : undefined);
+        return new NakoSyntaxError(msg, first.line, startOffset, endOffset, first.file);
     }
 }
 export class NakoRuntimeError extends NakoError {

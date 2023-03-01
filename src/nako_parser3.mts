@@ -1345,6 +1345,7 @@ export class NakoParser extends NakoParserBase {
         if (fname === 'メイン') { fname = '' + args[0].file }
         this.namespaceStack.push(this.modName)
         this.modName = NakoLexer.filenameToModName(fname)
+        this.modList.push(this.modName)
       }
     } else if (funcNode.name === '名前空間ポップ') { // (#1409)
       const space = this.namespaceStack.pop()

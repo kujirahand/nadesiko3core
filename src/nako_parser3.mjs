@@ -1541,6 +1541,7 @@ export class NakoParser extends NakoParserBase {
                 }
                 this.namespaceStack.push(this.modName);
                 this.modName = NakoLexer.filenameToModName(fname);
+                this.modList.push(this.modName);
             }
         }
         else if (funcNode.name === '名前空間ポップ') { // (#1409)
