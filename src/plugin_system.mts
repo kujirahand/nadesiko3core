@@ -2667,7 +2667,7 @@ export default {
     pure: true,
     asyncFn: true,
     fn: function (curLine: number, sys: any) {
-      return new Promise((resolve, _reject) => {
+      return new Promise((resolve) => {
         const breakpoints = sys.__v0['__DEBUGブレイクポイント一覧']
         const forceLine = sys.__v0['__DEBUG強制待機']
         sys.__v0['__DEBUG強制待機'] = 0
