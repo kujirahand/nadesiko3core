@@ -158,4 +158,9 @@ describe('calc_test.js', async () => {
     await cmp('N=「あああ」の「あ」を「え」に置換して空白除去。Nを表示。', 'えええ')
     await errorTest('N=30の「あああ」の「あ」を「え」に置換して空白除去。Nを表示。', 'NakoSyntaxError', '未解決の単語があります')
   })
+  it('演算子「**」(#1424)', async () => {
+    await cmp('2**3を表示;', '8')
+    await cmp('2^3を表示;', '8')
+    await cmp('2**4を表示;', '16')
+  })
 })

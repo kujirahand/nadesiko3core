@@ -1450,7 +1450,8 @@ export class NakoGen {
   }
 
   convOp (node: Ast): string {
-    const OP_TBL: {[key: string]: string} = { // トークン名からJS演算子
+    // トークン名からJS演算子への変換 - 単純な変換が可能なものをここで定義
+    const OP_TBL: {[key: string]: string} = {
       '&': '+""+',
       eq: '==',
       noteq: '!=',
@@ -1479,7 +1480,7 @@ export class NakoGen {
       }
     }
     // 階乗
-    if (op === '^') { return `(Math.pow(${left}, ${right}))` }
+    if (op === '^' || op === '**') { return `(Math.pow(${left}, ${right}))` }
     // 整数の割り算 #1152
     if (op === '÷÷') { return `(Math.floor(${left} / ${right}))` }
 

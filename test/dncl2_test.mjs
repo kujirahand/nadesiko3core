@@ -228,4 +228,10 @@ describe('dncl2 (core #41)', async () => {
         '(偽 or 偽)を表示' +
         '\n', FALSE)
   })
+  it('演算子「**」(#1424)', async () => {
+    await cmp('' +
+        '!DNCL2\n' +
+        '2**3を表示;' +
+        '', '8')
+  })
 })

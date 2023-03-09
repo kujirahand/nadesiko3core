@@ -1384,6 +1384,7 @@ export class NakoGen {
         return `/*連文*/await (async function(){ ${left}; return ${right} }).call(this)`;
     }
     convOp(node) {
+        // トークン名からJS演算子への変換 - 単純な変換が可能なものをここで定義
         const OP_TBL = {
             '&': '+""+',
             eq: '==',
@@ -1413,7 +1414,7 @@ export class NakoGen {
             }
         }
         // 階乗
-        if (op === '^') {
+        if (op === '^' || op === '**') {
             return `(Math.pow(${left}, ${right}))`;
         }
         // 整数の割り算 #1152

@@ -60,6 +60,7 @@ export const rules = [
     { name: '@', pattern: /^@/ },
     { name: '+', pattern: /^\+/ },
     { name: '-', pattern: /^-/ },
+    { name: '**', pattern: /^(××|\*\*)/ },
     { name: '*', pattern: /^(×|\*)/ },
     { name: '÷÷', pattern: /^÷÷/ },
     { name: '÷', pattern: /^(÷|\/)/ },

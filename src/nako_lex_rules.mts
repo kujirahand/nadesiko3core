@@ -79,6 +79,7 @@ export const rules: NakoLexRule[] = [
   { name: '@', pattern: /^@/ },
   { name: '+', pattern: /^\+/ },
   { name: '-', pattern: /^-/ },
+  { name: '**', pattern: /^(××|\*\*)/ }, // Python風べき乗演算子
   { name: '*', pattern: /^(×|\*)/ },
   { name: '÷÷', pattern: /^÷÷/ }, // 整数の割り算
   { name: '÷', pattern: /^(÷|\/)/ }, // 普通の割り算
