@@ -176,28 +176,29 @@ export class NakoGen {
   }
 
   /**
-   * @param {Ast} node
-   * @param {boolean} forceUpdate
+   * 改行を埋め込む
    */
   convLineno (node: Ast, forceUpdate = false, incLine = 0): string {
+    // スピードモードでは行番号を埋め込まない
     if (this.speedMode.lineNumbers > 0) { return '' }
 
-    let lineNo: string
+    const lineNo: number = node.line + incLine
+    let lineNoStr: string
     if (typeof node.line !== 'number') {
-      lineNo = 'unknown'
+      lineNoStr = 'unknown'
     } else if (typeof node.file !== 'string') {
-      lineNo = `l${node.line + incLine}`
+      lineNoStr = `l${lineNo}`
     } else {
-      lineNo = `l${node.line + incLine}:${node.file}`
+      lineNoStr = `l${lineNo}:${node.file}`
     }
 
     // 強制的に行番号をアップデートするか
     if (!forceUpdate) {
-      if (lineNo === this.lastLineNo) { return '' }
-      this.lastLineNo = lineNo
+      if (lineNoStr === this.lastLineNo) { return '' }
+      this.lastLineNo = lineNoStr
     }
     // 実行行のデータ
-    const lineDataJSON = JSON.stringify(lineNo)
+    const lineDataJSON = JSON.stringify(lineNoStr)
     // デバッグ実行か
     let debugCode = ''
     if (this.debugOption.useDebug) {
@@ -207,10 +208,14 @@ export class NakoGen {
           `line: ${lineDataJSON}});`
       }
       // waitTime
-      if ((node.line + incLine) >= 1) {
+      if (lineNo >= 1) {
         if (this.debugOption.waitTime > 0) {
           debugCode += `await __v0['秒待'](${this.debugOption.waitTime},__self);`
         }
+        // breakpoints
+        this.numAsyncFn += 1
+        this.usedAsyncFn = true
+        debugCode += `await __v0['__DEBUG_BP_WAIT'](${lineNo}, __self);`
       }
       // end
       debugCode += 'if(__v0.forceClose){return-1};'

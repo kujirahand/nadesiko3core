@@ -25,6 +25,7 @@ module.exports = {
         //"@typescript-eslint/no-empty-function": 0,
         // "no-unused-vars":0,
         // "no-undef": 0
+        //"react/prop-types": "off"
     },
     "plugins": [
         "@typescript-eslint"

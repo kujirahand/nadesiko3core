@@ -2658,6 +2658,35 @@ export default {
       console.log(sys)
     }
   },
+  '__DEBUG強制待機': { type: 'const', value: 0 }, // @__DEBUGきょうせいたいき
+  '__DEBUGブレイクポイント一覧': { type: 'const', value: [] }, // @__DEBUGぶれいくぽいんといちらん
+  '__DEBUG待機フラグ': { type: 'const', value: 0 }, // @__DEBUG待機フラグ
+  '__DEBUG_BP_WAIT': { // @エディタのブレイクポイント機能のための待機 // @__DEBUG_BP_WAIT
+    type: 'func',
+    josi: [['で']],
+    pure: true,
+    asyncFn: true,
+    fn: function (curLine: number, sys: any) {
+      return new Promise((resolve, _reject) => {
+        const breakpoints = sys.__v0['__DEBUGブレイクポイント一覧']
+        const forceLine = sys.__v0['__DEBUG強制待機']
+        sys.__v0['__DEBUG強制待機'] = 0
+        console.log('__DEBUG_BP_WAIT.line=', curLine, 'BP=', breakpoints, 'force.line=', forceLine)
+        if (breakpoints.indexOf(curLine) >= 0 || forceLine) {
+          console.log('@STOP!!!! cur=', curLine)
+          const timerId = setInterval(() => {
+            if (sys.__v0['__DEBUG待機フラグ'] === 1) {
+              sys.__v0['__DEBUG待機フラグ'] = 0
+              clearInterval(timerId)
+              resolve(curLine)
+            }
+          }, 1000)
+        } else {
+          resolve(curLine)
+        }
+      })
+    }
+  },
   'グローバル関数一覧取得': { // @グローバル変数にある関数一覧を取得 // @ぐろーばるかんすういちらんしゅとく
     type: 'func',
     josi: [],
