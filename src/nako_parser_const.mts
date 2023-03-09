@@ -26,7 +26,8 @@ export const opPriority: {[key: string]: number} = {
   '÷÷': 5, // 整数の割り算
   '%': 5,
   // ^
-  '^': 6
+  '^': 6,
+  '**': 6
 }
 
 export const RenbunJosi: string[] = [
