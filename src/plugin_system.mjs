@@ -2826,7 +2826,7 @@ export default {
                 const breakpoints = sys.__v0['__DEBUGブレイクポイント一覧'];
                 const forceLine = sys.__v0['__DEBUG強制待機'];
                 sys.__v0['__DEBUG強制待機'] = 0;
-                console.log('__DEBUG_BP_WAIT.line=', curLine, 'BP=', breakpoints, 'force.line=', forceLine);
+                // ブレイクポイント or __DEBUG強制待機 が指定されたか？
                 if (breakpoints.indexOf(curLine) >= 0 || forceLine) {
                     console.log('@STOP!!!! cur=', curLine);
                     const timerId = setInterval(() => {
@@ -2835,7 +2835,7 @@ export default {
                             clearInterval(timerId);
                             resolve(curLine);
                         }
-                    }, 1000);
+                    }, 500);
                 }
                 else {
                     resolve(curLine);
