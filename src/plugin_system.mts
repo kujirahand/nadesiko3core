@@ -2660,7 +2660,7 @@ export default {
   },
   '__DEBUG強制待機': { type: 'const', value: 0 }, // @__DEBUGきょうせいたいき
   '__DEBUGブレイクポイント一覧': { type: 'const', value: [] }, // @__DEBUGぶれいくぽいんといちらん
-  '__DEBUG待機フラグ': { type: 'const', value: 0 }, // @__DEBUG待機フラグ
+  '__DEBUG待機フラグ': { type: 'const', value: 0 }, // @__DEBUGたいきフラグ
   '__DEBUG_BP_WAIT': { // @エディタのブレイクポイント機能のための待機 // @__DEBUG_BP_WAIT
     type: 'func',
     josi: [['で']],
