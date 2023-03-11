@@ -860,7 +860,7 @@ export class NakoCompiler {
      * @param {boolean} asyncFn Promiseを返す関数かを指定
      */
     addFunc(key, josi, fn, returnNone = true, asyncFn = false) {
-        this.funclist[key] = { josi, fn, type: 'func', return_none: returnNone, asyncFn };
+        this.funclist[key] = { josi, fn, type: 'func', return_none: returnNone, asyncFn, pure: true };
         this.pluginFunclist[key] = cloneAsJSON(this.funclist[key]);
         this.__varslist[0][key] = fn;
     }
