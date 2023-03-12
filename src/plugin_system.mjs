@@ -133,7 +133,14 @@ export default {
             sys.chk = (value, constId) => {
                 if (typeof value === 'undefined') {
                     const cp = sys.constPools[constId];
-                    sys.logger.warn(cp.msg, { file: cp.file, line: cp.line });
+                    const { msgNo, msgArgs, fileNo, lineNo } = cp;
+                    let msg = sys.constPoolsTemplate[msgNo];
+                    for (const i in msgArgs) {
+                        const arg = sys.constPoolsTemplate[msgArgs[i]];
+                        msg = msg.split(`$${i}`).join(arg);
+                    }
+                    const fileStr = sys.constPoolsTemplate[fileNo];
+                    sys.logger.warn(msg, { file: fileStr, line: lineNo });
                 }
                 return value;
             };

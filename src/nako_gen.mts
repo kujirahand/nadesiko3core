@@ -63,6 +63,7 @@ export class NakoGen {
   private loopId: number // ループを生成する際にダミーのループ変数を管理するため
   private flagLoop: boolean // 変換中のソースがループの中かどうかを判定する
   private constPools: Array<any> // 定数プール用
+  private constPoolsTemplate: string[] // 定数プール生成用テンプレート
   // コード生成オプション
   private speedMode: SpeedMode
   private performanceMonitor: PerformanceMonitor
@@ -158,6 +159,7 @@ export class NakoGen {
      */
     this.warnUndefinedVar = true
     this.constPools = []
+    this.constPoolsTemplate = []
 
     // 暫定変数
     this.warnUndefinedReturnUserFunc = 1
@@ -293,6 +295,7 @@ export class NakoGen {
     code += `__v0.useDebug = ${this.debugOption.useDebug};\n`
     // 定数を埋め込む
     code += 'self.constPools = ' + JSON.stringify(this.constPools) + ';\n'
+    code += 'self.constPoolsTemplate = ' + JSON.stringify(this.constPoolsTemplate) + ';\n'
     // なでしこの関数定義を行う
     let nakoFuncCode = ''
     for (const key in this.nakoFuncList) {
@@ -690,14 +693,36 @@ export class NakoGen {
     if (this.warnUndefinedReturnUserFunc === 0) {
       return lno + `return ${value};`
     } else {
-      const poolIndex = this.constPools.length
-      this.constPools.push({
-        msg: 'ユーザ関数からundefinedが返されています',
-        file: node.file,
-        line: node.line
-      })
+      const poolIndex = this.addConstPool('ユーザ関数からundefinedが返されています', [], node.file, node.line)
       return lno + `return (__self.chk(${value}, ${poolIndex}));`
     }
+  }
+
+  getConstPoolsTemplateId (msg: string): number {
+    let id = this.constPoolsTemplate.indexOf(msg)
+    if (id < 0) {
+      id = this.constPoolsTemplate.length
+      this.constPoolsTemplate[id] = msg
+    }
+    return id
+  }
+
+  addConstPool (msg: string, args: string[], file: any, line: any): number {
+    // file
+    file = '' + file
+    const fileNo = this.getConstPoolsTemplateId(file)
+    // msg
+    const msgNo = this.getConstPoolsTemplateId(msg)
+    // args
+    const args2: number[] = []
+    for (const i in args) {
+      const arg = '' + args[i]
+      const argNo = this.getConstPoolsTemplateId(arg)
+      args2.push(argNo)
+    }
+    const poolIndex = this.constPools.length
+    this.constPools.push([msgNo, args2, fileNo, line])
+    return poolIndex
   }
 
   convCheckLoop (node: Ast, cmd: string): string {
@@ -1336,20 +1361,8 @@ export class NakoGen {
           argsA.push(`${arg}`)
         } else {
           // 引数のundefinedチェックのコードを入れる
-          const poolIndex = this.constPools.length
-          if (res.i === 0) {
-            this.constPools.push({
-              msg: `命令『${funcName}』の引数にundefinedを渡しています。`,
-              file: node.file,
-              line: node.line
-            })
-          } else {
-            this.constPools.push({
-              msg: `ユーザ関数『『${funcName}』の引数にundefinedを渡しています。`,
-              file: node.file,
-              line: node.line
-            })
-          }
+          const msg = (res.i === 0) ? '命令『$0』の引数にundefinedを渡しています。' : 'ユーザ命令『$0』の引数にundefinedを渡しています。'
+          const poolIndex = this.addConstPool(msg, [funcName], node.file, node.line)
           // argが空になる対策 #1315
           const argStr = (arg === '') ? '""' : arg
           argsA.push(`(__self.chk(${argStr}, ${poolIndex}))`)
