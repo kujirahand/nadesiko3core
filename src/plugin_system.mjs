@@ -2828,7 +2828,10 @@ export default {
                 sys.__v0['__DEBUG強制待機'] = 0;
                 // ブレイクポイント or __DEBUG強制待機 が指定されたか？
                 if (breakpoints.indexOf(curLine) >= 0 || forceLine) {
-                    console.log('@STOP!!!! cur=', curLine);
+                    if (sys.__v0['プラグイン名'] !== 'メイン') {
+                        return;
+                    } // 現状メインのみデバッグする
+                    console.log(`@__DEBUG_BP_WAIT(${curLine})`);
                     const timerId = setInterval(() => {
                         if (sys.__v0['__DEBUG待機フラグ'] === 1) {
                             sys.__v0['__DEBUG待機フラグ'] = 0;
