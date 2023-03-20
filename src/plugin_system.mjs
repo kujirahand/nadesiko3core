@@ -2331,7 +2331,7 @@ export default {
     '秒後': {
         type: 'func',
         josi: [['を'], ['']],
-        pure: false,
+        pure: true,
         fn: function (f, n, sys) {
             // 文字列で指定された関数をオブジェクトに変換
             if (typeof f === 'string') {

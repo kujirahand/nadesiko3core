@@ -45,10 +45,10 @@ export function convertDNCL2(tokens) {
                 line.splice(nai, 1);
             }
         }
-        // そうでなければ(そう|でなければ) → 違えば
+        // そうでなければ(そう|でなければ) or そうでなく → 違えば
         for (let ni = 0; ni < line.length; ni++) {
             const t = line[ni];
-            if (t.value === 'そう' && t.josi === 'でなければ') {
+            if ((t.value === 'そう' || t.value === 'それ') && (t.josi === 'でなければ' || t.josi === 'でなく')) {
                 t.type = '違えば';
                 t.value = '違えば';
                 t.josi = '';
@@ -91,6 +91,38 @@ export function convertDNCL2(tokens) {
                 }
             }
             break;
+        }
+        // 'そうでなく': '違えば',
+        for (;;) {
+            const ni = findTokens(line, ['word:そう', 'word:なく']);
+            if (ni < 0) {
+                break;
+            }
+            const sou = line[ni];
+            if (sou.josi === 'で') {
+                sou.type = '違えば';
+                sou.value = '違えば';
+                sou.josi = '';
+                line.splice(ni + 1, 1);
+                // console.log('@@@', line.map(v => v.value).join('|'))
+                continue;
+            }
+            break;
+        }
+        // 'そうでなくもし': '違えば,もし'
+        for (;;) {
+            const ni = findTokens(line, ['word:そう', 'word:なくもし']);
+            if (ni < 0) {
+                break;
+            }
+            const sou = line[ni];
+            const nakumosi = line[ni + 1];
+            sou.type = '違えば';
+            sou.value = '違えば';
+            sou.josi = '';
+            nakumosi.type = 'もし';
+            nakumosi.value = 'もし';
+            nakumosi.josi = '';
         }
         // Iを1から100まで1(ずつ)|増やしな(が)|ら
         for (;;) {

@@ -2197,7 +2197,7 @@ export default {
   '秒後': { // @無名関数（あるいは、文字列で関数名を指定）FをN秒後に実行する。変数『対象』にタイマーIDを代入する。 // @びょうご
     type: 'func',
     josi: [['を'], ['']],
-    pure: false,
+    pure: true,
     fn: function (f: any, n: any, sys: any) {
       // 文字列で指定された関数をオブジェクトに変換
       if (typeof f === 'string') { f = sys.__findFunc(f, '秒後') }
