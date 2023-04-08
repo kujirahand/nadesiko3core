@@ -163,4 +163,11 @@ describe('calc_test.js', async () => {
     await cmp('2^3を表示;', '8')
     await cmp('2**4を表示;', '16')
   })
+  it('代入文における関数呼び出し(#1449)', async () => {
+    await cmp('N=(「abc」の文字数)+1;Nを表示;', '4')
+    await cmp('N=「abc」の文字数+1;Nを表示;', '4')
+    await cmp('N=1に2を足して5を掛ける+1;Nを表示;', '16')
+    await cmp('N=文字数("abc")+1;Nを表示;', '4')
+    await cmp('N=1に2を足す+2に3を掛ける;Nを表示;', '15')
+  })
 })

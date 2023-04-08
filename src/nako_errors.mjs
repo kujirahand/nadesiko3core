@@ -68,21 +68,6 @@ export class NakoLexerError extends NakoError {
 export class NakoSyntaxError extends NakoError {
     /**
      * @param {string} msg
-     * @param {number | undefined} line
-     * @param {number | undefined} startOffset
-     * @param {number | undefined} endOffset
-     * @param {string | undefined} file
-     */
-    constructor(msg, line, startOffset, endOffset, file) {
-        super('文法エラー', msg, file, line);
-        this.type = 'NakoSyntaxError';
-        this.file = file;
-        this.line = line;
-        this.startOffset = startOffset;
-        this.endOffset = endOffset;
-    }
-    /**
-     * @param {string} msg
      * @param {Ast} first
      * @param {Ast} [last]
      */
@@ -95,6 +80,21 @@ export class NakoSyntaxError extends NakoError {
             ? last.endOffset
             : (typeof first.endOffset === 'number' ? first.endOffset : undefined);
         return new NakoSyntaxError(msg, first.line, startOffset, endOffset, first.file);
+    }
+    /**
+     * @param {string} msg
+     * @param {number | undefined} line
+     * @param {number | undefined} startOffset
+     * @param {number | undefined} endOffset
+     * @param {string | undefined} file
+     */
+    constructor(msg, line, startOffset, endOffset, file) {
+        super('文法エラー', msg, file, line);
+        this.type = 'NakoSyntaxError';
+        this.file = file;
+        this.line = line;
+        this.startOffset = startOffset;
+        this.endOffset = endOffset;
     }
 }
 export class NakoRuntimeError extends NakoError {

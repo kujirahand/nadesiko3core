@@ -1418,10 +1418,11 @@ export class NakoParser extends NakoParserBase {
                 }
                 // 関数呼び出しの直後に、四則演算があるか?
                 if (!this.checkTypes(operatorList)) {
-                    return r;
-                } // なければ関数呼び出しを戻す
+                    return r; // 関数呼び出しの後に演算子がないのでそのまま関数呼び出しを戻す
+                }
                 // 四則演算があった場合、計算してスタックに載せる
-                this.pushStack(this.yGetArgOperator(r));
+                const s = this.yGetArgOperator(r);
+                this.pushStack(s);
                 continue;
             }
             // 値のとき → スタックに載せる
@@ -1434,6 +1435,9 @@ export class NakoParser extends NakoParserBase {
         } // end of while
         // 助詞が余ってしまった場合
         if (this.stack.length > 0) {
+            if (this.isReadingCalc) {
+                return this.popStack();
+            }
             this.logger.debug('--- stack dump ---\n' + JSON.stringify(this.stack, null, 2) + '\npeek: ' + JSON.stringify(this.peek(), null, 2));
             let msgDebug = `不完全な文です。${this.stack.map((n) => this.nodeToStr(n, { depth: 0 }, true)).join('、')}が解決していません。`;
             let msg = `不完全な文です。${this.stack.map((n) => this.nodeToStr(n, { depth: 0 }, false)).join('、')}が解決していません。`;
@@ -1952,28 +1956,41 @@ export class NakoParser extends NakoParserBase {
             return t;
         } // 値だけの場合
         // 関数の呼び出しがあるなら、スタックに載せて関数読み出しを呼ぶ
+        const tmpReadingCalc = this.isReadingCalc;
+        this.isReadingCalc = true;
         this.pushStack(t);
         const t1 = this.yCall();
+        this.isReadingCalc = tmpReadingCalc;
         if (!t1) {
+            // 関数がなければ、先ほど積んだ値をスタックから取り出して返す
             return this.popStack();
         }
-        // それが連文か確認
-        if (RenbunJosi.indexOf(t1.josi || '') < 0) {
-            return t1;
-        } // 連文ではない
-        // 連文なら右側を読んで左側とくっつける
-        const t2 = this.yCalc();
-        if (!t2) {
-            return t1;
+        // 計算式をfCalcとする
+        let fCalc = t1;
+        // それが連文か助詞を読んで確認
+        if (RenbunJosi.indexOf(t1.josi || '') >= 0) {
+            // 連文なら右側を読んで左側とくっつける
+            const t2 = this.yCalc();
+            if (t2) {
+                fCalc = {
+                    type: 'renbun',
+                    left: t1,
+                    right: t2,
+                    josi: t2.josi,
+                    ...map,
+                    end: this.peekSourceMap()
+                };
+            }
         }
-        return {
-            type: 'renbun',
-            left: t1,
-            right: t2,
-            josi: t2.josi,
-            ...map,
-            end: this.peekSourceMap()
-        };
+        // 演算子があれば続ける
+        const op = this.peek();
+        if (!op) {
+            return fCalc;
+        }
+        if (opPriority[op.type]) {
+            return this.yGetArgOperator(fCalc);
+        }
+        return fCalc;
     }
     /** @returns {Ast | null} */
     yValueKakko() {

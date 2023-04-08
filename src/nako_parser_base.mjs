@@ -42,6 +42,8 @@ export class NakoParserBase {
         this.flagCheckArrayInit = false;
         /** 最近呼び出した関数(余剰エラーの報告に使う) */
         this.recentlyCalledFunc = [];
+        // 構文解析に利用する - 現在計算式を読んでいるかどうか
+        this.isReadingCalc = false;
         this.init();
     }
     init() {
