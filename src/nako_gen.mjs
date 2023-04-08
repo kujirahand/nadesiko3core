@@ -1624,6 +1624,7 @@ __jsInit__
 // --- Copy module functions ---
 for (const mod of __importNames__) {
   for (const funcName in mod) {
+    // プラグインの初期化とクリア関数を登録
     if (funcName === '初期化') {
       self.initFuncList.push(mod[funcName].fn)
       continue
@@ -1632,7 +1633,13 @@ for (const mod of __importNames__) {
       self.clearFuncList.push(mod[funcName].fn)
       continue
     }
-    self.__varslist[0][funcName] = mod[funcName].fn
+    // 関数や定数を登録
+    const f = mod[funcName]
+    if (f.type === 'func') { // 関数
+      self.__varslist[0][funcName] = f.fn
+    } else { // 定数
+      self.__varslist[0][funcName] = f.value
+    }
   }
 }
 self.__vars = self.__varslist[2];
