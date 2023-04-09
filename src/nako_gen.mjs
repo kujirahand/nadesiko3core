@@ -1425,15 +1425,15 @@ export class NakoGen {
         let left = this._convGen(node.left, true);
         if (op === '+' && this.speedMode.implicitTypeCasting === 0) {
             if (node.left && node.left.type !== 'number' && node.left.type !== 'bigint') {
-                left = `(typeof (${left}) !== 'bigint' ? parseFloat(${left}) : (${left}))`;
+                left = `parseFloat(${left})`;
             }
             if (node.right && node.right.type !== 'number' && node.right.type !== 'bigint') {
-                right = `(typeof (${right}) !== 'bigint' ? parseFloat(${right}) : (${right}))`;
+                right = `parseFloat(${right})`;
             }
         }
         // 階乗
         if (op === '^' || op === '**') {
-            return `(Math.pow(${left}, ${right}))`;
+            return `((${left}) ** (${right}))`;
         }
         // 整数の割り算 #1152
         if (op === '÷÷') {
