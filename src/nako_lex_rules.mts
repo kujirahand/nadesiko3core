@@ -44,6 +44,11 @@ export const rules: NakoLexRule[] = [
   { name: 'range_comment', pattern: /^\/\*/, cbParser: cbRangeComment },
   { name: 'def_test', pattern: /^●テスト:/ },
   { name: 'def_func', pattern: /^●/ },
+  // 多倍長整数リテラルの判定。整数の末尾に「n」がついているだけな為、数値判定より上に書かないとただの整数にされる
+  { name: 'bigint', pattern: /^0[xX][0-9a-fA-F]+(_[0-9a-fA-F]+)*n/, readJosi: true },
+  { name: 'bigint', pattern: /^0[oO][0-7]+(_[0-7]+)*n/, readJosi: true },
+  { name: 'bigint', pattern: /^0[bB][0-1]+(_[0-1]+)*n/, readJosi: true },
+  { name: 'bigint', pattern: /^\d+(_\d+)*?n/, readJosi: true },
   // 数値の判定 --- この後nako_lexerにて単位を読む処理が入る(#994)
   { name: 'number', pattern: /^0[xX][0-9a-fA-F]+(_[0-9a-fA-F]+)*/, readJosi: true, cb: parseNumber },
   { name: 'number', pattern: /^0[oO][0-7]+(_[0-7]+)*/, readJosi: true, cb: parseNumber },

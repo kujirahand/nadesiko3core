@@ -494,6 +494,9 @@ export class NakoGen {
       case 'number':
         code += node.value
         break
+      case 'bigint':
+        code += node.value
+        break
       case 'string':
         code += this.convString(node)
         break
