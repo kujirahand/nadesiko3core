@@ -311,12 +311,19 @@ export class NakoLexer {
       // 数字につくマイナス記号を判定
       // (ng) 5 - 3 || word - 3
       // (ok) (行頭)-3 || 1 * -3 || Aに -3を 足す
-      if (t.type === '-' && tokens[i + 1] && tokens[i + 1].type === 'number') {
-        // 一つ前の語句が、(行頭|演算子|助詞付きの語句)なら 負数である
-        const ltype = getLastType()
-        if (ltype === 'eol' || opPriority[ltype] || tokens[i - 1].josi !== '') {
-          tokens.splice(i, 1) // remove '-'
-          tokens[i].value *= -1
+      if (t.type === '-' && tokens[i + 1]) {
+        const tokenType = tokens[i + 1].type
+        if (tokenType === 'number' || tokenType === 'bigint') {
+          // 一つ前の語句が、(行頭|演算子|助詞付きの語句)なら 負数である
+          const ltype = getLastType()
+          if (ltype === 'eol' || opPriority[ltype] || tokens[i - 1].josi !== '') {
+            tokens.splice(i, 1) // remove '-'
+            if (tokenType === 'number') {
+              tokens[i].value *= -1
+            } else {
+              tokens[i].value = '-' + tokens[i].value
+            }
+          }
         }
       }
       // 助詞の「は」を = に展開
