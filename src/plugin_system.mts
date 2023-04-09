@@ -1589,6 +1589,21 @@ export default {
       throw new Error('『配列ソート』で配列以外が指定されました。')
     }
   },
+  '配列数値変換': { // @配列Aを変換変換して返す(A自体を変更) // @はいれつすうちへんかん
+    type: 'func',
+    josi: [['の', 'を']],
+    pure: true,
+    fn: function (a: any) {
+      // 配列ならOK
+      if (a instanceof Array) {
+        for (let i = 0; i < a.length; i++) {
+          a[i] = parseFloat(a[i])
+        }
+        return a
+      }
+      throw new Error('『配列数値変換』で配列以外が指定されました。')
+    }
+  },
   '配列数値ソート': { // @配列Aをソートして返す(A自体を変更) // @はいれつすうちそーと
     type: 'func',
     josi: [['の', 'を']],
