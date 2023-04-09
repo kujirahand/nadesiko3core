@@ -1424,11 +1424,11 @@ export class NakoGen {
         let right = this._convGen(node.right, true);
         let left = this._convGen(node.left, true);
         if (op === '+' && this.speedMode.implicitTypeCasting === 0) {
-            if (node.left && node.left.type !== 'number') {
-                left = `parseFloat(${left})`;
+            if (node.left && node.left.type !== 'number' && node.left.type !== 'bigint') {
+                left = `(typeof (${left}) !== 'bigint' ? parseFloat(${left}) : (${left}))`;
             }
-            if (node.right && node.right.type !== 'number') {
-                right = `parseFloat(${right})`;
+            if (node.right && node.right.type !== 'number' && node.right.type !== 'bigint') {
+                right = `(typeof (${right}) !== 'bigint' ? parseFloat(${right}) : (${right}))`;
             }
         }
         // 階乗

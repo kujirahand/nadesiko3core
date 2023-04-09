@@ -1494,11 +1494,11 @@ export class NakoGen {
     let right = this._convGen(node.right as Ast, true)
     let left = this._convGen(node.left as Ast, true)
     if (op === '+' && this.speedMode.implicitTypeCasting === 0) {
-      if (node.left && (node.left as Ast).type !== 'number') {
-        left = `parseFloat(${left})`
+      if (node.left && (node.left as Ast).type !== 'number' && (node.left as Ast).type !== 'bigint') {
+        left = `(typeof (${left}) !== 'bigint' ? parseFloat(${left}) : (${left}))`
       }
-      if (node.right && (node.right as Ast).type !== 'number') {
-        right = `parseFloat(${right})`
+      if (node.right && (node.right as Ast).type !== 'number' && (node.right as Ast).type !== 'bigint') {
+        right = `(typeof (${right}) !== 'bigint' ? parseFloat(${right}) : (${right}))`
       }
     }
     // 階乗
