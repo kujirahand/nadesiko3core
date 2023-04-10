@@ -432,6 +432,9 @@ export class NakoGen {
             case 'number':
                 code += node.value;
                 break;
+            case 'bigint':
+                code += node.value;
+                break;
             case 'string':
                 code += this.convString(node);
                 break;
@@ -1421,16 +1424,16 @@ export class NakoGen {
         let right = this._convGen(node.right, true);
         let left = this._convGen(node.left, true);
         if (op === '+' && this.speedMode.implicitTypeCasting === 0) {
-            if (node.left && node.left.type !== 'number') {
-                left = `parseFloat(${left})`;
+            if (node.left && node.left.type !== 'number' && node.left.type !== 'bigint') {
+                left = `self.__parseFloatOrBigint(${left})`;
             }
-            if (node.right && node.right.type !== 'number') {
-                right = `parseFloat(${right})`;
+            if (node.right && node.right.type !== 'number' && node.right.type !== 'bigint') {
+                right = `self.__parseFloatOrBigint(${right})`;
             }
         }
         // 階乗
         if (op === '^' || op === '**') {
-            return `(Math.pow(${left}, ${right}))`;
+            return `((${left}) ** (${right}))`;
         }
         // 整数の割り算 #1152
         if (op === '÷÷') {

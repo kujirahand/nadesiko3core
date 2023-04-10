@@ -2027,7 +2027,7 @@ export class NakoParser extends NakoParserBase {
             this.get();
         }
         // プリミティブな値
-        if (this.checkTypes(['number', 'string'])) {
+        if (this.checkTypes(['number', 'bigint', 'string'])) {
             return this.getCur();
         } // Token To Ast
         // 丸括弧

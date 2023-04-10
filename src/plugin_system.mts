@@ -117,6 +117,10 @@ export default {
       }
       // 『継続表示』のための一時変数(『表示』実行で初期化)
       sys.__printPool = ''
+      // 暗黙の型変換で足し算を行うときに使用。bigint はそのまま、その他は number に自動変換
+      sys.__parseFloatOrBigint = (v: any): number | bigint => {
+        return (typeof v) === 'bigint' ? v : parseFloat(v)
+      }
       // undefinedチェック
       sys.chk = (value:any, constId: number): any => {
         if (typeof value === 'undefined') {

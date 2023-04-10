@@ -356,6 +356,8 @@ export class NakoParserBase {
       }
       case 'number':
         return `${typeName('数値')}${node.value}`
+      case 'bigint':
+        return `${typeName('巨大整数')}${node.value}`
       case 'string':
         return `${typeName('文字列')}『${node.value}${debug}』`
       case 'word':

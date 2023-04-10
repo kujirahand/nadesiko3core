@@ -1818,7 +1818,7 @@ export class NakoParser extends NakoParserBase {
     if (this.check('comma')) { this.get() }
 
     // プリミティブな値
-    if (this.checkTypes(['number', 'string'])) { return this.getCur() as any } // Token To Ast
+    if (this.checkTypes(['number', 'bigint', 'string'])) { return this.getCur() as any } // Token To Ast
 
     // 丸括弧
     if (this.check('(')) { return this.yValueKakko() }
