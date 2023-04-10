@@ -1662,6 +1662,21 @@ export default {
             throw new Error('『配列ソート』で配列以外が指定されました。');
         }
     },
+    '配列数値変換': {
+        type: 'func',
+        josi: [['の', 'を']],
+        pure: true,
+        fn: function (a) {
+            // 配列ならOK
+            if (a instanceof Array) {
+                for (let i = 0; i < a.length; i++) {
+                    a[i] = parseFloat(a[i]);
+                }
+                return a;
+            }
+            throw new Error('『配列数値変換』で配列以外が指定されました。');
+        }
+    },
     '配列数値ソート': {
         type: 'func',
         josi: [['の', 'を']],
