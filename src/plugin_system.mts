@@ -172,6 +172,8 @@ export default {
   'キャンセル': { type: 'const', value: 0 }, // @きゃんせる
   'TRUE': { type: 'const', value: true }, // @TRUE
   'FALSE': { type: 'const', value: false }, // @FALSE
+  'true': { type: 'const', value: true }, // @true
+  'false': { type: 'const', value: false }, // @false
   'PI': { type: 'const', value: Math.PI }, // @PI
   '空': { type: 'const', value: '' }, // @から
   'NULL': { type: 'const', value: null }, // @NULL

@@ -462,7 +462,7 @@ export class NakoGen {
                 code += this.convRenbun(node);
                 break;
             case 'not':
-                code += '((' + this._convGen(node.value, true) + ')?0:1)';
+                code += '((' + this._convGen(node.value, true) + ')?false:true)';
                 break;
             case 'func':
             case 'func_pointer':

@@ -57,6 +57,7 @@ export const rules = [
     { name: 'eq', pattern: /^(==|🟰🟰)/ },
     { name: 'eq', pattern: /^(=|🟰)/ },
     { name: 'line_comment', pattern: /^(!|💡)(インデント構文|ここまでだるい|DNCLモード|DNCL2モード|DNCL2)[^\n]*/ },
+    { name: 'not_tf', pattern: /^!!!/ },
     { name: 'not', pattern: /^(!|💡)/ },
     { name: 'gt', pattern: /^>/ },
     { name: 'lt', pattern: /^</ },

@@ -76,6 +76,7 @@ export const rules: NakoLexRule[] = [
   { name: 'eq', pattern: /^(==|🟰🟰)/ },
   { name: 'eq', pattern: /^(=|🟰)/ },
   { name: 'line_comment', pattern: /^(!|💡)(インデント構文|ここまでだるい|DNCLモード|DNCL2モード|DNCL2)[^\n]*/ }, // #1184
+  { name: 'not_tf', pattern: /^!!!/ }, // #1457
   { name: 'not', pattern: /^(!|💡)/ }, // #1184
   { name: 'gt', pattern: /^>/ },
   { name: 'lt', pattern: /^</ },
