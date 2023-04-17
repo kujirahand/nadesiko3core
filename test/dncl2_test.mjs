@@ -214,27 +214,27 @@ describe('dncl2 (core #41)', async () => {
       '', 'Ａ党：3名\nＢ党：1名\nＣ党：2名\nＤ党：0名')
   })
   it('and/or/not', async () => {
-    const TRUE = '1'
-    const FALSE = '0'
+    const TRUE = 'true'
+    const FALSE = 'false'
     await cmp('' +
       '!DNCL2\n' +
       '(not 真)を表示' +
       '\n', FALSE)
     await cmp('' +
       '!DNCL2\n' +
-      '(真 and 真)を表示' +
+      '(true and true)を表示' +
       '\n', TRUE)
     await cmp('' +
       '!DNCL2\n' +
-      '(真 and 偽)を表示' +
+      '(true and false)を表示' +
       '\n', FALSE)
     await cmp('' +
       '!DNCL2\n' +
-      '(真 or 偽)を表示' +
+      '(true or false)を表示' +
       '\n', TRUE)
     await cmp('' +
       '!DNCL2\n' +
-      '(偽 or 偽)を表示' +
+      '(false or false)を表示' +
       '\n', FALSE)
   })
   it('演算子「**」(#1424)', async () => {
