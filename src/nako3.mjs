@@ -652,13 +652,13 @@ export class NakoCompiler {
      * @param nakoGlobal 実行環境
      */
     evalJS(code, nakoGlobal) {
-        // 実行前に環境を初期化するイベントを実行(beforeRun)
-        this.eventList.filter(o => o.eventName === 'beforeRun').map(e => e.callback(nakoGlobal));
         this.__globalObj = nakoGlobal; // 現在のnakoGlobalを記録
         this.__globalObj.lastJSCode = code;
+        // 実行前に環境を初期化するイベントを実行(beforeRun)
+        this.eventList.filter(o => o.eventName === 'beforeRun').map(e => e.callback(nakoGlobal));
         try {
             // eslint-disable-next-line no-new-func
-            const f = new Function(code);
+            const f = new Function(nakoGlobal.lastJSCode);
             f.apply(nakoGlobal);
         }
         catch (err) {

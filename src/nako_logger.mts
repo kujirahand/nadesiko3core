@@ -3,8 +3,9 @@ import { NakoError, NakoRuntimeError } from './nako_errors.mjs'
 import { NakoColors } from './nako_colors.mjs'
 import { Token, Ast } from './nako_types.mjs'
 
-/** ログレベル - 数字が高いほど優先度が高い。 */
-
+/**
+ * ログレベル - 数字が高いほど優先度が高い。
+ */
 export class LogLevel {
   // level no
   public static all = 0

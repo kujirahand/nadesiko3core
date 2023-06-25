@@ -1700,7 +1700,10 @@ export function generateJS(com, ast, opt) {
 // --------------------------------------------------
 // <nadesiko3::gen::async id="${funcID}" times="${gen.numAsyncFn}">
 async function ${asyncMain}(self) {
+  // --- code_begin ---
 ${js}
+  // --- code_end ---
+  // __処理末尾__ // ← テストなどで必要なので消さない
 } // end of ${asyncMain}
 ${asyncMain}.call(self, self)
 .then(() => {
@@ -1725,6 +1728,7 @@ ${asyncMain}.call(self, self)
 function ${syncMain}(self) {
 try {
   ${js}
+  // __処理末尾__ // ← テストなどで必要なので消さない
 } catch (err) {
   if (err.message === '__終わる__') { return }
   self.numFailures++

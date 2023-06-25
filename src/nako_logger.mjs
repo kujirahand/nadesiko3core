@@ -1,8 +1,10 @@
 /** NakoLogger */
 import { NakoError, NakoRuntimeError } from './nako_errors.mjs';
 import { NakoColors } from './nako_colors.mjs';
-/** ログレベル - 数字が高いほど優先度が高い。 */
-export class LogLevel {
+/**
+ * ログレベル - 数字が高いほど優先度が高い。
+ */
+class LogLevel {
     // string to level no
     static fromS(levelStr) {
         let level = LogLevel.trace;
@@ -46,6 +48,7 @@ LogLevel.info = 3;
 LogLevel.warn = 4;
 LogLevel.error = 5;
 LogLevel.stdout = 6;
+export { LogLevel };
 /**
  * エラー位置を日本語で表示する。
  * たとえば `stringifyPosition({ file: "foo.txt", line: 5 })` は `"foo.txt(6行目):"` を出力する。
