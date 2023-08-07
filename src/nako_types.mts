@@ -18,6 +18,7 @@ export interface FuncListItem {
   varnames?: string[];
   funcPointers?: any[];
   asyncFn?: boolean;
+  isExport?: null|boolean;
   // eslint-disable-next-line camelcase
   return_none?: boolean;
   pure?: boolean;
@@ -26,6 +27,8 @@ export interface FuncListItem {
 
 // 関数の一覧
 export type FuncList = {[key: string]: FuncListItem};
+
+export type ExportMap = {[key: string]: boolean};
 
 // トークンのメタ情報
 export interface TokenMeta {
@@ -96,6 +99,7 @@ export interface Ast {
     names?: Ast[];
     args?: Ast[]; // 関数の引数
     asyncFn?: boolean; // 関数の定義
+    isExport?: boolean;
     meta?: any; // 関数の定義
     setter?: boolean; // 関数の定義
     index?: Ast[]; // 配列へのアクセスに利用

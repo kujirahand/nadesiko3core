@@ -2,7 +2,7 @@
  * nadesiko v3
  */
 // types
-import { Token, Ast, FuncList, FuncListItem, FuncArgs, NakoEvent, CompilerOptions, NakoComEventName, NakoDebugOption } from './nako_types.mjs'
+import { Token, Ast, FuncList, FuncListItem, FuncArgs, NakoEvent, CompilerOptions, NakoComEventName, NakoDebugOption, ExportMap } from './nako_types.mjs'
 // parser / lexer
 import { NakoParser } from './nako_parser3.mjs'
 import { NakoLexer } from './nako_lexer.mjs'
@@ -47,6 +47,7 @@ interface DependenciesItem {
   alias: Set<string>;
   addPluginFile: () => void;
   funclist: any;
+  moduleExport: any;
 }
 type Dependencies = { [key:string]:DependenciesItem }
 
@@ -77,6 +78,7 @@ export function newCompilerOptions (initObj: any = {}): CompilerOptions {
 export class NakoCompiler {
   private nakoFuncList: FuncList
   private funclist: FuncList
+  private moduleExport: ExportMap
   private pluginFunclist: Record<string, FuncListItem>
   private pluginfiles: Record<string, any>
   private commandlist: Set<string>
@@ -126,6 +128,7 @@ export class NakoCompiler {
     this.__module = {} // requireなどで取り込んだモジュールの一覧
     this.pluginFunclist = {} // プラグインで定義された関数
     this.funclist = {} // プラグインで定義された関数 + ユーザーが定義した関数
+    this.moduleExport = {}
     this.pluginfiles = {} // 取り込んだファイル一覧
     this.commandlist = new Set() // プラグインで定義された定数・変数・関数の名前
     this.nakoFuncList = {} // __v1に配置するJavaScriptのコードで定義された関数
@@ -153,6 +156,7 @@ export class NakoCompiler {
     this.lexer = new NakoLexer(this.logger)
     // 関数一覧を設定
     this.lexer.setFuncList(this.funclist)
+    this.lexer.setModuleExport(this.moduleExport)
   }
 
   /** モジュール(名前空間)の一覧を取得する */
@@ -250,6 +254,7 @@ export class NakoCompiler {
         const pluginFuncs = res()
         this.addPluginFile(item.value, item.filePath, pluginFuncs, false)
         dependencies[item.filePath].funclist = pluginFuncs
+        dependencies[item.filePath].moduleExport = {}
         dependencies[item.filePath].addPluginFile = () => { this.addPluginFile(item.value, item.filePath, pluginFuncs, false) }
       }))
     }
@@ -265,8 +270,10 @@ export class NakoCompiler {
         const tokens = this.rawtokenize(code, 0, item.filePath)
         dependencies[item.filePath].tokens = tokens
         const funclist = {}
-        NakoLexer.preDefineFunc(cloneAsJSON(tokens), this.logger, funclist)
+        const moduleexport = {}
+        NakoLexer.preDefineFunc(cloneAsJSON(tokens), this.logger, funclist, moduleexport)
         dependencies[item.filePath].funclist = funclist
+        dependencies[item.filePath].moduleExport = moduleexport
         // 再帰
         return loadRec(code, item.filePath, '')
       }
@@ -290,7 +297,7 @@ export class NakoCompiler {
 
         // 初回の読み込み
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        dependencies[item.filePath] = { tokens: [], alias: new Set([item.value]), addPluginFile: ():void => {}, funclist: {} }
+        dependencies[item.filePath] = { tokens: [], alias: new Set([item.value]), addPluginFile: ():void => {}, funclist: {}, moduleExport: {} }
         if (item.type === 'js' || item.type === 'mjs') {
           loadJS(item, tasks)
         } else if (item.type === 'nako3') {
@@ -449,6 +456,10 @@ export class NakoCompiler {
     }
 
     this.lexer.setFuncList(this.funclist)
+
+    this.moduleExport = {}
+    this.lexer.setModuleExport(this.moduleExport)
+
     this.logger.clear()
   }
 
@@ -595,6 +606,9 @@ export class NakoCompiler {
     // 関数リストを字句解析と構文解析に登録
     this.lexer.setFuncList(this.funclist)
     this.parser.setFuncList(this.funclist)
+    // 関数リストを字句解析と構文解析に登録
+    this.lexer.setModuleExport(this.moduleExport)
+    this.parser.setModuleExport(this.moduleExport)
     // 字句解析を行う
     const lexerOutput = this.lex(code, filename, preCode)
 
