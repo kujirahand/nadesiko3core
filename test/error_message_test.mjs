@@ -10,7 +10,7 @@ describe('error_message', () => {
     _nako.reset()
     _nako.logger.debug('code=' + code)
     assert.rejects(
-      async () => await _nako.runAsync(code, path.join(__dirname, 'main.nako3')),
+      () => _nako.runSync(code, path.join(__dirname, 'main.nako3')),
       (err) => {
         assert(err instanceof ErrorClass)
         for (const res of resArr) {
@@ -150,7 +150,7 @@ describe('error_message', () => {
         assert.strictEqual(level, 'error')
         assert.strictEqual(s, '[実行時エラー]main.nako3(2行目): 1')
       })
-      await nako.run('0.0001秒後には\n1のエラー発生\nここまで', 'main.nako3')
+      nako.runAsync('0.0001秒後には\n1のエラー発生\nここまで', 'main.nako3')
     })
   })
   describe('インデント構文のエラー', () => {

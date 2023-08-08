@@ -14,7 +14,7 @@ module.exports = {
         "ecmaVersion": "latest",
         "sourceType": "module",
         "project": "./tsconfig.json",
-        "extraFileExtensions": [".mts", ".mjs"]
+        // "extraFileExtensions": [".mts", ".mjs"]
     },
     "rules": {
         "quote-props": "off", // 重要
@@ -29,6 +29,13 @@ module.exports = {
     },
     "plugins": [
         "@typescript-eslint"
+    ],
+    "ignorePatterns": [
+      "node_modules/",
+      "src/*.mjs",
+      "**/*.js",
+      "command/*.mts",
+      "deno/*.ts"
     ],
     "root": true
 }
