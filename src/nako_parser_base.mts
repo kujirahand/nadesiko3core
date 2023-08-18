@@ -1,5 +1,5 @@
 import { NakoLogger } from './nako_logger.mjs'
-import { FuncList, FuncListItem, Token, Ast, SourceMap, NewEmptyToken } from './nako_types.mjs'
+import { FuncList, FuncListItem, Token, Ast, SourceMap, NewEmptyToken, ExportMap } from './nako_types.mjs'
 
 /**
  * なでしこの構文解析のためのユーティリティクラス
@@ -16,6 +16,7 @@ export class NakoParserBase {
   public modList: string[]
   public funclist: FuncList
   public usedFuncs: Set<string>
+  public moduleExport: ExportMap
   protected funcLevel: number
   protected usedAsyncFn: boolean
   protected localvars: FuncList
@@ -25,6 +26,8 @@ export class NakoParserBase {
   protected flagCheckArrayInit: boolean
   protected recentlyCalledFunc: FuncListItem[]
   protected isReadingCalc: boolean
+  protected isExportDefault: boolean
+  protected isExportStack: boolean[]
 
   constructor (logger: NakoLogger) {
     this.logger = logger
@@ -67,12 +70,17 @@ export class NakoParserBase {
     this.recentlyCalledFunc = []
     // 構文解析に利用する - 現在計算式を読んでいるかどうか
     this.isReadingCalc = false
+    // エクスポート設定が未設定の関数・変数に対する既定値
+    this.isExportDefault = true
+    this.isExportStack = []
+    this.moduleExport = {}
 
     this.init()
   }
 
   init () {
     this.funclist = {} // 関数の一覧
+    this.moduleExport = {}
     this.reset()
   }
 
@@ -86,6 +94,10 @@ export class NakoParserBase {
 
   setFuncList (funclist: FuncList) {
     this.funclist = funclist
+  }
+
+  setModuleExport (moduleexport: ExportMap) {
+    this.moduleExport = moduleexport
   }
 
   /**
@@ -160,7 +172,8 @@ export class NakoParserBase {
     // グローバル変数（モジュールを検索）？
     for (const mod of this.modList) {
       const gname = `${mod}__${name}`
-      if (this.funclist[gname]) {
+      const exportDefault = this.moduleExport[mod]
+      if (this.funclist[gname] && (this.funclist[gname].isExport === true || (this.funclist[gname].isExport !== false && exportDefault !== false))) {
         return {
           name: gname,
           scope: 'global',
