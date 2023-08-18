@@ -1591,9 +1591,9 @@ export class NakoGen {
     let code = ''
     const vtype = node.vartype // 変数 or 定数
     const value = (node.value === null) ? 'null' : this._convGen(node.value, true)
-    this.loopId++
-    const varI = `$nako_i${this.loopId}`
-    code += `${varI}=${value}\n`
+    const id = this.loopId++
+    const varI = `$nako_i${id}`
+    code += `const ${varI}=${value}\n`
     code += `if (!(${varI} instanceof Array)) { ${varI}=[${varI}] }\n`
     const names: Ast[] = (node.names) ? node.names : []
     for (let i = 0; i < names.length; i++) {
