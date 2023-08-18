@@ -322,7 +322,8 @@ export class NakoGen {
                         // eslint-disable-next-line @typescript-eslint/no-empty-function
                         fn: () => { },
                         type: 'func',
-                        asyncFn: t.asyncFn
+                        asyncFn: t.asyncFn,
+                        isExport: t.isExport
                     };
                     funcList.push({ name, node: t });
                     // eslint-disable-next-line brace-style
@@ -748,8 +749,10 @@ export class NakoGen {
                     // eslint-disable-next-line @typescript-eslint/no-empty-function
                     fn: () => { },
                     type: 'func',
-                    asyncFn: false
+                    asyncFn: false,
+                    isExport: null
                 };
+                this.__self.getLogger().warn(`generateで未定義の状態の関数『${name}』が動的に登録されています。`);
             }
         }
         // ブロックを解析

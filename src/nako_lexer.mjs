@@ -21,10 +21,15 @@ export class NakoLexer {
         this.modList = []; // 字句解析した際,取り込むモジュール一覧 --- nako3::lex で更新される
         this.result = [];
         this.modName = 'main.nako3'; // モジュール名
+        this.moduleExport = {};
     }
     /** 関数一覧をセット */
     setFuncList(listObj) {
         this.funclist = listObj;
+    }
+    /** モジュール公開既定値一覧をセット */
+    setModuleExport(exportObj) {
+        this.moduleExport = exportObj;
     }
     /**
      * @param tokens
@@ -35,7 +40,7 @@ export class NakoLexer {
         this.result = tokens;
         this.modName = NakoLexer.filenameToModName(filename);
         // 関数の定義があれば funclist を更新
-        NakoLexer.preDefineFunc(tokens, this.logger, this.funclist);
+        NakoLexer.preDefineFunc(tokens, this.logger, this.funclist, this.moduleExport);
         this._replaceWord(this.result);
         if (isFirst) {
             if (this.result.length > 0) {
@@ -98,7 +103,7 @@ export class NakoLexer {
      * ファイル内で定義されている関数名を列挙する。結果はfunclistに書き込む。その他のトークンの置換処理も行う。
      * シンタックスハイライトの処理から呼び出すためにstaticメソッドにしている。
      */
-    static preDefineFunc(tokens, logger, funclist) {
+    static preDefineFunc(tokens, logger, funclist, moduleexport) {
         // 関数を先読みして定義
         let i = 0;
         let isFuncPointer = false;
@@ -154,6 +159,31 @@ export class NakoLexer {
         while (i < tokens.length) {
             // タイプの置換
             const t = tokens[i];
+            if (t.type === 'not' && tokens.length - i > 3) {
+                let prevToken = { type: 'eol' };
+                if (i >= 1) {
+                    prevToken = tokens[i - 1];
+                }
+                if (prevToken.type === 'eol') {
+                    let nextToken = tokens[i + 1];
+                    if (nextToken.type === 'word' && nextToken.value === 'モジュール公開既定値') {
+                        nextToken.type = 'モジュール公開既定値';
+                        nextToken = tokens[i + 2];
+                        if (nextToken.type === 'string' && nextToken.value === '非公開') {
+                            const modName = NakoLexer.filenameToModName(t.file);
+                            moduleexport[modName] = false;
+                            i += 3;
+                            continue;
+                        }
+                        else if (nextToken.type === 'string' && nextToken.value === '公開') {
+                            const modName = NakoLexer.filenameToModName(t.file);
+                            moduleexport[modName] = true;
+                            i += 3;
+                            continue;
+                        }
+                    }
+                }
+            }
             // 無名関数の定義：「xxには**」があった場合 ... 暗黙的な関数定義とする
             if ((t.type === 'word' && t.josi === 'には') || (t.type === 'word' && t.josi === 'は~')) {
                 t.josi = 'には';
@@ -204,6 +234,28 @@ export class NakoLexer {
             let funcPointers = [];
             let funcName = '';
             let funcNameToken = null;
+            let isExport = null;
+            // 関数の属性指定
+            if (tokens[i] && tokens[i].type === '{') {
+                i++;
+                const attr = tokens[i] && tokens[i].type === 'word' ? tokens[i].value : '';
+                if (attr === '公開') {
+                    isExport = true;
+                }
+                else if (attr === '非公開') {
+                    isExport = false;
+                }
+                else if (attr === 'エクスポート') {
+                    isExport = true;
+                }
+                else {
+                    logger.warn(`不明な関数属性『${attr}』が指定されています。`);
+                }
+                i++;
+                if (tokens[i] && tokens[i].type === '}') {
+                    i++;
+                }
+            }
             // 関数名の前に引数定義
             if (tokens[i] && tokens[i].type === '(') {
                 [josi, varnames, funcPointers] = readArgs();
@@ -233,6 +285,7 @@ export class NakoLexer {
                     josi,
                     fn: null,
                     asyncFn: false,
+                    isExport,
                     varnames,
                     funcPointers
                 };
@@ -266,18 +319,26 @@ export class NakoLexer {
     _replaceWord(tokens) {
         let comment = [];
         let i = 0;
+        const namespaceStack = [];
         const getLastType = () => {
             if (i <= 0) {
                 return 'eol';
             }
             return tokens[i - 1].type;
         };
-        let modSelf = (tokens.length > 0) ? NakoLexer.filenameToModName(tokens[0].file) : 'main.nako3';
+        let modSelf = (tokens.length > 0) ? NakoLexer.filenameToModName(tokens[0].file) : 'main';
         while (i < tokens.length) {
             const t = tokens[i];
             // モジュール名の変更に対応
             if ((t.type === 'word' || t.type === 'func') && t.value === '名前空間設定') {
+                namespaceStack.push(modSelf);
                 modSelf = tokens[i - 1].value;
+            }
+            if ((t.type === 'word' || t.type === 'func') && t.value === '名前空間ポップ') {
+                const space = namespaceStack.pop();
+                if (space) {
+                    modSelf = space;
+                }
             }
             // 関数を強制的に置換( word => func )
             if (t.type === 'word' && t.value !== 'それ') {
@@ -297,7 +358,8 @@ export class NakoLexer {
                     for (const mod of this.modList) {
                         const gname = `${mod}__${funcName}`;
                         const gfo = this.funclist[gname];
-                        if (gfo && gfo.type === 'func') {
+                        const exportDefault = this.moduleExport[mod];
+                        if (gfo && gfo.type === 'func' && (gfo.isExport === true || (gfo.isExport !== false && exportDefault !== false))) {
                             t.type = 'func';
                             t.meta = gfo;
                             t.value = gname;

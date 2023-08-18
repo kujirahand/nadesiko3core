@@ -44,10 +44,15 @@ export class NakoParserBase {
         this.recentlyCalledFunc = [];
         // 構文解析に利用する - 現在計算式を読んでいるかどうか
         this.isReadingCalc = false;
+        // エクスポート設定が未設定の関数・変数に対する既定値
+        this.isExportDefault = true;
+        this.isExportStack = [];
+        this.moduleExport = {};
         this.init();
     }
     init() {
         this.funclist = {}; // 関数の一覧
+        this.moduleExport = {};
         this.reset();
     }
     reset() {
@@ -59,6 +64,9 @@ export class NakoParserBase {
     }
     setFuncList(funclist) {
         this.funclist = funclist;
+    }
+    setModuleExport(moduleexport) {
+        this.moduleExport = moduleexport;
     }
     /**
      * 特定の助詞を持つ要素をスタックから一つ下ろす、指定がなければ末尾を下ろす
@@ -133,7 +141,8 @@ export class NakoParserBase {
         // グローバル変数（モジュールを検索）？
         for (const mod of this.modList) {
             const gname = `${mod}__${name}`;
-            if (this.funclist[gname]) {
+            const exportDefault = this.moduleExport[mod];
+            if (this.funclist[gname] && (this.funclist[gname].isExport === true || (this.funclist[gname].isExport !== false && exportDefault !== false))) {
                 return {
                     name: gname,
                     scope: 'global',
