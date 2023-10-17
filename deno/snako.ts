@@ -1,4 +1,4 @@
-#!/usr/bin/env deno
+#!/usr/bin/env deno run
 import path from 'node:path'
 import com from '../index.mjs'
 import { NakoGlobal } from '../src/nako_global.mjs'
