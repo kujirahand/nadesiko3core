@@ -1,8 +1,8 @@
 // 実際のバージョン定義 (自動生成されるので以下を編集しない)
 const coreVersion = {
-    version: '3.4.21',
+    version: '3.4.23',
     major: 3,
     minor: 4,
-    patch: 21
+    patch: 23
 };
 export default coreVersion;
