@@ -128,9 +128,6 @@ export class NakoParser extends NakoParserBase {
         if (this.accept(['続ける'])) {
             return { type: 'continue', josi: '', ...map, end: this.peekSourceMap() };
         }
-        if (this.accept(['require', 'string', '取込'])) {
-            return this.yRequire();
-        }
         if (this.accept(['not', '非同期モード'])) {
             return this.yASyncMode();
         }
@@ -146,6 +143,8 @@ export class NakoParser extends NakoParserBase {
         if (this.accept(['not', 'モジュール公開既定値', 'eq', 'string'])) {
             return this.yExportDefault(this.y[3].value);
         }
+        // (memo) 現状「取込」はプリプロセス段階(NakoCompiler.listRequireStatements)で処理される
+        // if (this.accept(['require', 'string', '取込'])) { return this.yRequire() }
         // 関数呼び出し演算子
         if (this.check2(['func', '←'])) {
             const word = this.get() || NewEmptyToken();
@@ -225,32 +224,35 @@ export class NakoParser extends NakoParserBase {
     /** @returns {Ast} */
     yExportDefault(mode) {
         const map = this.peekSourceMap();
-        this.isExportDefault = mode === '公開' ? true : false;
+        this.isExportDefault = mode === '公開';
         this.moduleExport[this.modName] = this.isExportDefault;
         return { type: 'eol', ...map, end: this.peekSourceMap() };
     }
-    /** @returns {Ast} */
-    yRequire() {
-        const nameToken = this.y[1];
-        const filename = nameToken.value;
-        const modName = NakoLexer.filenameToModName(filename);
-        if (this.modList.indexOf(modName) < 0) {
-            // 優先度が最も高いのは modList[0]
-            // [memo] モジュールの検索優先度は、下に書くほど高くなる
-            const modSelf = this.modList.shift();
-            if (modSelf) {
-                this.modList.unshift(modName);
-                this.modList.unshift(modSelf);
-            }
+    /*
+    // NakoCompiler.listRequireStatements で実装されているので不要
+    yRequire (): Ast {
+      console.log('@@@yRequire')
+      const nameToken = this.y[1]
+      const filename: string = nameToken.value
+      const modName = NakoLexer.filenameToModName(filename)
+      if (this.modList.indexOf(modName) < 0) {
+        // 優先度が最も高いのは modList[0]
+        // [memo] モジュールの検索優先度は、下に書くほど高くなる
+        const modSelf: string|undefined = this.modList.shift()
+        if (modSelf) {
+          this.modList.unshift(modName)
+          this.modList.unshift(modSelf)
         }
-        return {
-            type: 'require',
-            value: filename,
-            josi: '',
-            ...this.peekSourceMap(),
-            end: this.peekSourceMap()
-        };
+      }
+      return {
+        type: 'require',
+        value: filename,
+        josi: '',
+        ...this.peekSourceMap(),
+        end: this.peekSourceMap()
+      }
     }
+    */
     /** @returns {Ast} */
     yBlock() {
         const map = this.peekSourceMap();

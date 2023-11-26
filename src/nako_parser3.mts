@@ -110,12 +110,13 @@ export class NakoParser extends NakoParserBase {
     if (this.check('逐次実行')) { return this.yTikuji() }
     if (this.accept(['抜ける'])) { return { type: 'break', josi: '', ...map, end: this.peekSourceMap() } }
     if (this.accept(['続ける'])) { return { type: 'continue', josi: '', ...map, end: this.peekSourceMap() } }
-    if (this.accept(['require', 'string', '取込'])) { return this.yRequire() }
     if (this.accept(['not', '非同期モード'])) { return this.yASyncMode() }
     if (this.accept(['DNCLモード'])) { return this.yDNCLMode(1) }
     if (this.accept(['DNCL2モード'])) { return this.yDNCLMode(2) }
     if (this.accept(['not', 'string', 'モード設定'])) { return this.ySetGenMode(this.y[1].value) }
     if (this.accept(['not', 'モジュール公開既定値', 'eq', 'string'])) { return this.yExportDefault(this.y[3].value) }
+    // (memo) 現状「取込」はプリプロセス段階(NakoCompiler.listRequireStatements)で処理される
+    // if (this.accept(['require', 'string', '取込'])) { return this.yRequire() }
 
     // 関数呼び出し演算子
     if (this.check2(['func', '←'])) {
@@ -191,15 +192,17 @@ export class NakoParser extends NakoParserBase {
   /** @returns {Ast} */
   yExportDefault (mode: string): Ast {
     const map = this.peekSourceMap()
-    this.isExportDefault = mode === '公開' ? true : false
+    this.isExportDefault = mode === '公開'
     this.moduleExport[this.modName] = this.isExportDefault
     return { type: 'eol', ...map, end: this.peekSourceMap() }
   }
 
-  /** @returns {Ast} */
+  /*
+  // NakoCompiler.listRequireStatements で実装されているので不要
   yRequire (): Ast {
+    console.log('@@@yRequire')
     const nameToken = this.y[1]
-    const filename = nameToken.value
+    const filename: string = nameToken.value
     const modName = NakoLexer.filenameToModName(filename)
     if (this.modList.indexOf(modName) < 0) {
       // 優先度が最も高いのは modList[0]
@@ -218,6 +221,7 @@ export class NakoParser extends NakoParserBase {
       end: this.peekSourceMap()
     }
   }
+  */
 
   /** @returns {Ast} */
   yBlock (): Ast {
@@ -365,31 +369,31 @@ export class NakoParser extends NakoParserBase {
       a = this.yCall()
     } else
     // チェック : AがBならば --- 「A = B」のとき
-    if (a.josi === 'が') {
-      const tmpI = this.index
-      const b = this.yGetArg()
-      if (!b) {
-        throw NakoSyntaxError.fromNode(
-          'もし文の条件「AがBならば」でBがないか条件が複雑過ぎます。' +
+      if (a.josi === 'が') {
+        const tmpI = this.index
+        const b = this.yGetArg()
+        if (!b) {
+          throw NakoSyntaxError.fromNode(
+            'もし文の条件「AがBならば」でBがないか条件が複雑過ぎます。' +
           this.nodeToStr(this.peek(), { depth: 1 }, false), map)
-      }
-      if (this.check('ならば')) {
-        const naraba = this.get() || { 'value': 'ならば' }
-        b.josi = naraba.value
-      }
-      if (b && (b.josi === 'ならば' || b.josi === 'でなければ')) {
-        return {
-          type: 'op',
-          operator: (b.josi === 'でなければ') ? 'noteq' : 'eq',
-          left: a,
-          right: b,
-          josi: '',
-          ...map,
-          end: this.peekSourceMap()
         }
+        if (this.check('ならば')) {
+          const naraba = this.get() || { 'value': 'ならば' }
+          b.josi = naraba.value
+        }
+        if (b && (b.josi === 'ならば' || b.josi === 'でなければ')) {
+          return {
+            type: 'op',
+            operator: (b.josi === 'でなければ') ? 'noteq' : 'eq',
+            left: a,
+            right: b,
+            josi: '',
+            ...map,
+            end: this.peekSourceMap()
+          }
+        }
+        this.index = tmpI
       }
-      this.index = tmpI
-    }
     // もし文で追加の関数呼び出しがある場合
     if (!this.check('ならば')) {
       this.stack.push(a)

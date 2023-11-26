@@ -131,11 +131,39 @@ export class NakoCompiler {
                 tokens[i + 2].value === '取込')) {
                 continue;
             }
+            // 取り込むライブラリ
+            let filename = tokens[i + 1].value + '';
+            // 『取り込む』文で「拡張プラグイン:」機構を追加する #139
+            // (ex) !『拡張プラグイン:music.js@1.0.2』を取り込む → https://cdn.jsdelivr.net/npm/nadesiko3-music@1.0.2/nadesiko3-music.js
+            if (filename.startsWith('拡張プラグイン:')) {
+                const name = filename.split(':')[1];
+                const m = name.match(/^([a-zA-Z0-9_-]+)\.(js|mjs|nako3)(@[0-9.]+)?$/);
+                if (m) {
+                    let basename = m[1];
+                    const ext = m[2];
+                    const version = m[3] || '@latest';
+                    if (ext === 'js' || ext === 'mjs') {
+                        // JSプラグイン
+                        if (!basename.startsWith('nadesiko3-')) {
+                            basename = `nadesiko3-${basename}`;
+                        }
+                        filename = `https://cdn.jsdelivr.net/npm/${basename}${version}/${basename}.${ext}`;
+                    }
+                    else {
+                        // なでしこ3プラグイン
+                        filename = `https://n3s.nadesi.com/plain/${basename}.${ext}`;
+                    }
+                }
+                else {
+                    throw new NakoImportError('『取込』の指定エラー。『拡張プラグイン:(ファイル名).(js|nako3)(@ver)』の書式で指定してください。', tokens[i].file, tokens[i].line);
+                }
+            }
+            // push
             requireStatements.push({
                 ...tokens[i],
                 start: i,
                 end: i + 3,
-                value: tokens[i + 1].value + '',
+                value: filename,
                 firstToken: tokens[i],
                 lastToken: tokens[i + 2]
             });
