@@ -1177,10 +1177,7 @@ export class NakoParser extends NakoParserBase {
         throw NakoSyntaxError.fromNode('定める『' + word.value + '』の定義エラー', word)
       }
       const attr = attrNode.value
-      if (attr === '公開') { isExport = true }
-      else if (attr === '非公開') { isExport = false }
-      else if (attr === 'エクスポート') { isExport = true }
-      else { this.logger.warn(`不明な変数属性『${attr}』が指定されています。`) }
+      if (attr === '公開') { isExport = true } else if (attr === '非公開') { isExport = false } else if (attr === 'エクスポート') { isExport = true } else { this.logger.warn(`不明な変数属性『${attr}』が指定されています。`) }
       this.get()
     }
     // 変数を生成する
@@ -1494,10 +1491,7 @@ export class NakoParser extends NakoParserBase {
           throw NakoSyntaxError.fromNode('ローカル変数『' + wordToken.value + '』の定義エラー', wordToken)
         }
         const attr = attrNode.value
-        if (attr === '公開') { isExport = true }
-        else if (attr === '非公開') { isExport = false }
-        else if (attr === 'エクスポート') { isExport = true }
-        else { this.logger.warn(`不明な変数属性『${attr}』が指定されています。`) }
+        if (attr === '公開') { isExport = true } else if (attr === '非公開') { isExport = false } else if (attr === 'エクスポート') { isExport = true } else { this.logger.warn(`不明な変数属性『${attr}』が指定されています。`) }
         this.get()
       }
       const word = this.createVar(wordToken, vtype.type === '定数', isExport)
@@ -1534,10 +1528,7 @@ export class NakoParser extends NakoParserBase {
     if (this.accept(['変数', 'word', '{', 'word', '}', 'eq', this.yCalc])) {
       let isExport : boolean = this.isExportDefault
       const attr = this.y[3].value
-      if (attr === '公開') { isExport = true }
-      else if (attr === '非公開') { isExport = false }
-      else if (attr === 'エクスポート') { isExport = true }
-      else { this.logger.warn(`不明な変数属性『${attr}』が指定されています。`) }
+      if (attr === '公開') { isExport = true } else if (attr === '非公開') { isExport = false } else if (attr === 'エクスポート') { isExport = true } else { this.logger.warn(`不明な変数属性『${attr}』が指定されています。`) }
       const word = this.createVar(this.y[1], false, isExport)
       return {
         type: 'def_local_var',
@@ -1565,10 +1556,7 @@ export class NakoParser extends NakoParserBase {
     if (this.accept(['定数', 'word', '{', 'word', '}', 'eq', this.yCalc])) {
       let isExport : boolean = this.isExportDefault
       const attr = this.y[3].value
-      if (attr === '公開') { isExport = true }
-      else if (attr === '非公開') { isExport = false }
-      else if (attr === 'エクスポート') { isExport = true }
-      else { this.logger.warn(`不明な定数属性『${attr}』が指定されています。`) }
+      if (attr === '公開') { isExport = true } else if (attr === '非公開') { isExport = false } else if (attr === 'エクスポート') { isExport = true } else { this.logger.warn(`不明な定数属性『${attr}』が指定されています。`) }
       const word = this.createVar(this.y[1], true, isExport)
       return {
         type: 'def_local_var',
@@ -2124,7 +2112,7 @@ export class NakoParser extends NakoParserBase {
     if (this.funcLevel === 0) {
       // global ?
       if (gname.indexOf('__') < 0) { gname = this.modName + '__' + gname }
-      this.funclist[gname] = { type: typeName, value: '' , isExport }
+      this.funclist[gname] = { type: typeName, value: '', isExport }
       word.value = gname
       return word
     } else {
