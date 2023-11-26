@@ -2002,8 +2002,6 @@ export class NakoParser extends NakoParserBase {
       }
       throw NakoSyntaxError.fromNode('C風関数呼び出しのエラー', f || NewEmptyToken())
     }
-    // 関数呼び出し演算子(core #83)で廃止
-    if (this.check2(['func', '←'])) { throw new Error('関数呼び出し演算子は廃止されました。') }
     // 無名関数(関数オブジェクト)
     if (this.check('def_func')) { return this.yMumeiFunc() }
     // 変数
