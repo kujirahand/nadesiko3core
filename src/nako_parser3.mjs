@@ -145,11 +145,6 @@ export class NakoParser extends NakoParserBase {
         }
         // (memo) 現状「取込」はプリプロセス段階(NakoCompiler.listRequireStatements)で処理される
         // if (this.accept(['require', 'string', '取込'])) { return this.yRequire() }
-        // 関数呼び出し演算子
-        if (this.check2(['func', '←'])) {
-            const word = this.get() || NewEmptyToken();
-            throw NakoSyntaxError.fromNode(`関数代入演算子『←』は廃止されました。『${word.value}←』の部分。`, word);
-        }
         if (this.check2(['func', 'eq'])) {
             const word = this.get() || NewEmptyToken();
             throw NakoSyntaxError.fromNode(`関数『${word.value}』に代入できません。`, word);
