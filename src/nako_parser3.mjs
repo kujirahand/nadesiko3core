@@ -960,6 +960,9 @@ export class NakoParser extends NakoParserBase {
         if (this.check('ここまで')) {
             this.get();
         }
+        else {
+            throw NakoSyntaxError.fromNode('『ここまで』がありません。『間』...『ここまで』を対応させてください。', map);
+        }
         return {
             type: 'while',
             cond,
@@ -1136,6 +1139,9 @@ export class NakoParser extends NakoParserBase {
             block = this.yBlock();
             if (this.check('ここまで')) {
                 this.get();
+            }
+            else {
+                throw NakoSyntaxError.fromNode('『ここまで』がありません。『反復』...『ここまで』を対応させてください。', map);
             }
         }
         else {

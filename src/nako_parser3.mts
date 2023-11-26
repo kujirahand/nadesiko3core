@@ -832,9 +832,12 @@ export class NakoParser extends NakoParserBase {
     if (!this.checkTypes(['ここから', 'eol'])) {
       throw NakoSyntaxError.fromNode('『間』の直後は改行が必要です', map)
     }
-
     const block = this.yBlock()
-    if (this.check('ここまで')) { this.get() }
+    if (this.check('ここまで')) {
+      this.get()
+    } else {
+      throw NakoSyntaxError.fromNode('『ここまで』がありません。『間』...『ここまで』を対応させてください。', map)
+    }
     return {
       type: 'while',
       cond,
@@ -981,7 +984,11 @@ export class NakoParser extends NakoParserBase {
 
     if (multiline) {
       block = this.yBlock()
-      if (this.check('ここまで')) { this.get() }
+      if (this.check('ここまで')) {
+        this.get()
+      } else {
+        throw NakoSyntaxError.fromNode('『ここまで』がありません。『反復』...『ここまで』を対応させてください。', map)
+      }
     } else { block = this.ySentence() }
 
     return {
