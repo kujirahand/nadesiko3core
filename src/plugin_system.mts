@@ -574,7 +574,7 @@ export default {
       return sys.__findVar(name, null)
     }
   },
-  'JS関数実行': { // @JavaScriptの関数NAMEを引数ARGS(配列)で実行する // @JSかんすじっこう
+  'JS関数実行': { // @JavaScriptの関数NAMEを引数ARGS(配列)で実行する // @JSかんすうじっこう
     type: 'func',
     josi: [['を'], ['で']],
     fn: function (name: any, args: any) {
