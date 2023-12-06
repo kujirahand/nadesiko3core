@@ -1616,14 +1616,25 @@ export default {
             } // 配列ならOK
             if (a instanceof Object) {
                 return Object.keys(a).length;
-            }
+            } // オブジェクト
+            if (typeof a === 'string') {
+                return String(a).length;
+            } // 文字列
             return 1;
         }
     },
     '要素数': {
         type: 'func',
         josi: [['の']],
-        pure: false,
+        pure: true,
+        fn: function (a, sys) {
+            return sys.__exec('配列要素数', [a]);
+        }
+    },
+    'LEN': {
+        type: 'func',
+        josi: [['の']],
+        pure: true,
         fn: function (a, sys) {
             return sys.__exec('配列要素数', [a]);
         }

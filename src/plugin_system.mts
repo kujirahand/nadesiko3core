@@ -1548,16 +1548,23 @@ export default {
     pure: true,
     fn: function (a: any) {
       if (a instanceof Array) { return a.length }// 配列ならOK
-
-      if (a instanceof Object) { return Object.keys(a).length }
-
+      if (a instanceof Object) { return Object.keys(a).length } // オブジェクト
+      if (typeof a === 'string') { return String(a).length } // 文字列
       return 1
     }
   },
-  '要素数': { // @配列Aの要素数を返す // @ようそすう
+  '要素数': { // @Aの要素数を返す。Aには配列/辞書型/文字列を指定する。 // @ようそすう
     type: 'func',
     josi: [['の']],
-    pure: false,
+    pure: true,
+    fn: function (a: any, sys: any) {
+      return sys.__exec('配列要素数', [a])
+    }
+  },
+  'LEN': { // @Aの要素数を返す。Aには配列/辞書型/文字列を指定する。 // @LEN
+    type: 'func',
+    josi: [['の']],
+    pure: true,
     fn: function (a: any, sys: any) {
       return sys.__exec('配列要素数', [a])
     }
