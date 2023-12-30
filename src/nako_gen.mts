@@ -689,11 +689,11 @@ export class NakoGen {
     if (node.value) {
       value = this._convGen(node.value, true)
     } else
-    if (this.speedMode.invalidSore === 0) {
-      value = this.varname('それ')
-    } else {
-      return lno + 'return;'
-    }
+      if (this.speedMode.invalidSore === 0) {
+        value = this.varname('それ')
+      } else {
+        return lno + 'return;'
+      }
     if (this.warnUndefinedReturnUserFunc === 0) {
       return lno + `return ${value};`
     } else {
@@ -792,11 +792,11 @@ export class NakoGen {
       if (this.warnUndefinedCalledUserFuncArgs === 0) {
         code += `  ${this.varname(word)} = arguments[${i}];\n`
       } else
-      if (name) {
-        code += `  ${this.varname(word)} = (function(a){if(a===undefined){__self.logger.warn('ユーザ関数(${name})の引数(${this.varname(word)})にundefinedが渡されました',{file:'${node.file}',line:${node.line}});};return a;})(arguments[${i}]);\n`
-      } else {
-        code += `  ${this.varname(word)} = (function(a){if(a===undefined){__self.logger.warn('匿名関数の引数(${this.varname(word)})にundefinedが渡されました',{file:'${node.file}',line:${node.line}});};return a;})(arguments[${i}]);\n`
-      }
+        if (name) {
+          code += `  ${this.varname(word)} = (function(a){if(a===undefined){__self.logger.warn('ユーザ関数(${name})の引数(${this.varname(word)})にundefinedが渡されました',{file:'${node.file}',line:${node.line}});};return a;})(arguments[${i}]);\n`
+        } else {
+          code += `  ${this.varname(word)} = (function(a){if(a===undefined){__self.logger.warn('匿名関数の引数(${this.varname(word)})にundefinedが渡されました',{file:'${node.file}',line:${node.line}});};return a;})(arguments[${i}]);\n`
+        }
       this.varsSet.names.add(word)
     }
     // 関数定義は、グローバル領域で。

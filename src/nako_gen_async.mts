@@ -425,20 +425,20 @@ try {
             type: 'func'
           }
         } else
-        if (t.type === 'speed_mode') {
-          if (t.block.type === 'block') {
-            registFunc(t.block)
-          } else {
-            registFunc(t)
-          }
-        } else
-        if (t.type === 'performance_monitor') {
-          if (t.block.type === 'block') {
-            registFunc(t.block)
-          } else {
-            registFunc(t)
-          }
-        }
+          if (t.type === 'speed_mode') {
+            if (t.block.type === 'block') {
+              registFunc(t.block)
+            } else {
+              registFunc(t)
+            }
+          } else
+            if (t.type === 'performance_monitor') {
+              if (t.block.type === 'block') {
+                registFunc(t.block)
+              } else {
+                registFunc(t)
+              }
+            }
       }
     }
     registFunc(ast)

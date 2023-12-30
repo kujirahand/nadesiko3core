@@ -140,8 +140,7 @@ export class NakoParser extends NakoParserBase {
         this.get() // skip ならば
         // もし文の条件として関数呼び出しがある場合
         return this.yIfThen(map, cond)
-      }
-      else if (RenbunJosi.indexOf(c1.josi || '') >= 0) { // 連文をblockとして接続する(もし構文などのため)
+      } else if (RenbunJosi.indexOf(c1.josi || '') >= 0) { // 連文をblockとして接続する(もし構文などのため)
         if (this.stack.length >= 1) { // スタックの余剰をチェック
           const report = this.makeStackBalanceReport()
           throw NakoSyntaxError.fromNode(report, c1)
@@ -444,7 +443,7 @@ export class NakoParser extends NakoParserBase {
   }
 
   /** @returns {Ast | null} */
-  yIfThen(map: SourceMap, cond: Ast | null): Ast | null {
+  yIfThen (map: SourceMap, cond: Ast | null): Ast | null {
     let trueBlock: Ast | null = null
     let falseBlock: Ast | null = null
     let tanbun = false
@@ -489,7 +488,6 @@ export class NakoParser extends NakoParserBase {
       end: this.peekSourceMap()
     }
   }
-
 
   ySpeedMode (): Ast | null {
     const map: SourceMap = this.peekSourceMap()

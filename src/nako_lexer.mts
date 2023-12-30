@@ -168,22 +168,22 @@ export class NakoLexer {
         let prevToken = { type: 'eol' }
         if (i >= 1) { prevToken = tokens[i - 1] }
         if (prevToken.type === 'eol') {
-          let nextToken = tokens[i + 1];
+          let nextToken = tokens[i + 1]
           if (nextToken.type === 'word' && nextToken.value === 'モジュール公開既定値') {
             nextToken.type = 'モジュール公開既定値'
-            nextToken = tokens[i + 2];
+            nextToken = tokens[i + 2]
             if (nextToken.type === 'string' && nextToken.value === '非公開') {
               const modName = NakoLexer.filenameToModName(t.file)
               moduleexport[modName] = false
-              i+=3
+              i += 3
               continue
             } else
-            if (nextToken.type === 'string' && nextToken.value === '公開') {
-              const modName = NakoLexer.filenameToModName(t.file)
-              moduleexport[modName] = true
-              i+=3
-              continue
-            }
+              if (nextToken.type === 'string' && nextToken.value === '公開') {
+                const modName = NakoLexer.filenameToModName(t.file)
+                moduleexport[modName] = true
+                i += 3
+                continue
+              }
           }
         }
       }
@@ -234,10 +234,7 @@ export class NakoLexer {
       if (tokens[i] && tokens[i].type === '{') {
         i++
         const attr = tokens[i] && tokens[i].type === 'word' ? tokens[i].value : ''
-        if (attr === '公開') { isExport = true }
-        else if (attr === '非公開') { isExport = false }
-        else if (attr === 'エクスポート') { isExport = true }
-        else { logger.warn(`不明な関数属性『${attr}』が指定されています。`) }
+        if (attr === '公開') { isExport = true } else if (attr === '非公開') { isExport = false } else if (attr === 'エクスポート') { isExport = true } else { logger.warn(`不明な関数属性『${attr}』が指定されています。`) }
         i++
         if (tokens[i] && tokens[i].type === '}') { i++ }
       }
