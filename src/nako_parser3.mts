@@ -133,7 +133,15 @@ export class NakoParser extends NakoParserBase {
     // 関数呼び出しの他、各種構文の実装
     if (this.accept([this.yCall])) {
       const c1 = this.y[0]
-      if (RenbunJosi.indexOf(c1.josi || '') >= 0) { // 連文をblockとして接続する(もし構文などのため)
+      const nextToken = this.peek()
+      if (nextToken && nextToken.type === 'ならば') {
+        const map = this.peekSourceMap()
+        const cond = c1
+        this.get() // skip ならば
+        // もし文の条件として関数呼び出しがある場合
+        return this.yIfThen(map, cond)
+      }
+      else if (RenbunJosi.indexOf(c1.josi || '') >= 0) { // 連文をblockとして接続する(もし構文などのため)
         if (this.stack.length >= 1) { // スタックの余剰をチェック
           const report = this.makeStackBalanceReport()
           throw NakoSyntaxError.fromNode(report, c1)
@@ -432,8 +440,13 @@ export class NakoParser extends NakoParserBase {
     if (cond === null) {
       throw NakoSyntaxError.fromNode('『もし』文で条件の指定が空です。', mosi)
     }
-    let trueBlock: Ast|null = null
-    let falseBlock: Ast|null = null
+    return this.yIfThen(map, cond)
+  }
+
+  /** @returns {Ast | null} */
+  yIfThen(map: SourceMap, cond: Ast | null): Ast | null {
+    let trueBlock: Ast | null = null
+    let falseBlock: Ast | null = null
     let tanbun = false
 
     // True Block
@@ -463,7 +476,7 @@ export class NakoParser extends NakoParserBase {
       if (this.check('ここまで')) {
         this.get()
       } else {
-        throw NakoSyntaxError.fromNode('『もし』文で『ここまで』がありません。', mosi)
+        throw NakoSyntaxError.fromNode('『もし』文で『ここまで』がありません。', map)
       }
     }
     return {
@@ -476,6 +489,7 @@ export class NakoParser extends NakoParserBase {
       end: this.peekSourceMap()
     }
   }
+
 
   ySpeedMode (): Ast | null {
     const map: SourceMap = this.peekSourceMap()
