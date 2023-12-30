@@ -41,7 +41,19 @@ console.log(g.log) // ← 「表示」した内容がlogに入っている
 
 ## コマンドラインから実行したい場合
 
-コマンドラインからなでしこのプログラムを実行したい場合には、[nadesiko3](https://github.com/kujirahand/nadesiko3)リポジトリを利用してください。nadesiko3リポジトリには、コマンドライン版のなでしこ(cnako3)が含まれています。
+コマンドラインからなでしこのプログラムを実行したい場合には、[nadesiko3](https://github.com/kujirahand/nadesiko3)リポジトリを利用してください。
+nadesiko3リポジトリには、コマンドライン版のなでしこ(cnako3)が含まれています。
+
+### 簡易版のコマンドラインツールの使い方
+
+```sh
+git clone https://github.com/kujirahand/nadesiko3core.git
+cd nadesiko3core
+# ライブラリのインストール
+npm install
+# パッケージをビルド
+npm run build
+```
 
 なお、本リポジトリにも、[簡易版のコマンドラインツール(snako)](/command/snako.mts)を収録しています。以下は簡単な使い方です。
 
@@ -65,3 +77,13 @@ snako nadesiko3core/sample/hello.nako3
 ## なでしこの内部構造について
 
 なでしこの内部構造の仕組みについては、[こちら](/doc/README.md)に詳しく書かれています。
+
+## 開発時のメモ
+
+新バージョンを`npm publish`する場合、必ず、ビルドしてからpublishすること。
+
+```sh
+# build
+npm run build
+npm publish
+```
