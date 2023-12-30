@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --no-warnings=ExperimentalWarning --loader ts-node/esm
 import fs from 'fs'
 import path from 'path'
 import com from '../index.mjs'
