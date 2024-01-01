@@ -595,6 +595,7 @@ export default {
     type: 'func',
     josi: [],
     asyncFn: true,
+    pure: true,
     fn: async function () {
       // empty
     },
@@ -603,6 +604,7 @@ export default {
   'AWAIT実行': { // @JavaScriptの非同期関数(Promise/async関数)のFを引数ARGSでawait実行する // @JSかんすうAWAIT
     type: 'func',
     josi: [['を'], ['で']],
+    pure: true,
     asyncFn: true,
     fn: async function (f: any, args: any, sys: any) {
       // nameが文字列ならevalして関数を得る

@@ -1435,7 +1435,7 @@ export class NakoGen {
       } else {
         if (funcEnd === '') {
           code = `(${funcDef}(){\n${indent(`${funcBegin};\nreturn ${sorePrefex} ${funcCall}`, 1)}}).call(this)`
-        } else {
+        } else { // つまり、pure=falseの場合
           code = `(${funcDef}(){\n${indent(`${funcBegin}try {\n${indent(`return ${sorePrefex}${funcCall};`, 1)}\n} finally {\n${indent(funcEnd, 1)}}`, 1)}}).call(this)`
         }
       }

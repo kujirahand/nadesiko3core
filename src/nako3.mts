@@ -940,6 +940,9 @@ export class NakoCompiler {
       }
       if (v.type === 'func') {
         __v0[key] = v.fn
+        if (v.asyncFn) { // asyncFn を正しく実行するために pure に変更する (core#142)
+          v.pure = true
+        }
       } else if (v.type === 'const' || v.type === 'var') {
         __v0[key] = v.value
         __v0.meta[key] = {
