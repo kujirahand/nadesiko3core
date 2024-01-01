@@ -215,6 +215,10 @@ export class NakoCompiler {
       // 取り込むライブラリ
       let filename = tokens[i + 1].value + ''
       // 『取り込む』文で「拡張プラグイン:」機構を追加する #139
+      // (ex) !『貯蔵庫:ojyo-sama.nako3』を取り込む → https://n3s.nadesi.com/plain/ojyo-sama.nako3
+      if (filename.startsWith('貯蔵庫:')) {
+        filename = `https://n3s.nadesi.com/plain/${filename.substring(4)}`
+      }
       // (ex) !『拡張プラグイン:music.js@1.0.2』を取り込む → https://cdn.jsdelivr.net/npm/nadesiko3-music@1.0.2/nadesiko3-music.js
       if (filename.startsWith('拡張プラグイン:')) {
         const name = filename.split(':')[1]
