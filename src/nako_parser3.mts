@@ -2053,7 +2053,7 @@ export class NakoParser extends NakoParserBase {
       if (this.accept(['[', this.yCalc, ']'])) {
         ast.index.push(this.checkArrayIndex(this.y[1]))
         ast.josi = this.y[2].josi
-        return true
+        return this.y[2].josi === '' // 助詞があればそこで終了(false)を返す (#1627)
       }
     }
     if (this.check('[')) {
@@ -2064,7 +2064,7 @@ export class NakoParser extends NakoParserBase {
         ]
         ast.index = this.checkArrayReverse(index)
         ast.josi = this.y[4].josi
-        return true
+        return this.y[4].josi === '' // 助詞があればそこで終了(false)を返す
       }
     }
     if (this.check('[')) {
@@ -2076,7 +2076,7 @@ export class NakoParser extends NakoParserBase {
         ]
         ast.index = this.checkArrayReverse(index)
         ast.josi = this.y[6].josi
-        return true
+        return this.y[6].josi === '' // 助詞があればそこで終了(false)を返す
       }
     }
     return false
