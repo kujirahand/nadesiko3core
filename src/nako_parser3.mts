@@ -107,16 +107,17 @@ export class NakoParser extends NakoParserBase {
     if (this.check('もし')) { return this.yIF() }
     if (this.check('後判定')) { return this.yAtohantei() }
     if (this.check('エラー監視')) { return this.yTryExcept() }
-    if (this.check('逐次実行')) { return this.yTikuji() }
     if (this.accept(['抜ける'])) { return { type: 'break', josi: '', ...map, end: this.peekSourceMap() } }
     if (this.accept(['続ける'])) { return { type: 'continue', josi: '', ...map, end: this.peekSourceMap() } }
-    if (this.accept(['not', '非同期モード'])) { return this.yASyncMode() }
     if (this.accept(['DNCLモード'])) { return this.yDNCLMode(1) }
     if (this.accept(['DNCL2モード'])) { return this.yDNCLMode(2) }
     if (this.accept(['not', 'string', 'モード設定'])) { return this.ySetGenMode(this.y[1].value) }
     if (this.accept(['not', 'モジュール公開既定値', 'eq', 'string'])) { return this.yExportDefault(this.y[3].value) }
     // (memo) 現状「取込」はプリプロセス段階(NakoCompiler.listRequireStatements)で処理される
     // if (this.accept(['require', 'string', '取込'])) { return this.yRequire() }
+    // 廃止された構文 #1611
+    if (this.check('逐次実行')) { return this.yTikuji() }
+    if (this.accept(['not', '非同期モード'])) { return this.yASyncMode() }
 
     if (this.check2(['func', 'eq'])) {
       const word: Token = this.get() || NewEmptyToken()
@@ -161,10 +162,10 @@ export class NakoParser extends NakoParserBase {
     return null
   }
 
-  /** @returns {Ast} */
+  /** [廃止] 非同期モード @returns {Ast} */
   yASyncMode (): Ast {
+    this.logger.error('『非同期モード』構文は廃止されました(https://nadesi.com/v3/doc/go.php?1028)。', this.peek())
     const map = this.peekSourceMap()
-    this.genMode = '非同期モード'
     return { type: 'eol', ...map, end: this.peekSourceMap() }
   }
 
@@ -596,65 +597,12 @@ export class NakoParser extends NakoParserBase {
     }
   }
 
-  /** (非推奨) 「逐次実行」構文 @returns {Ast | null} */
+  /** [廃止] #1611 「逐次実行」構文 @returns {Ast | null} */
   yTikuji (): Ast|null {
-    const map = this.peekSourceMap()
     if (!this.check('逐次実行')) { return null }
-    const tikuji = this.getCur() // skip 逐次実行
-    this.logger.warn('『逐次実行』構文の使用は非推奨になりました(https://nadesi.com/v3/doc/go.php?944)。', tikuji)
-    const blocks: Ast[] = []
-    let errorBlock = null
-    if (!tikuji || !this.check('eol')) {
-      throw NakoSyntaxError.fromNode('『逐次実行』の直後は改行が必要です。', tikuji)
-    }
-    // ブロックを読む
-    for (;;) {
-      if (this.check('ここまで')) { break }
-      if (this.check('eol')) {
-        this.get() // skip EOL
-        continue
-      }
-      if (this.check2(['エラー', 'ならば'])) {
-        this.get() // skip エラー
-        this.get() // skip ならば
-        errorBlock = this.yBlock()
-        break
-      }
-      let block = null
-      // 「先に」「次に」句はブロック宣言 #717 (ただしブロック以外も可能)
-      if (this.check('先に') || this.check('次に')) {
-        const tugini = this.get() // skip 先に | 次に
-        if (this.check('comma')) { this.get() }
-        if (this.check('eol')) { // block
-          block = this.yBlock()
-          if (!this.check('ここまで')) {
-            let tuginiType = '次に'
-            if (tugini != null) { tuginiType = tugini.type }
-            throw NakoSyntaxError.fromNode(`『${tuginiType}』...『ここまで』を対応させてください。`, map)
-          }
-          this.get() // skip 'ここまで'
-        } else { // line
-          block = this.ySentence()
-        }
-      } else {
-        block = this.ySentence()
-      }
-      // add block
-      if (block != null) { blocks.push(block) }
-    }
-    if (!this.check('ここまで')) {
-      console.log(blocks, this.peek())
-      throw NakoSyntaxError.fromNode('『逐次実行』...『ここまで』を対応させてください。', tikuji)
-    }
-    this.get() // skip 'ここまで'
-    return {
-      type: 'tikuji',
-      blocks: blocks || [],
-      errorBlock: errorBlock || [],
-      josi: '',
-      ...map,
-      end: this.peekSourceMap()
-    }
+    const tikuji = this.getCur() // skip
+    this.logger.error('『逐次実行』構文は廃止されました(https://nadesi.com/v3/doc/go.php?944)。', tikuji)
+    return { type: 'eol', ...this.peekSourceMap(), end: this.peekSourceMap() }
   }
 
   /**

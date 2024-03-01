@@ -535,9 +535,6 @@ export class NakoGen {
       case 'if':
         code += this.convIf(node)
         break
-      case 'tikuji':
-        code += this.convTikuji(node)
-        break
       case 'for':
         code += this.convFor(node)
         break
@@ -1188,51 +1185,6 @@ export class NakoGen {
       : 'else {' + this._convGen(node.false_block as Ast, false) + '};\n'
     return this.convLineno(node, false) +
       `if (${expr}) {\n  ${block}\n}` + falseBlock + ';\n'
-  }
-
-  convTikuji (node: Ast): string {
-    // #1164 により「逐次実行」構文は近いうちに廃止する
-    const pid = this.loopId++
-    // gen tikuji blocks
-    const curName = `__tikuji${pid}`
-    let code = `const ${curName} = []\n`
-    const blocks: Ast[] = (node.blocks) ? node.blocks : []
-    for (let i = 0; i < blocks.length; i++) {
-      const block = this._convGen(blocks[i], false).replace(/\s+$/, '') + '\n'
-      const blockLineNo = this.convLineno(blocks[i], true)
-      const blockCode =
-        `${curName}.push(async function(resolve, reject) {\n` +
-        '  __self.resolve = resolve;\n' +
-        '  __self.reject = reject;\n' +
-        '  __self.resolveCount = 0;\n' +
-        `  ${blockLineNo}\n` +
-        `  ${block}` +
-        '  if (__self.resolveCount === 0) resolve();\n' +
-        // eslint-disable-next-line no-template-curly-in-string
-        '}); // end of tikuji__${pid}[{$i}]\n'
-      code += blockCode
-    }
-    code += `// end of ${curName} \n`
-    // gen error block
-    let errorCode =
-      `  ${curName}.splice(0);\n` + // clear
-      '  __v0["エラーメッセージ"]=errMsg;\n'
-    if (node.errorBlock != null) {
-      const errBlock = this._convGen(node.errorBlock as Ast, false).replace(/\s+$/, '') + '\n'
-      errorCode += errBlock
-    }
-    code += `const ${curName}__reject = function(errMsg){\n${errorCode}};\n`
-    // gen run block
-    code += '__self.resolve = undefined;\n'
-    code += `const ${curName}__resolve = function(){\n`
-    code += '  setTimeout(async function(){\n'
-    code += `    if (${curName}.length == 0) {return}\n`
-    code += `    const f = ${curName}.shift()\n`
-    code += `    await f(${curName}__resolve, ${curName}__reject);\n`
-    code += '  }, 0);\n'
-    code += '};\n'
-    code += `${curName}__resolve()\n`
-    return this.convLineno(node, false) + code
   }
 
   convFuncGetArgsCalcType (_funcName: string, _func: any, node: Ast): [any, any] {

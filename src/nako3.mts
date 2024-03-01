@@ -8,7 +8,6 @@ import { NakoParser } from './nako_parser3.mjs'
 import { NakoLexer } from './nako_lexer.mjs'
 import { NakoPrepare } from './nako_prepare.mjs'
 import { NakoGen, generateJS, NakoGenOptions, NakoGenResult } from './nako_gen.mjs'
-import { NakoGenASync } from './nako_gen_async.mjs'
 import { convertInlineIndent, convertIndentSyntax } from './nako_indent_inline.mjs'
 import { convertDNCL } from './nako_from_dncl.mjs'
 import { convertDNCL2 } from './nako_from_dncl2.mjs'
@@ -753,10 +752,9 @@ export class NakoCompiler {
     if (mode === 'sync') {
       return generateJS(this, ast, opt)
     }
-    // 非推奨の非同期モード #1164
+    // 廃止の非同期モード #1164
     if (mode === '非同期モード') {
-      this.logger.warn('『!非同期モード』の利用は非推奨です。[詳細](https://github.com/kujirahand/nadesiko3/issues/1164)')
-      return NakoGenASync.generate(this, ast, opt.isTest)
+      this.logger.error('『!非同期モード』は廃止されました。[詳細](https://github.com/kujirahand/nadesiko3/issues/1164)')
     }
     // その他のコードジェネレータ(PHPなど)
     const genObj: any|undefined = this.codeGenerateor[mode]

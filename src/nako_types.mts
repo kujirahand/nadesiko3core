@@ -81,8 +81,6 @@ export interface Ast {
     expr?: Ast[] | Ast; // todo: cond と共通化できそう
     block?: Ast[] | Ast;
     target?: Ast[] | Ast | null; // 反復
-    blocks?: Ast[]; // todo: 逐次実行でのみ使われるので、今後削除可能
-    errorBlock?: Ast[] | Ast; // todo: 逐次実行でのみ使われるので、今後削除可能
     errBlock?: Ast[] | Ast; // todo: エラー監視の中でのみ使われる
     cases?: any[]; // 条件分岐
     operator?: string; // 演算子の場合
