@@ -182,7 +182,7 @@ function cbWordParser (src: string, isTrimOkurigana = true): NakoLexParseResult 
         josi = j[0].replace(/^\s+/, '')
         src = src.substring(j[0].length)
         // 助詞の直後にある「,」を飛ばす #877
-        if (src.charAt(0) === ',') { src = src.substr(1) }
+        if (src.charAt(0) === ',') { src = src.substring(1) }
         break
       }
     }
@@ -216,6 +216,10 @@ function cbWordParser (src: string, isTrimOkurigana = true): NakoLexParseResult 
     josi = ''
     res = res.substring(0, res.length - ii[1].length)
   }
+  // 「もの」構文 #1614
+  if (josi.substring(0, 2) === 'もの') {
+    josi = josi.substring(2)
+  }
   // 助詞「こと」「である」「です」などは「＊＊すること」のように使うので削除 #936 #939 #974
   if (removeJosiMap[josi]) { josi = '' }
 
@@ -236,14 +240,14 @@ function cbString (beginTag: string, closeTag: string, src: string): NakoLexPars
   let res = ''
   let josi = ''
   let numEOL = 0
-  src = src.substr(beginTag.length) // skip beginTag
+  src = src.substring(beginTag.length) // skip beginTag
   const i = src.indexOf(closeTag)
   if (i < 0) { // not found
     res = src
     src = ''
   } else {
-    res = src.substr(0, i)
-    src = src.substr(i + closeTag.length)
+    res = src.substring(0, i)
+    src = src.substring(i + closeTag.length)
     // res の中に beginTag があればエラーにする #953
     if (res.indexOf(beginTag) >= 0) {
       if (beginTag === '『') {
@@ -257,12 +261,16 @@ function cbString (beginTag: string, closeTag: string, src: string): NakoLexPars
   const j = josiRE.exec(src)
   if (j) {
     josi = j[0].replace(/^\s+/, '')
-    src = src.substr(j[0].length)
+    src = src.substring(j[0].length)
     // 助詞の後のカンマ #877
-    if (src.charAt(0) === ',') { src = src.substr(1) }
+    if (src.charAt(0) === ',') { src = src.substring(1) }
   }
   // 助詞「こと」「である」「です」などは「＊＊すること」のように使うので削除 #936 #939 #974
   if (removeJosiMap[josi]) { josi = '' }
+  // 「もの」構文 (#1614)
+  if (josi.substring(0, 2) === 'もの') {
+    josi = josi.substring(2)
+  }
 
   // 改行を数える
   for (let i = 0; i < res.length; i++) { if (res.charAt(i) === '\n') { numEOL++ } }

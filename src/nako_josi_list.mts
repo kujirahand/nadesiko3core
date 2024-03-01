@@ -17,7 +17,7 @@ export const tararebaJosiList: string[] = [
 
 // 意味のない助詞(削除する) #936 #939 #974
 export const removeJosiList: string[] = [
-  'こと', 'である', 'です', 'します', 'でした'
+  'こと', 'である', 'です', 'します', 'でした',
 ]
 
 /**
@@ -38,8 +38,16 @@ removeJosiList.forEach(josi => {
   removeJosiMap[josi] = true
 })
 
+// 「もの」構文 (#1614)
+const josiListMono = []
+for (const jo of josiList) {
+  josiListMono.push('もの' + jo)
+  josiListMono.push(jo)
+}
+
 // 文字数の長い順に並び替え
-josiList.sort((a, b) => b.length - a.length)
+josiListMono.sort((a, b) => b.length - a.length)
 
 // 正規表現で助詞をマッチできるようにする
-export const josiRE = new RegExp('^[\\t ]*(' + josiList.join('|') + ')')
+const pat = '^[\\t ]*(' + josiListMono.join('|') + ')'
+export const josiRE = new RegExp(pat)

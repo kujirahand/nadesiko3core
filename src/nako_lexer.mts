@@ -615,10 +615,11 @@ export class NakoLexer {
 
         let josi = ''
         if (rule.readJosi) {
+          // 正規表現で助詞があるか読み取る
           const j = josiRE.exec(src)
           if (j) {
-            josi = j[0].replace(/^\s+/, '')
             column += j[0].length
+            josi = j[0].replace(/^\s+/, '')
             src = src.substring(j[0].length)
             // 助詞の直後にあるカンマを無視 #877
             if (src.charAt(0) === ',') {
@@ -626,6 +627,10 @@ export class NakoLexer {
             }
             // 「＊＊である」なら削除 #939 #974
             if (removeJosiMap[josi]) { josi = '' }
+            // 「もの」構文 (#1614)
+            if (josi.substring(0, 2) === 'もの') {
+              josi = josi.substring(2)
+            }
           }
         }
 
