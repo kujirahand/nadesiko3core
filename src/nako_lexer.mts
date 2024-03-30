@@ -304,6 +304,7 @@ export class NakoLexer {
   _replaceWord (tokens: Token[]): void {
     let comment = []
     let i = 0
+    let isFuncPointer = false
     const namespaceStack = []
     const getLastType = () => {
       if (i <= 0) { return 'eol' }
@@ -314,10 +315,28 @@ export class NakoLexer {
       const t = tokens[i]
       // モジュール名の変更に対応
       if ((t.type === 'word' || t.type === 'func') && t.value === '名前空間設定') {
+        if (isFuncPointer) {
+          throw new InternalLexerError(
+            '名前空間設定の関数参照を取得することはできません。',
+            t.startOffset === undefined ? 0 : t.startOffset,
+            t.endOffset === undefined ? 0 : t.endOffset,
+            t.line,
+            t.file
+          )
+        }
         namespaceStack.push(modSelf)
         modSelf = tokens[i - 1].value
       }
       if ((t.type === 'word' || t.type === 'func') && t.value === '名前空間ポップ') {
+        if (isFuncPointer) {
+          throw new InternalLexerError(
+            '名前空間ポップの関数参照を取得することはできません。',
+            t.startOffset === undefined ? 0 : t.startOffset,
+            t.endOffset === undefined ? 0 : t.endOffset,
+            t.line,
+            t.file
+          )
+        }
         const space = namespaceStack.pop()
         if (space) { modSelf = space }
       }
@@ -330,9 +349,13 @@ export class NakoLexer {
           const gname1 = `${modSelf}__${funcName}`
           const gfo1 = this.funclist[gname1]
           if (gfo1 && gfo1.type === 'func') {
-            t.type = 'func'
+            t.type = isFuncPointer ? 'func_pointer' : 'func'
             t.meta = gfo1
             t.value = gname1
+            if (isFuncPointer) {
+              isFuncPointer = false
+              tokens.splice(i - 1, 1)
+            }
             continue
           }
           // モジュール関数を置換
@@ -341,19 +364,38 @@ export class NakoLexer {
             const gfo = this.funclist[gname]
             const exportDefault = this.moduleExport[mod]
             if (gfo && gfo.type === 'func' && (gfo.isExport === true || (gfo.isExport !== false && exportDefault !== false))) {
-              t.type = 'func'
+              t.type = isFuncPointer ? 'func_pointer' : 'func'
               t.meta = gfo
               t.value = gname
+              if (isFuncPointer) {
+                isFuncPointer = false
+                tokens.splice(i - 1, 1)
+              }
               break
             }
           }
-          if (t.type === 'func') { continue }
+          if (t.type === 'func' || t.type === 'func_pointer') { continue }
         }
         const fo = this.funclist[funcName]
         if (fo && fo.type === 'func') {
-          t.type = 'func'
+          t.type = isFuncPointer ? 'func_pointer' : 'func'
           t.meta = fo
+          if (isFuncPointer) {
+            isFuncPointer = false
+            tokens.splice(i - 1, 1)
+            continue
+          }
         }
+      }
+      // 関数ポインタの前置詞を検出
+      if (isFuncPointer) {
+        // 無効な関数参照の指定がある。
+      }
+      isFuncPointer = false
+      if (t.type === 'func' && t.value === '{関数}') {
+        i++
+        isFuncPointer = true
+        continue
       }
       // 数字につくマイナス記号を判定
       // (ng) 5 - 3 || word - 3
