@@ -1967,6 +1967,9 @@ export class NakoParser extends NakoParserBase {
     // 変数
     const word = this.yValueWord()
     if (word) { return word }
+    // 関数への参照
+    const func_pointer = this.yValueFuncPointer()
+    if (func_pointer) { return func_pointer }
     // その他
     return null
   }
@@ -2028,6 +2031,23 @@ export class NakoParser extends NakoParserBase {
       }
     }
     return false
+  }
+
+  /** @returns {Ast | null} */
+  yValueFuncPointer (): Ast|null {
+    const map = this.peekSourceMap()
+    if (this.check('func_pointer')) {
+      const t = this.getCur()
+      const ast:Ast = {
+        type: 'func_pointer',
+        name: t.value,
+        josi: t.josi,
+        ...map,
+        end: this.peekSourceMap()
+      }
+      return ast
+    }
+    return null
   }
 
   /** @returns {Ast | null} */
