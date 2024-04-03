@@ -846,6 +846,7 @@ export class NakoParser extends NakoParserBase {
   /** @returns {Ast | null} */
   yFor (): Ast|null {
     let flagDown = true // AからBまでの時、A>=Bを許容するかどうか
+    let loopDirection : null | 'up' | 'down' = null // ループの方向を一方向に限定する
     const map = this.peekSourceMap()
     if (this.check('繰返') || this.check('増繰返') || this.check('減繰返')) {
       // pass
@@ -868,6 +869,7 @@ export class NakoParser extends NakoParserBase {
     if (kurikaesu.type === '増繰返' || kurikaesu.type === '減繰返') {
       vInc = this.popStack(['ずつ'])
       if (kurikaesu.type === '増繰返') { flagDown = false }
+      loopDirection = kurikaesu.type === '増繰返' ? 'up' : 'down'
     }
     const vTo = this.popStack(['まで'])
     const vFrom = this.popStack(['から'])
@@ -900,6 +902,7 @@ export class NakoParser extends NakoParserBase {
       to: vTo,
       inc: vInc,
       flagDown,
+      loopDirection,
       word,
       block: block || [],
       josi: '',

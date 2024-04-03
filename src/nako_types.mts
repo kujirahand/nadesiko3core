@@ -93,6 +93,7 @@ export interface Ast {
     inc?: Ast[] | Ast | null | string; // for
     word?: Ast | Token | null; // for
     flagDown?: boolean; // for
+    loopDirection?: null | 'up' | 'down'; // for
     name?: Token | Ast | null | string;
     names?: Ast[];
     args?: Ast[]; // 関数の引数
