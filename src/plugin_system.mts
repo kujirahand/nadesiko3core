@@ -239,7 +239,7 @@ export default {
       s = sys.__printPool + s
       sys.__printPool = ''
       //
-      sys.__varslist[0]['表示ログ'] += (s + '\n')
+      sys.__setSysVar('表示ログ', sys.__getSysVar('表示ログ') + s + '\n')
       sys.logger.send('stdout', s + '')
     },
     return_none: true
@@ -283,7 +283,7 @@ export default {
     josi: [],
     pure: true,
     fn: function (sys: any) {
-      sys.__varslist[0]['表示ログ'] = ''
+      sys.__setSysVar('表示ログ', '')
     },
     return_none: true
   },
@@ -653,13 +653,13 @@ export default {
       if (sys.__genMode === '非同期モード') {
         throw new Error('非同期モードでは「ナデシコ」は利用できません。')
       }
-      sys.__varslist[0]['表示ログ'] = ''
+      sys.__setSysVar('表示ログ', '')
       sys.__self.runEx(code, sys.__modName, { resetEnv: false, resetLog: true })
-      const out = sys.__varslist[0]['表示ログ'] + ''
-      if (out) {
-        sys.logger.trace(out)
+      const outLog = sys.__getSysVar('表示ログ') + ''
+      if (outLog) {
+        sys.logger.trace(outLog)
       }
-      return out
+      return outLog
     }
   },
   'ナデシコ続': { // @なでしこのコードCODEを実行する // @なでしこつづける
@@ -670,7 +670,7 @@ export default {
         throw new Error('非同期モードでは「ナデシコ続」は利用できません。')
       }
       sys.__self.runEx(code, sys.__modName, { resetEnv: false, resetAll: false })
-      const out = sys.__varslist[0]['表示ログ'] + ''
+      const out = sys.__getSysVar('表示ログ') + ''
       if (out) {
         sys.logger.trace(out)
       }
@@ -1412,8 +1412,8 @@ export default {
       const f = ('' + b).match(/^\/(.+)\/([a-zA-Z]*)$/)
       // パターンがない場合
       if (f === null) { re = new RegExp(b, 'g') } else { re = new RegExp(f[1], f[2]) }
-
-      const sa: any[] = sys.__varslist[0]['抽出文字列'] = []
+      const sa: any[] = sys.__getSysVar('抽出文字列')
+      sa.splice(0, sa.length) // clear
       const m = String(a).match(re)
       let result: any = m
       if (re.global) {
@@ -2251,7 +2251,7 @@ export default {
         } catch (e: any) {
           let err = e
           if (!(e instanceof NakoRuntimeError)) {
-            err = new NakoRuntimeError(e, sys.__varslist[0].line)
+            err = new NakoRuntimeError(e, sys.__getSysVar('__line'))
           }
           sys.logger.error(err)
         }
@@ -2693,7 +2693,8 @@ export default {
     pure: true,
     fn: function (s: any) {
       throw new Error(s)
-    }
+    },
+    return_none: true
   },
   '__DEBUG': { // @デバッグモードにする // @__DEBUG
     type: 'func',
@@ -2741,10 +2742,8 @@ export default {
     fn: function (sys: any) {
       const vars: any = sys.__varslist[1]
       const res: string[] = []
-      for (const key in vars) {
-        if (Object.prototype.hasOwnProperty.call(vars, key)) {
-          res.push(key)
-        }
+      for (const key of vars.keys()) {
+        res.push(key)
       }
       return res
     }
@@ -2756,10 +2755,9 @@ export default {
     fn: function (sys: any) {
       const vars: any = sys.__varslist[0]
       const res: string[] = []
-      for (const key in vars) {
-        if (Object.prototype.hasOwnProperty.call(vars, key)) {
-          res.push(key)
-        }
+      for (const key of vars.keys()) {
+        if (key.startsWith('__') || key.startsWith('!') || key === 'meta') { continue }
+        res.push(key)
       }
       return res
     }

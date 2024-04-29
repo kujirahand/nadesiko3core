@@ -2,10 +2,12 @@
 import assert from 'assert'
 import { NakoCompiler } from '../src/nako3.mjs'
 
-describe('variable_scope_test', () => {
+describe('variable_scope_test', async () => {
   const cmp = async (/** @type {string} */ code, /** @type {string} */ res) => {
     const nako = new NakoCompiler()
-    assert.strictEqual((await nako.runAsync(code)).log, res)
+    const realResult = (await nako.runAsync(code)).log
+    console.log('@@@', realResult)
+    assert.strictEqual(realResult, res)
   }
 
   it('関数内からグローバル変数へ代入', async () => {
