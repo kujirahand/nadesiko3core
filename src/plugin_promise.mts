@@ -7,7 +7,7 @@ export default {
       if (sys.__promise == null) {
         sys.__promise = {
           setLastPromise: function (promise: any) {
-            sys.__v0['そ'] = promise
+            sys.__setSysVar('そ', promise)
             return promise
           }
         }
@@ -34,7 +34,7 @@ export default {
     pure: true,
     fn: function (callback: any, promise: any, sys: any) {
       return sys.__promise.setLastPromise(promise.then((result:any) => {
-        sys.__v0['対象'] = result
+        sys.__setSysVar('対象', result)
         return callback(result)
       }))
     },
@@ -46,10 +46,10 @@ export default {
     pure: true,
     fn: function (cbFunc: any, promise: any, sys: any): any {
       return sys.__promise.setLastPromise(promise.then((result: any) => {
-        sys.__v0['対象'] = result
+        sys.__setSysVar('対象', result)
         return cbFunc(true, result, sys)
       }, (reason: any) => {
-        sys.__v0['対象'] = reason
+        sys.__setSysVar('対象', reason)
         return cbFunc(false, reason, sys)
       }))
     },
@@ -61,7 +61,7 @@ export default {
     pure: true,
     fn: function (callback: any, promise: any, sys: any): any {
       return sys.__promise.setLastPromise(promise.catch((err: any) => {
-        sys.__v0['対象'] = err
+        sys.__setSysVar('対象', err)
         return callback(err)
       }))
     },

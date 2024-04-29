@@ -77,6 +77,24 @@ export class NakoGlobal {
   }
 
   /**
+   * システム変数を設定する
+   * @param name システム変数名
+   * @param value 設定したい値
+   */
+  __setSysVar (name: string, value: any) {
+    this.__varslist[0].set(name, value)
+  }
+
+  /**
+   * システム変数を取得する
+   * @param name システム変数名
+   * @returns システム変数の値
+   */
+  __getSysVar (name: string): any {
+    return this.__varslist[0].get(name)
+  }
+
+  /**
    * 「ナデシコ」命令のためのメソッド
    */
   runEx (code: string, fname: string, opts: CompilerOptions, preCode = ''): NakoGlobal {

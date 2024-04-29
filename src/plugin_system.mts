@@ -5,9 +5,9 @@ export default {
     type: 'const',
     value: {
       pluginName: 'plugin_system', // プラグインの名前
-      pluginVersion: '3.4.5', // プラグインのバージョン
+      pluginVersion: '3.6.0', // プラグインのバージョン
       nakoRuntime: ['wnako', 'cnako', 'phpnako'], // 対象ランタイム
-      nakoVersion: '^3.4.5' // 要求なでしこバージョン
+      nakoVersion: '^3.6.0' // 要求なでしこバージョン
     }
   },
   '初期化': {
@@ -17,18 +17,26 @@ export default {
     fn: function (sys: any) {
       // 言語バージョンを設定
       sys.isDebug = false
-      sys.__v0['ナデシコバージョン'] = sys.version
-      sys.__v0['ナデシコ言語バージョン'] = sys.coreVersion
+      // システム変数にアクセスするための関数を定義
+      sys.__setSysVar = (name: string, value: any) => sys.__v0.set(name, value)
+      sys.__getSysVar = (name: string) => sys.__v0.get(name)
+      sys.__setSore = (v: any) => { sys.__vars.set('それ', v); return v }
+      // バージョン番号を設定
+      sys.__setSysVar('ナデシコバージョン', sys.version)
+      sys.__setSysVar('ナデシコ言語バージョン', sys.coreVersion)
       sys.__namespaceList = []
       // なでしこの関数や変数を探して返す
       sys.__findVar = function (nameStr: any, def: any): any {
         if (typeof nameStr === 'function') { return nameStr }
-        if (sys.__locals[nameStr]) { return sys.__locals[nameStr] }
+        // ローカル変数を探す
+        const localVar = sys.__locals.get(nameStr)
+        if (localVar) { return localVar }
         // 名前空間が指定されている場合
         if (nameStr.indexOf('__') >= 0) {
           for (let i = 2; i >= 0; i--) {
             const varScope = sys.__varslist[i]
-            if (varScope[nameStr]) { return varScope[nameStr] }
+            const scopeValue = varScope.get(nameStr)
+            if (scopeValue) { return scopeValue }
           }
           return def
         }
@@ -38,7 +46,8 @@ export default {
           const gname = modName + '__' + nameStr
           for (let i = 2; i >= 0; i--) {
             const scope = sys.__varslist[i]
-            if (scope[gname]) { return scope[gname] }
+            const scopeValue = scope.get(gname)
+            if (scopeValue) { return scopeValue }
           }
         }
         return def
@@ -52,7 +61,7 @@ export default {
       // システム関数を実行
       sys.__exec = function (func: string, params: any[]): any {
         // システム命令を優先
-        const f0 = sys.__v0[func]
+        const f0 = sys.__getSysVar(func)
         if (f0) { return f0.apply(this, params) }
         // グローバル・ローカルを探す
         const f = sys.__findVar(func)
@@ -145,7 +154,7 @@ export default {
     fn: function (sys: any) {
       if (sys.__exec) { sys.__exec('全タイマー停止', [sys]) }
       if (sys.__genMode === '非同期モード') { sys.__stopAsync(sys) }
-      sys.__v0['表示ログ'] = ''
+      sys.__setSysVar('表示ログ', '')
     }
   },
 
@@ -713,8 +722,8 @@ export default {
     pure: true,
     fn: function (sys: any) {
       // デバッグモードでなければ例外を投げることでプログラムを終了させる
-      sys.__v0.forceClose = true
-      if (!sys.__v0.useDebug) { throw new Error('__終わる__') }
+      sys.__setSysVar('forceClose', true)
+      if (!sys.__getSysVar('useDebug')) { throw new Error('__終わる__') }
     }
   },
 
@@ -1141,10 +1150,10 @@ export default {
       s = String(s)
       const i = s.indexOf(a)
       if (i < 0) {
-        sys.__v0['対象'] = ''
+        sys.__setSysVar('対象', '')
         return s
       }
-      sys.__v0['対象'] = s.substring(i + a.length)
+      sys.__setSysVar('対象', s.substring(i + a.length))
       return s.substring(0, i)
     }
   },
@@ -1288,10 +1297,10 @@ export default {
     pure: true,
     fn: function (s: string, sys: any) {
       // 半角カタカナ
-      const zen1 = sys.__v0['全角カナ一覧']
-      const han1 = sys.__v0['半角カナ一覧']
-      const zen2 = sys.__v0['全角カナ濁音一覧']
-      const han2 = sys.__v0['半角カナ濁音一覧']
+      const zen1 = sys.__getSysVar('全角カナ一覧')
+      const han1 = sys.__getSysVar('半角カナ一覧')
+      const zen2 = sys.__getSysVar('全角カナ濁音一覧')
+      const han2 = sys.__getSysVar('半角カナ濁音一覧')
       let str = ''
       let i = 0
       while (i < s.length) {
@@ -1323,10 +1332,10 @@ export default {
     pure: true,
     fn: function (s: string, sys: any) {
       // 半角カタカナ
-      const zen1 = sys.__v0['全角カナ一覧']
-      const han1 = sys.__v0['半角カナ一覧']
-      const zen2 = sys.__v0['全角カナ濁音一覧']
-      const han2 = sys.__v0['半角カナ濁音一覧']
+      const zen1 = sys.__getSysVar('全角カナ一覧')
+      const han1 = sys.__getSysVar('半角カナ一覧')
+      const zen2 = sys.__getSysVar('全角カナ濁音一覧')
+      const han2 = sys.__getSysVar('半角カナ濁音一覧')
       return s.split('').map((c) => {
         const i = zen1.indexOf(c)
         if (i >= 0) {
@@ -2248,7 +2257,7 @@ export default {
         }
       }, parseFloat(n) * 1000)
       sys.__timeout.unshift(timerId)
-      sys.__v0['対象'] = timerId
+      sys.__setSysVar('対象', timerId)
       return timerId
     }
   },
@@ -2266,7 +2275,7 @@ export default {
       }, parseFloat(n) * 1000)
       // タイマーIDを追加
       sys.__interval.unshift(timerId)
-      sys.__v0['対象'] = timerId
+      sys.__setSysVar('対象', timerId)
       return timerId
     }
   },
@@ -2509,7 +2518,7 @@ export default {
     fn: function (s: string, sys: any) {
       const d = sys.__str2date(s)
       const t = d.getTime()
-      for (const era of sys.__v0['元号データ']) {
+      for (const era of sys.__getSysVar('元号データ')) {
         const gengo = era['元号']
         const d2 = sys.__str2date(era['改元日'])
         const t2 = d2.getTime()
@@ -2705,16 +2714,16 @@ export default {
     asyncFn: true,
     fn: function (curLine: number, sys: any) {
       return new Promise((resolve) => {
-        const breakpoints = sys.__v0['__DEBUGブレイクポイント一覧']
-        const forceLine = sys.__v0['__DEBUG強制待機']
-        sys.__v0['__DEBUG強制待機'] = 0
+        const breakpoints = sys.__getSysVar('__DEBUGブレイクポイント一覧')
+        const forceLine = sys.__getSysVar('__DEBUG強制待機')
+        sys.__setSysVar('__DEBUG強制待機', 0)
         // ブレイクポイント or __DEBUG強制待機 が指定されたか？
         if (breakpoints.indexOf(curLine) >= 0 || forceLine) {
-          if (sys.__v0['プラグイン名'] !== 'メイン') { return } // 現状メインのみデバッグする
+          if (sys.__setSysVar('プラグイン名') !== 'メイン') { return } // 現状メインのみデバッグする
           console.log(`@__DEBUG_BP_WAIT(${curLine})`)
           const timerId = setInterval(() => {
-            if (sys.__v0['__DEBUG待機フラグ'] === 1) {
-              sys.__v0['__DEBUG待機フラグ'] = 0
+            if (sys.__getSysVar('__DEBUG待機フラグ') === 1) {
+              sys.__setSysVar('__DEBUG待機フラグ', 0)
               clearInterval(timerId)
               resolve(curLine)
             }
@@ -2760,7 +2769,7 @@ export default {
     josi: [['が', 'の']],
     pure: true,
     fn: function (fname: string, sys: any) {
-      return (typeof sys.__v0[fname] !== 'undefined')
+      return (typeof sys.__getSysVar(fname) !== 'undefined')
     }
   },
   'プラグイン一覧取得': { // @利用中のプラグイン一覧を得る // @ぷらぐいんいちらんしゅとく
@@ -2833,7 +2842,7 @@ export default {
     josi: [['に', 'へ']],
     pure: true,
     fn: function (s: string, sys: any) {
-      sys.__v0['プラグイン名'] = s
+      sys.__setSysVar('プラグイン名', s)
     },
     return_none: true
   },
@@ -2844,8 +2853,8 @@ export default {
     pure: true,
     fn: function (s: string, sys: any) {
       // push namespace
-      sys.__namespaceList.push([sys.__v0['名前空間'], sys.__v0['プラグイン名']])
-      sys.__v0['名前空間'] = s
+      sys.__namespaceList.push([sys.__getSysVar('名前空間'), sys.__getSysVar('プラグイン名')])
+      sys.__setSysVar('名前空間', s)
     },
     return_none: true
   },
@@ -2857,8 +2866,8 @@ export default {
       // pop namespace
       const a = sys.__namespaceList.pop()
       if (a) {
-        sys.__v0['名前空間'] = a[0]
-        sys.__v0['プラグイン名'] = a[1]
+        sys.__setSysVar('名前空間', a[0])
+        sys.__setSysVar('プラグイン名', a[1])
       }
     },
     return_none: true

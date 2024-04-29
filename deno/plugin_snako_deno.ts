@@ -21,10 +21,10 @@ export default {
         if (cmd.indexOf('snako') < 0) { nakofile = args[1] } else { nakofile = args[2] }
         return path.dirname(path.resolve(nakofile))
       }
-      sys.__v0['コマンドライン'] = args
-      sys.__v0['ナデシコランタイムパス'] = args[0]
-      sys.__v0['ナデシコランタイム'] = path.basename(args[0])
-      sys.__v0['母艦パス'] = sys.__getBokanPath()
+      sys.__setSysVar('コマンドライン', args)
+      sys.__setSysVar('ナデシコランタイムパス', args[0])
+      sys.__setSysVar('ナデシコランタイム', path.basename(args[0]))
+      sys.__setSysVar('母艦パス', sys.__getBokanPath())
     }
   },
   // @SNAKO

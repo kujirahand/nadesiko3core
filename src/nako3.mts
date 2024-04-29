@@ -116,9 +116,9 @@ export class NakoCompiler {
     this.__varslist = [new Map(), new Map(), new Map()] // このオブジェクトは変更しないこと (this.gen.__varslist と共有する)
     this.__locals = new Map() // ローカル変数
     this.__self = this
-    this.__vars = this.__varslist[2]
-    this.__v0 = this.__varslist[0]
-    this.__v1 = this.__varslist[1]
+    this.__vars = this.__varslist[2] // alias of __varslist[2]
+    this.__v1 = this.__varslist[1] // alias of __varslist[1]
+    this.__v0 = this.__varslist[0] // alias of __varslist[0]
     // バージョンを設定
     this.version = coreVersion.version
     this.coreVersion = coreVersion.version
@@ -469,14 +469,14 @@ export class NakoCompiler {
      * __varslist[2] 最初のローカル変数 ( == __vars }
      */
     this.__varslist = [this.__varslist[0], new Map(), new Map()]
-    this.__v0 = this.__varslist[0]
-    this.__v1 = this.__varslist[1]
-    this.__vars = this.__varslist[2]
+    this.__v0 = this.__varslist[0] // alias of __varslist[0]
+    this.__v1 = this.__varslist[1] // alias of __varslist[1]
+    this.__vars = this.__varslist[2] // alias of __varslist[2]
     this.__locals = new Map()
 
     // プラグイン命令以外を削除する。
     this.funclist = new Map()
-    for (const name of Object.keys(this.__v0)) {
+    for (const name of this.__v0.keys()) {
       const original = this.pluginFunclist[name]
       if (!original) {
         continue
@@ -791,7 +791,8 @@ export class NakoCompiler {
   clearPlugins () {
     // 他に実行している「なでしこ」があればクリアする
     this.__globals.forEach((sys: NakoGlobal) => {
-      sys.__varslist[0].set('forceClose', true) // core #56
+      // core #56
+      sys.__setSysVar('forceClose', true)
       sys.reset()
     })
     this.__globals = [] // clear
@@ -850,11 +851,11 @@ export class NakoCompiler {
   public async runAsync (code: string, filename: string, options: CompilerOptions|undefined = undefined): Promise<NakoGlobal> {
     // コンパイル
     options = newCompilerOptions(options)
-    const out = this.compileFromCode(code, filename, options)
+    const compiledCode = this.compileFromCode(code, filename, options)
     // 実行前に環境を生成
-    const nakoGlobal = this.getNakoGlobal(options, out.gen, filename)
+    const nakoGlobal = this.getNakoGlobal(options, compiledCode.gen, filename)
     // 実行
-    this.evalJS(out.runtimeEnv, nakoGlobal)
+    this.evalJS(compiledCode.runtimeEnv, nakoGlobal)
     return nakoGlobal
   }
 

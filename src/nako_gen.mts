@@ -237,8 +237,8 @@ export class NakoGen {
       // end
       debugCode += 'if (__v0.get(\'forceClose\')) { return - 1 };'
     }
-    // 例: __v0.line='l1:main.nako3'
-    return `__v0.line=${lineDataJSON};` + debugCode
+    // 例: __v0.set('__line', 'l1:main.nako3')
+    return `__v0.set('__line', ${lineDataJSON});` + debugCode
   }
 
   /**
@@ -248,10 +248,10 @@ export class NakoGen {
   varname_get (name: string): string {
     if (this.varslistSet.length === 3) {
       // グローバル
-      return `__varslist[${2}].get(${JSON.stringify(name)})`
+      return `self.__varslist[${2}].get(${JSON.stringify(name)})`
     } else {
       // ローカル
-      return `__vars.get(${JSON.stringify(name)})`
+      return `self.__vars.get(${JSON.stringify(name)})`
     }
   }
 
@@ -263,10 +263,10 @@ export class NakoGen {
   varname_set (name: string, jsvalue: string): string {
     if (this.varslistSet.length === 3) {
       // グローバル
-      return `__varslist[${2}].set(${JSON.stringify(name)}, ${jsvalue})`
+      return `self.__varslist[${2}].set(${JSON.stringify(name)}, ${jsvalue})`
     } else {
       // ローカル
-      return `__vars.set(${JSON.stringify(name)}, ${jsvalue})`
+      return `self.__vars.set(${JSON.stringify(name)}, ${jsvalue})`
     }
   }
 
@@ -316,33 +316,33 @@ export class NakoGen {
     code += 'const __v1 = self.__v1 = self.__varslist[1];\n'
     code += 'const __vars = self.__vars = self.__varslist[2];\n'
     code += `const __modList = self.__modList = ${JSON.stringify(com.getModList())}\n`
-    code += '__v0.line = 0;\n'
-    code += '__v0.forceClose = false;\n'
-    code += `__v0.useDebug = ${this.debugOption.useDebug};\n`
+    code += '__v0.set(\'__line\', \'l0:__getDefFuncCode\');\n'
+    code += '__v0.set(\'forceClose\', false);\n'
+    code += `__v0.set('useDebug', ${this.debugOption.useDebug});\n`
     // 定数を埋め込む
     code += 'self.constPools = ' + JSON.stringify(this.constPools) + ';\n'
     code += 'self.constPoolsTemplate = ' + JSON.stringify(this.constPoolsTemplate) + ';\n'
     // なでしこの関数定義を行う
     let nakoFuncCode = ''
     this.nakoFuncList.forEach((value, key) => {
-      const f = value.fn
+      const f = trim(cleanGeneratedCode(String(value.fn), 1))
       const isAsync = value.asyncFn ? 'true' : 'false'
       nakoFuncCode += '' +
         `//[DEF_FUNC name='${key}' asyncFn=${isAsync}]\n` +
-        `self.__varslist[1]["${key}"]=${f};\n;` +
+        `self.__varslist[1].set("${key}", ${f});\n` +
         `//[/DEF_FUNC name='${key}']\n`
     })
-    if (nakoFuncCode !== '') { code += '__v0.line=\'関数の定義\';\n' + nakoFuncCode }
+    if (nakoFuncCode !== '') { code += '__v0.set(\'__line\', \'関数の定義\');\n' + nakoFuncCode }
 
     // テストの定義を行う
     if (opt.isTest) {
       let testCode = 'const __tests = [];\n'
       this.nakoTestFuncs.forEach((value) => {
         const f = value.fn
-        testCode += `${f};\n;`
+        testCode += `${f};\n`
       })
       if (testCode !== '') {
-        code += '__v0.line=\'テストの定義\';\n'
+        code += '__v0.set(\'__line\', \'テストの定義\');\n'
         code += testCode + '\n'
       }
     }
@@ -514,7 +514,7 @@ export class NakoGen {
         code += this.convCheckLoop(node, 'continue')
         break
       case 'end':
-        code += '__v0[\'終\'](__self);'
+        code += '__v0.get(\'終\')(__self);'
         break
       case 'number':
         code += node.value
@@ -636,7 +636,7 @@ export class NakoGen {
       if (this.varslistSet[i].names.has(name)) {
         // ユーザーの定義したグローバル変数 (__varslist[2]) は、変数展開されている（そのままの名前で定義されている）可能性がある。
         // それ以外の変数は、必ず__varslistに入っている。
-        return { i, name, isTop: false, js: `__varslist[${i}].get(${JSON.stringify(name)})` }
+        return { i, name, isTop: false, js: `self.__varslist[${i}].get(${JSON.stringify(name)})` }
       }
     }
     return null
@@ -790,6 +790,7 @@ export class NakoGen {
       performanceMonitorInjectAtEnd = '} finally { performanceMonitorEnd(); }\n'
     }
     let variableDeclarations = ''
+    const indent = '    '
     const popStack = ''
     const initialNames: Set<string> = new Set()
     if (this.speedMode.invalidSore === 0) {
@@ -799,9 +800,9 @@ export class NakoGen {
     // ローカル変数をPUSHする
     this.varslistSet.push(this.varsSet)
     // JSの引数と引数をバインド
-    variableDeclarations += '  var 引数 = arguments;\n'
+    variableDeclarations += indent + 'const 引数 = arguments;\n'
     // ローカル変数を生成
-    variableDeclarations += '  var __vars = {};\n'
+    variableDeclarations += indent + 'const __vars = new Map();\n'
     // 宣言済みの名前を保存
     const varsDeclared = Array.from(this.varsSet.names.values())
     let code = ''
@@ -810,12 +811,27 @@ export class NakoGen {
     for (let i = 0; i < meta.varnames.length; i++) {
       const word = meta.varnames[i]
       if (this.warnUndefinedCalledUserFuncArgs === 0) {
-        code += `  ${this.varname_get(word)} = arguments[${i}];\n`
+        code += indent + this.varname_set(word, `arguments[${i}]`) + ';\n'
       } else
         if (name) {
-          code += `  ${this.varname_get(word)} = (function(a){if(a===undefined){__self.logger.warn('ユーザ関数(${name})の引数(${this.varname_get(word)})にundefinedが渡されました',{file:'${node.file}',line:${node.line}});};return a;})(arguments[${i}]);\n`
+          code += indent + this.varname_set(
+            word,
+            '(function (a) {' +
+              'if (a === undefined) {' +
+                `__self.logger.warn('ユーザ関数(${name})の引数(${this.varname_get(word)})にundefinedが渡されました', {file: '${node.file}', line: ${ node.line }})` +
+              '};' +
+            `}; return a)(arguments[${i}])`
+          )
         } else {
-          code += `  ${this.varname_get(word)} = (function(a){if(a===undefined){__self.logger.warn('匿名関数の引数(${this.varname_get(word)})にundefinedが渡されました',{file:'${node.file}',line:${node.line}});};return a;})(arguments[${i}]);\n`
+          code += indent + this.varname_set(
+            word,
+            '(function (a) {' +
+              'if(a===undefined){' +
+                `__self.logger.warn('匿名関数の引数(${this.varname_get(word)})にundefinedが渡されました',{file:'${node.file}',line:${node.line}});` +
+              '};' +
+              'return a;' +
+            `})(arguments[${i}]) )`
+          )
         }
       this.varsSet.names.add(word)
     }
@@ -1096,15 +1112,14 @@ export class NakoGen {
     const id = this.loopId++
     const value = this._convGen(node.value, true)
     const block = this.convGenLoop(node.block as Ast)
-    const kaisu = '__v0["回数"]'
     let sorePrefex = ''
     if (this.speedMode.invalidSore === 0) {
-      sorePrefex = `${this.varname_get('それ')} = `
+      sorePrefex = `__v0.__setSysVar('それ', $nako_i${id});`
     }
     const code =
       `let $nako_times_v${id} = ${value};\n` +
       `for(var $nako_i${id} = 1; $nako_i${id} <= $nako_times_v${id}; $nako_i${id}++)` + '{\n' +
-      `  ${sorePrefex}${kaisu} = $nako_i${id};` + '\n' +
+      `  __v0.__setSysVar('回数', $nako_i${id});${sorePrefex}$\n` +
       '  ' + block + '\n}\n'
     return this.convLineno(node, false) + code
   }
@@ -1302,22 +1317,25 @@ export class NakoGen {
       }
 
       // --- 実行前 ---
-
       // 全ての展開されていないローカル変数を __self.__locals にコピーする
       funcBegin += '__self.__locals = __vars;\n'
-
       // 全ての展開されたローカル変数を __self.__locals に保存する
-      for (const v of localVars) {
-        funcBegin += `__self.__locals[${v.str}] = ${v.js};\n`
+      if (localVars.length > 0) {
+        funcBegin += '/* 全ての展開されたローカル変数を __self.__locals に保存 */\n'
+        for (const v of localVars) {
+          funcBegin += `__self.__locals.set(${v.str}, ${v.js});\n`
+        }
       }
 
       // --- 実行後 ---
-
       // 全ての展開されたローカル変数を __self.__locals から受け取る
       // 「それ」は関数の実行結果を受け取るために使うためスキップ。
-      for (const v of localVars) {
-        if (v.js !== 'それ') {
-          funcEnd += `${v.js} = __self.__locals[${v.str}];\n`
+      if (localVars.length > 0) {
+        funcEnd += '/* 全ての展開されたローカル変数を __self.__locals から受け取る */\n'
+        for (const v of localVars) {
+          if (v.js !== 'それ') {
+            funcEnd += `${v.js} = __self.__locals[${v.str}];\n`
+          }
         }
       }
     }
@@ -1407,16 +1425,19 @@ export class NakoGen {
     } else {
       // 戻り値のある関数の場合
       let sorePrefex = ''
+      let sorePostfix = ''
       if (this.speedMode.invalidSore === 0) {
-        sorePrefex = `${this.varname_get('それ')} = `
+        // 関数の戻り値を記録
+        sorePrefex = '__self.__setSore('
+        sorePostfix = ')'
       }
       if (funcBegin === '' && funcEnd === '') {
-        code = `(${sorePrefex}${funcCall})`
+        code = `(${sorePrefex}${funcCall}${sorePostfix})`
       } else {
         if (funcEnd === '') {
-          code = `(${funcDef}(){\n${indent(`${funcBegin};\nreturn ${sorePrefex} ${funcCall}`, 1)}}).call(this)`
+          code = `(${funcDef}(){\n${indent(`${funcBegin};\nreturn ${sorePrefex}${funcCall}${sorePostfix}`, 1)}}).call(this)`
         } else { // つまり、pure=falseの場合
-          code = `(${funcDef}(){\n${indent(`${funcBegin}try {\n${indent(`return ${sorePrefex}${funcCall};`, 1)}\n} finally {\n${indent(funcEnd, 1)}}`, 1)}}).call(this)`
+          code = `(${funcDef}(){\n${indent(`${funcBegin}try {\n${indent(`return ${sorePrefex}${funcCall}${sorePostfix};`, 1)}\n} finally {\n${indent(funcEnd, 1)}}`, 1)}}).call(this)`
         }
       }
       // ...して
@@ -1591,9 +1612,12 @@ export class NakoGen {
       if (vtype === '定数') {
         this.varsSet.readonly.add(name)
       }
-      code += this.varname_set(name, `${varI}[${i}]`)
+      code += this.varname_set(name, `${varI}[${i}]`) + ';\n'
     }
-    return this.convLineno(node, false) + code
+    return this.convLineno(node, false) +
+      '/*[convDefLocalVarlist]*/\n' +
+      code +
+      '/*[/convDefLocalVarlist]*/\n'
   }
 
   convString (node: Ast): string {
@@ -1618,7 +1642,7 @@ export class NakoGen {
     const errBlock = this._convGen(node.errBlock as Ast, false)
     return this.convLineno(node, false) +
       `try {\n${block}\n} catch (e) {\n` +
-      '  __v0["エラーメッセージ"] = e.message;\n' +
+      '  __v0.__setSysVar("エラーメッセージ", e.message);\n' +
       ';\n' +
       `${errBlock}}\n`
   }
@@ -1638,7 +1662,7 @@ export class NakoGen {
         pluginCode += `__v0.get('!${name}:初期化')(__self);\n`
       }
     }
-    if (pluginCode !== '') { code += '__v0.line=\'l0:プラグインの初期化\';\n' + pluginCode }
+    if (pluginCode !== '') { code += '__v0.set(\'__line\', \'l0:プラグインの初期化\');\n' + pluginCode }
     return code
   }
 }
@@ -1654,7 +1678,7 @@ export interface NakoGenResult {
 
 /** template of standalone js code */
 const STANDALONE_CODE = `
-// === generated by nadesiko3 ===
+// === generated by nadesiko3 v__version__(core:__coreVersion__) ===
 // <nadesiko3standalone>
 // --- import
 import path from 'path'
@@ -1691,15 +1715,15 @@ for (const mod of __importNames__) {
     // 関数や定数を登録
     const f = mod[funcName]
     if (f.type === 'func') { // 関数
-      self.__varslist[0][funcName] = f.fn
+      self.__varslist[0].set(funcName, f.fn)
     } else { // 定数
-      self.__varslist[0][funcName] = f.value
+      self.__varslist[0].set(funcName, f.value)
     }
   }
 }
 self.__vars = self.__varslist[2];
 self.__module = {};
-self.__locals = {};
+self.__locals = new Map();
 self.__genMode = 'sync';
 // プラグインの初期化コードを実行
 self.initFuncList.map(f => f(self))
@@ -1771,7 +1795,7 @@ ${asyncMain}.call(self, self)
   if (err.message === '__終わる__') { return }
   self.numFailures++
   // send errors to logger
-  let rterr = self.logger.runtimeError(err, self.__v0.line)
+  let rterr = self.logger.runtimeError(err, self.__v0.get('__line'))
   self.logger.error(rterr)
 })
 // </nadesiko3::gen::async id="${funcID}">
@@ -1789,7 +1813,7 @@ try {
 } catch (err) {
   if (err.message === '__終わる__') { return }
   self.numFailures++
-  throw self.logger.runtimeError(err, self.__v0.line)
+  throw self.logger.runtimeError(err, self.__v0.get('__line'))
 }
 } // end of ${syncMain}
 ${syncMain}(self)
@@ -1797,6 +1821,8 @@ ${syncMain}(self)
 // --------------------------------------------------
 `
   }
+  // --- 生成したコードの簡単な整形 ---
+  js = cleanGeneratedCode(js)
   // デバッグメッセージ
   com.getLogger().trace('--- generate ---\n' + js)
   let codeImportFiles = ''
@@ -1843,4 +1869,28 @@ function replaceTemplateCode (template: string, values: any): string {
     template = template.split(pat).join(val)
   }
   return template
+}
+// clean generated code
+function cleanGeneratedCode (code: string, indent = 0): string {
+  // 無意味な改行やセミコロンを削除
+  code = code.replace(/;{2,}/, ';')
+  code = code.replace(/\n{2,}/, '\n')
+  let spc = ''
+  for (let i = 0; i < indent; i++) { spc += '    ' }
+  // 行頭の";"を削除
+  const lines = code.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    lines[i] = spc + lines[i].replace(/^[\s;]+/, '')
+  }
+  code = lines.join('\n')
+  return code
+}
+/**
+ * 前後の空白を削除する
+ * @param str 対象文字列
+ * @returns トリムした文字列
+ */
+function trim (str: string): string {
+  str = String(str)
+  return str.replace(/^\s+|\s+$/g, '')
 }
