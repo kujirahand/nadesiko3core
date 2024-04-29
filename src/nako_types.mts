@@ -25,10 +25,12 @@ export interface FuncListItem {
   name?: string;
 }
 
-// 関数の一覧
-export type FuncList = {[key: string]: FuncListItem};
+// 変数の型
+export type NakoVars = Map<string, any>;
 
-export type ExportMap = {[key: string]: boolean};
+// 関数の一覧
+export type FuncList = Map<string, FuncListItem>;
+export type ExportMap = Map<string, boolean>;
 
 // トークンのメタ情報
 export interface TokenMeta {

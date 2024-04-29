@@ -56,7 +56,7 @@ async function main (argvOrg: string[]) {
   nako.addPluginObject('PluginSnako', PluginSnako)
   // 実行前にイベントを挟みたいとき
   nako.addListener('beforeRun', (g: NakoGlobal) => {
-    g.__varslist[0]['ナデシコ種類'] = 'snako'
+    g.__varslist[0].set('ナデシコ種類', 'snako')
   })
   // logger を設定 --- リスナーを登録することでデバッグレベルを指定
   const logger = nako.getLogger()

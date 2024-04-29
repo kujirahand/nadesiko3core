@@ -125,7 +125,7 @@ export default {
       sys.chk = (value:any, constId: number): any => {
         if (typeof value === 'undefined') {
           const cp = sys.constPools[constId]
-          const [ msgNo, msgArgs, fileNo, lineNo ] = cp
+          const [msgNo, msgArgs, fileNo, lineNo] = cp
           let msg = sys.constPoolsTemplate[msgNo]
           for (const i in msgArgs) {
             const arg = sys.constPoolsTemplate[msgArgs[i]]

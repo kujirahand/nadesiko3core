@@ -162,7 +162,7 @@ export class NakoParser extends NakoParserBase {
     return null
   }
 
-  /** [廃止] 非同期モード @returns {Ast} */
+  /** [廃止] 非同期モード #11 @returns {Ast} */
   yASyncMode (): Ast {
     this.logger.error('『非同期モード』構文は廃止されました(https://nadesi.com/v3/doc/go.php?1028)。', this.peek())
     const map = this.peekSourceMap()
@@ -196,7 +196,7 @@ export class NakoParser extends NakoParserBase {
   yExportDefault (mode: string): Ast {
     const map = this.peekSourceMap()
     this.isExportDefault = mode === '公開'
-    this.moduleExport[this.modName] = this.isExportDefault
+    this.moduleExport.set(this.modName, this.isExportDefault)
     return { type: 'eol', ...map, end: this.peekSourceMap() }
   }
 
@@ -313,14 +313,14 @@ export class NakoParser extends NakoParserBase {
       this.usedAsyncFn = false
       // ローカル変数を生成
       const backupLocalvars = this.localvars
-      this.localvars = { 'それ': { type: 'var', value: '' } }
+      this.localvars = new Map([['それ', { type: 'var', value: '' }]])
 
       if (multiline) {
         this.saveStack()
         // 関数の引数をローカル変数として登録する
         for (const arg of defArgs) {
           const fnName: string = (arg.value) ? arg.value + '' : ''
-          this.localvars[fnName] = { 'type': 'var', 'value': '' }
+          this.localvars.set(fnName, { 'type': 'var', 'value': '' })
         }
         block = this.yBlock()
         if (this.check('ここまで')) { this.get() } else { throw NakoSyntaxError.fromNode('『ここまで』がありません。関数定義の末尾に必要です。', def) }
@@ -2065,12 +2065,12 @@ export class NakoParser extends NakoParserBase {
     if (this.funcLevel === 0) {
       // global ?
       if (gname.indexOf('__') < 0) { gname = this.modName + '__' + gname }
-      this.funclist[gname] = { type: typeName, value: '', isExport }
+      this.funclist.set(gname, { type: typeName, value: '', isExport })
       word.value = gname
       return word
     } else {
       // local
-      this.localvars[gname] = { type: typeName, value: '' }
+      this.localvars.set(gname, { type: typeName, value: '' })
       return word
     }
   }
