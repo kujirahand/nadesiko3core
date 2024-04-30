@@ -1471,31 +1471,51 @@ export class NakoParser extends NakoParserBase {
       }
     }
     // ローカル変数定義（その２）
-    if (this.accept(['変数', 'word', 'eq', this.yCalc])) {
-      const word = this.createVar(this.y[1], false, this.isExportDefault)
-      return {
-        type: 'def_local_var',
-        name: word,
-        vartype: '変数',
-        value: this.y[3],
-        ...map,
-        end: this.peekSourceMap()
+    if (this.accept(['変数', 'word'])) {
+      const wordVar = this.y[1]
+      this.index -= 2 // 「変数 word」の前に巻き戻す
+      // 変数の宣言および初期化1
+      if (this.accept(['変数', 'word', 'eq', this.yCalc])) {
+        const word = this.createVar(this.y[1], false, this.isExportDefault)
+        return {
+          type: 'def_local_var',
+          name: word,
+          vartype: '変数',
+          value: this.y[3],
+          ...map,
+          end: this.peekSourceMap()
+        }
       }
-    }
 
-    if (this.accept(['変数', 'word', '{', 'word', '}', 'eq', this.yCalc])) {
-      let isExport : boolean = this.isExportDefault
-      const attr = this.y[3].value
-      if (attr === '公開') { isExport = true } else if (attr === '非公開') { isExport = false } else if (attr === 'エクスポート') { isExport = true } else { this.logger.warn(`不明な変数属性『${attr}』が指定されています。`) }
-      const word = this.createVar(this.y[1], false, isExport)
-      return {
-        type: 'def_local_var',
-        name: word,
-        vartype: '変数',
-        isExport,
-        value: this.y[6],
-        ...map,
-        end: this.peekSourceMap()
+      // 変数の宣言および初期化2
+      if (this.accept(['変数', 'word', '{', 'word', '}', 'eq', this.yCalc])) {
+        let isExport: boolean = this.isExportDefault
+        const attr = this.y[3].value
+        if (attr === '公開') { isExport = true } else if (attr === '非公開') { isExport = false } else if (attr === 'エクスポート') { isExport = true } else { this.logger.warn(`不明な変数属性『${attr}』が指定されています。`) }
+        const word = this.createVar(this.y[1], false, isExport)
+        return {
+          type: 'def_local_var',
+          name: word,
+          vartype: '変数',
+          isExport,
+          value: this.y[6],
+          ...map,
+          end: this.peekSourceMap()
+        }
+      }
+
+      // 変数宣言のみの場合
+      {
+        this.index += 2 // 変数 word を読んだとする
+        const word = this.createVar(wordVar, false, this.isExportDefault)
+        return {
+          type: 'def_local_var',
+          name: word,
+          vartype: '変数',
+          value: null,
+          ...map,
+          end: this.peekSourceMap()
+        }
       }
     }
 
