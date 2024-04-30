@@ -207,8 +207,9 @@ export class NakoLexer {
         }
       }
       // 予約語の置換
-      if (t.type === 'word' && reservedWords[t.value]) {
-        t.type = reservedWords[t.value]
+      if (t.type === 'word') {
+        const rtype = reservedWords.get(t.value)
+        if (rtype) { t.type = rtype }
         if (t.value === 'そう') { t.value = 'それ' }
       }
       // 関数定義の確認

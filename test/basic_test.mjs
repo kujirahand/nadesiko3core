@@ -361,4 +361,8 @@ describe('basic', async () => {
     await cmp('1に2を足したものを表示', '3')
     await cmp('1に2を足したものに3を足して表示', '6')
   })
+  it('変数をObjectからMapに変更する(core#152)', async () => {
+    await cmp('constructor=10;constructorを表示', '10')
+    await cmp('super=10;superを表示', '10')
+  })
 })
