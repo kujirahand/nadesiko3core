@@ -16,7 +16,7 @@ import { josiRE, removeJosiMap, tararebaMap } from './nako_josi_list.mjs'
 import { rules, unitRE, NakoLexParseResult } from './nako_lex_rules.mjs'
 import { NakoLexerError, InternalLexerError } from './nako_errors.mjs'
 
-import { Token, FuncList, FuncArgs, ExportMap } from './nako_types.mjs'
+import { Token, FuncList, FuncArgs, ExportMap, FuncListItem } from './nako_types.mjs'
 
 export class NakoLexer {
   public logger: NakoLogger
@@ -30,16 +30,16 @@ export class NakoLexer {
    */
   constructor (logger: NakoLogger) {
     this.logger = logger // 字句解析した際,確認された関数の一覧
-    this.funclist = {}
+    this.funclist = new Map()
     this.modList = [] // 字句解析した際,取り込むモジュール一覧 --- nako3::lex で更新される
     this.result = []
     this.modName = 'main.nako3' // モジュール名
-    this.moduleExport = {}
+    this.moduleExport = new Map()
   }
 
   /** 関数一覧をセット */
-  setFuncList (listObj: FuncList) {
-    this.funclist = listObj
+  setFuncList (listMap: FuncList) {
+    this.funclist = listMap
   }
 
   /** モジュール公開既定値一覧をセット */
@@ -174,13 +174,13 @@ export class NakoLexer {
             nextToken = tokens[i + 2]
             if (nextToken.type === 'string' && nextToken.value === '非公開') {
               const modName = NakoLexer.filenameToModName(t.file)
-              moduleexport[modName] = false
+              moduleexport.set(modName, false)
               i += 3
               continue
             } else
               if (nextToken.type === 'string' && nextToken.value === '公開') {
                 const modName = NakoLexer.filenameToModName(t.file)
-                moduleexport[modName] = true
+                moduleexport.set(modName, true)
                 i += 3
                 continue
               }
@@ -255,13 +255,13 @@ export class NakoLexer {
       if (funcName !== '' && funcNameToken) {
         const modName = NakoLexer.filenameToModName(t.file)
         funcName = modName + '__' + funcName
-        if (funcName in funclist) { // 関数の二重定義を警告
+        if (funclist.has(funcName)) { // 関数の二重定義を警告
           // main__は省略 #1223
           const dispName = funcName.replace(/^main__/, '')
           logger.warn(`関数『${dispName}』は既に定義されています。`, defToken)
         }
         funcNameToken.value = funcName
-        funclist[funcName] = {
+        funclist.set(funcName, {
           type: 'func',
           josi,
           fn: null,
@@ -269,15 +269,16 @@ export class NakoLexer {
           isExport,
           varnames,
           funcPointers
-        }
+        })
       }
       // 無名関数のために
-      defToken.meta = {
-        type: 'func',
+      const metaValue: FuncListItem = {
+        'type': 'func',
         josi,
         varnames,
         funcPointers
       }
+      defToken.meta = metaValue
     }
   }
 
@@ -347,7 +348,7 @@ export class NakoLexer {
         if (funcName.indexOf('__') < 0) {
           // 自身のモジュール名を検索
           const gname1 = `${modSelf}__${funcName}`
-          const gfo1 = this.funclist[gname1]
+          const gfo1 = this.funclist.get(gname1)
           if (gfo1 && gfo1.type === 'func') {
             t.type = isFuncPointer ? 'func_pointer' : 'func'
             t.meta = gfo1
@@ -361,8 +362,8 @@ export class NakoLexer {
           // モジュール関数を置換
           for (const mod of this.modList) {
             const gname = `${mod}__${funcName}`
-            const gfo = this.funclist[gname]
-            const exportDefault = this.moduleExport[mod]
+            const gfo = this.funclist.get(gname)
+            const exportDefault = this.moduleExport.get(mod)
             if (gfo && gfo.type === 'func' && (gfo.isExport === true || (gfo.isExport !== false && exportDefault !== false))) {
               t.type = isFuncPointer ? 'func_pointer' : 'func'
               t.meta = gfo
@@ -376,7 +377,7 @@ export class NakoLexer {
           }
           if (t.type === 'func' || t.type === 'func_pointer') { continue }
         }
-        const fo = this.funclist[funcName]
+        const fo = this.funclist.get(funcName)
         if (fo && fo.type === 'func') {
           t.type = isFuncPointer ? 'func_pointer' : 'func'
           t.meta = fo

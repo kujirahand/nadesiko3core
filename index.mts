@@ -6,6 +6,7 @@ import { NakoParser } from './src/nako_parser3.mjs'
 import { NakoPrepare } from './src/nako_prepare.mjs'
 import { NakoGen, NakoGenOptions } from './src/nako_gen.mjs'
 import { NakoGlobal } from './src/nako_global.mjs'
+
 export default {
   // version
   version: coreVersion,

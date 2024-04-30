@@ -12,7 +12,6 @@ describe('calc_test.js', async () => {
     try {
       await nako.runAsync(code)
     } catch (err) {
-      console.log('@@@', err)
       assert.strictEqual(errorType, err.type)
       assert.strictEqual(err.msg.indexOf(partOfErrorStr) >= 0, true)
     }

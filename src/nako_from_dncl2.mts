@@ -256,9 +256,9 @@ export function convertDNCL2 (tokens: Token[]): Token[] {
   }
   tokens = joinTokenLines(lines)
   if (IS_DEBUG) {
-    console.log('@@@---DNCL:tokens---')
+    console.log('// DEBUG---DNCL:tokens---BEGIN')
     console.log(debugTokens(tokens))
-    console.log('@@@/---DNCL:tokens---')
+    console.log('// DEBUG---DNCL:tokens---END')
   }
   return tokens
 }

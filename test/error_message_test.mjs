@@ -150,7 +150,7 @@ describe('error_message', () => {
         assert.strictEqual(level, 'error')
         assert.strictEqual(s, '[実行時エラー]main.nako3(2行目): 1')
       })
-      nako.runAsync('0.0001秒後には\n1のエラー発生\nここまで', 'main.nako3')
+      await nako.runAsync('0.0001秒後には\n1のエラー発生\nここまで', 'main.nako3')
     })
   })
   describe('インデント構文のエラー', () => {

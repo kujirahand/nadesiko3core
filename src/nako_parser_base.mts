@@ -50,14 +50,14 @@ export class NakoParserBase {
      */
     this.modList = []
     /** グローバル変数・関数の確認用 */
-    this.funclist = {}
+    this.funclist = new Map()
     this.funcLevel = 0
     this.usedAsyncFn = false // asyncFnの呼び出しがあるかどうか
     /**
      * ローカル変数の確認用
      * @type {Object.<string,Object>}
      */
-    this.localvars = { 'それ': { type: 'var', value: '' } }
+    this.localvars = new Map([['それ', { type: 'var', value: '' }]])
     /** コード生成器の名前 @type {string} */
     this.genMode = 'sync' // #637
     /** 配列のインデックスが先頭要素(#1140) @type {int} */
@@ -73,14 +73,14 @@ export class NakoParserBase {
     // エクスポート設定が未設定の関数・変数に対する既定値
     this.isExportDefault = true
     this.isExportStack = []
-    this.moduleExport = {}
+    this.moduleExport = new Map()
 
     this.init()
   }
 
   init () {
-    this.funclist = {} // 関数の一覧
-    this.moduleExport = {}
+    this.funclist = new Map() // 関数の一覧
+    this.moduleExport = new Map()
     this.reset()
   }
 
@@ -143,50 +143,51 @@ export class NakoParserBase {
    */
   findVar (name: string): any {
     // ローカル変数？
-    if (this.localvars[name]) {
+    if (this.localvars.get(name)) {
       return {
         name,
         scope: 'local',
-        info: this.localvars[name]
+        info: this.localvars.get(name)
       }
     }
     // モジュール名を含んでいる?
     if (name.indexOf('__') >= 0) {
-      if (this.funclist[name]) {
+      if (this.funclist.get(name)) {
         return {
           name,
           scope: 'global',
-          info: this.funclist[name]
+          info: this.funclist.get(name)
         }
       } else { return undefined }
     }
     // グローバル変数（自身）？
     const gnameSelf = `${this.modName}__${name}`
-    if (this.funclist[gnameSelf]) {
+    if (this.funclist.get(gnameSelf)) {
       return {
         name: gnameSelf,
         scope: 'global',
-        info: this.funclist[gnameSelf]
+        info: this.funclist.get(gnameSelf)
       }
     }
     // グローバル変数（モジュールを検索）？
     for (const mod of this.modList) {
       const gname = `${mod}__${name}`
-      const exportDefault = this.moduleExport[mod]
-      if (this.funclist[gname] && (this.funclist[gname].isExport === true || (this.funclist[gname].isExport !== false && exportDefault !== false))) {
+      const exportDefault = this.moduleExport.get(mod)
+      const funcObj: FuncListItem|undefined = this.funclist.get(gname)
+      if (funcObj && (funcObj.isExport === true || (funcObj.isExport !== false && exportDefault !== false))) {
         return {
           name: gname,
           scope: 'global',
-          info: this.funclist[gname]
+          info: this.funclist.get(gname)
         }
       }
     }
     // システム変数 (funclistを普通に検索)
-    if (this.funclist[name]) {
+    if (this.funclist.get(name)) {
       return {
         name,
         scope: 'system',
-        info: this.funclist[name]
+        info: this.funclist.get(name)
       }
     }
     return undefined

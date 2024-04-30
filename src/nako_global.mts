@@ -2,7 +2,7 @@ import { NakoCompiler } from './nako3.mjs'
 import { NakoColors } from './nako_colors.mjs'
 import { NakoGen } from './nako_gen.mjs'
 import { NakoLogger } from './nako_logger.mjs'
-import { CompilerOptions, FuncList } from './nako_types.mjs'
+import { CompilerOptions, FuncList, NakoVars } from './nako_types.mjs'
 
 /**
  * コンパイルされたなでしこのプログラムで、グローバル空間のthisが指すオブジェクト
@@ -11,8 +11,8 @@ export class NakoGlobal {
   guid: number
   version: string
   coreVersion: string
-  __locals: {[key: string]: any}
-  __varslist: {[key: string]: any}[]
+  __locals: NakoVars
+  __varslist: NakoVars[]
   __code: string[]
   __callstack: any[]
   __stack: any[]
@@ -35,11 +35,11 @@ export class NakoGlobal {
     this.guid = guid
     this.lastJSCode = ''
     // ユーザーのプログラムから編集される変数
-    this.__locals = {}
+    this.__locals = new Map()
     this.__varslist = [
-      { ...compiler.__varslist[0] }, // system
-      { ...compiler.__varslist[1] }, // global
-      { ...compiler.__varslist[2] } // local [2][3][4][5] ...
+      new Map(compiler.__varslist[0]), // system
+      new Map(compiler.__varslist[1]), // global
+      new Map(compiler.__varslist[2]) // local [2][3][4][5] ...
     ]
     this.numFailures = 0
     this.index = 0
@@ -67,13 +67,31 @@ export class NakoGlobal {
   }
 
   clearLog () {
-    this.__varslist[0]['表示ログ'] = ''
+    this.__varslist[0].set('表示ログ', '')
   }
 
   get log () {
-    let s = this.__varslist[0]['表示ログ']
+    let s = this.__varslist[0].get('表示ログ')
     s = s.replace(/\s+$/, '')
     return s
+  }
+
+  /**
+   * システム変数を設定する
+   * @param name システム変数名
+   * @param value 設定したい値
+   */
+  __setSysVar (name: string, value: any) {
+    this.__varslist[0].set(name, value)
+  }
+
+  /**
+   * システム変数を取得する
+   * @param name システム変数名
+   * @returns システム変数の値
+   */
+  __getSysVar (name: string): any {
+    return this.__varslist[0].get(name)
   }
 
   /**

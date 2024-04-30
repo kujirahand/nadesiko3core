@@ -90,7 +90,7 @@ function convert (nako: NakoCompiler, code: string, opt: CommandOptions): void {
   const genOpt = new NakoGenOptions(
     false,
     ['nako_errors.mjs', 'nako_core_version.mjs', 'plugin_system.mjs'],
-    'self.__varslist[0][\'ナデシコ種類\'] = \'snako\'')
+    '__self.__varslist[0].set(\'ナデシコ種類\', \'snako\')')
   // スタンドアロンコードを生成
   const js = nako.compileStandalone(code, opt.filename, genOpt)
   const jsFilename = opt.filename + '.js'

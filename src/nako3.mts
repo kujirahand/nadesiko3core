@@ -56,7 +56,7 @@ interface LexResult {
   requireTokens: Token[];
 }
 
-type NakoVars = {[key: string]: any}
+type NakoVars = Map<string, any>
 
 export interface NakoResetOption {
   needToClearPlugin: boolean
@@ -113,12 +113,12 @@ export class NakoCompiler {
       options = { useBasicPlugin: true }
     }
     // 環境のリセット
-    this.__varslist = [{}, {}, {}] // このオブジェクトは変更しないこと (this.gen.__varslist と共有する)
-    this.__locals = {} // ローカル変数
+    this.__varslist = [new Map(), new Map(), new Map()] // このオブジェクトは変更しないこと (this.gen.__varslist と共有する)
+    this.__locals = new Map() // ローカル変数
     this.__self = this
-    this.__vars = this.__varslist[2]
-    this.__v0 = this.__varslist[0]
-    this.__v1 = this.__varslist[1]
+    this.__vars = this.__varslist[2] // alias of __varslist[2]
+    this.__v1 = this.__varslist[1] // alias of __varslist[1]
+    this.__v0 = this.__varslist[0] // alias of __varslist[0]
     // バージョンを設定
     this.version = coreVersion.version
     this.coreVersion = coreVersion.version
@@ -126,11 +126,11 @@ export class NakoCompiler {
     this.__globalObj = null
     this.__module = {} // requireなどで取り込んだモジュールの一覧
     this.pluginFunclist = {} // プラグインで定義された関数
-    this.funclist = {} // プラグインで定義された関数 + ユーザーが定義した関数
-    this.moduleExport = {}
+    this.funclist = new Map() // プラグインで定義された関数 + ユーザーが定義した関数
+    this.moduleExport = new Map()
     this.pluginfiles = {} // 取り込んだファイル一覧
     this.commandlist = new Set() // プラグインで定義された定数・変数・関数の名前
-    this.nakoFuncList = {} // __v1に配置するJavaScriptのコードで定義された関数
+    this.nakoFuncList = new Map() // __v1に配置するJavaScriptのコードで定義された関数
     this.eventList = [] // 実行前に環境を変更するためのイベント
     this.codeGenerateor = {} // コードジェネレータ
     this.debugOption = { useDebug: false, waitTime: 0 }
@@ -172,7 +172,7 @@ export class NakoCompiler {
   }
 
   getNakoFunc (name: string): FuncListItem|undefined {
-    return this.nakoFuncList[name]
+    return this.nakoFuncList.get(name)
   }
 
   getPluginfiles (): Record<string, any> {
@@ -298,8 +298,8 @@ export class NakoCompiler {
         code = `『${modName}』に名前空間設定;『${modName}』にプラグイン名設定;` + code + ';名前空間ポップ;'
         const tokens = this.rawtokenize(code, 0, item.filePath)
         dependencies[item.filePath].tokens = tokens
-        const funclist = {}
-        const moduleexport = {}
+        const funclist = new Map()
+        const moduleexport = new Map()
         NakoLexer.preDefineFunc(cloneAsJSON(tokens), this.logger, funclist, moduleexport)
         dependencies[item.filePath].funclist = funclist
         dependencies[item.filePath].moduleExport = moduleexport
@@ -468,25 +468,25 @@ export class NakoCompiler {
      * __varslist[1] なでしこグローバル領域
      * __varslist[2] 最初のローカル変数 ( == __vars }
      */
-    this.__varslist = [this.__varslist[0], {}, {}]
-    this.__v0 = this.__varslist[0]
-    this.__v1 = this.__varslist[1]
-    this.__vars = this.__varslist[2]
-    this.__locals = {}
+    this.__varslist = [this.__varslist[0], new Map(), new Map()]
+    this.__v0 = this.__varslist[0] // alias of __varslist[0]
+    this.__v1 = this.__varslist[1] // alias of __varslist[1]
+    this.__vars = this.__varslist[2] // alias of __varslist[2]
+    this.__locals = new Map()
 
     // プラグイン命令以外を削除する。
-    this.funclist = {}
-    for (const name of Object.keys(this.__v0)) {
-      const original = this.pluginFunclist[name]
+    this.funclist = new Map()
+    for (const name of this.__v0.keys()) {
+      const original = this.pluginFunclist[name] // record
       if (!original) {
         continue
       }
-      this.funclist[name] = JSON.parse(JSON.stringify(original))
+      this.funclist.set(name, JSON.parse(JSON.stringify(original)))
     }
 
     this.lexer.setFuncList(this.funclist)
 
-    this.moduleExport = {}
+    this.moduleExport = new Map()
     this.lexer.setModuleExport(this.moduleExport)
 
     this.logger.clear()
@@ -791,7 +791,8 @@ export class NakoCompiler {
   clearPlugins () {
     // 他に実行している「なでしこ」があればクリアする
     this.__globals.forEach((sys: NakoGlobal) => {
-      sys.__varslist[0].forceClose = true // core #56
+      // core #56
+      sys.__setSysVar('forceClose', true)
       sys.reset()
     })
     this.__globals = [] // clear
@@ -850,11 +851,11 @@ export class NakoCompiler {
   public async runAsync (code: string, filename: string, options: CompilerOptions|undefined = undefined): Promise<NakoGlobal> {
     // コンパイル
     options = newCompilerOptions(options)
-    const out = this.compileFromCode(code, filename, options)
+    const compiledCode = this.compileFromCode(code, filename, options)
     // 実行前に環境を生成
-    const nakoGlobal = this.getNakoGlobal(options, out.gen, filename)
+    const nakoGlobal = this.getNakoGlobal(options, compiledCode.gen, filename)
     // 実行
-    this.evalJS(out.runtimeEnv, nakoGlobal)
+    this.evalJS(compiledCode.runtimeEnv, nakoGlobal)
     return nakoGlobal
   }
 
@@ -869,7 +870,7 @@ export class NakoCompiler {
         g = new NakoGlobal(this, gen, (this.__globals.length + 1))
       }
       // 名前空間を設定
-      g.__varslist[0]['名前空間'] = NakoLexer.filenameToModName(filename)
+      g.__varslist[0].set('名前空間', NakoLexer.filenameToModName(filename))
     }
     if (this.__globals.indexOf(g) < 0) { this.__globals.push(g) }
     return g
@@ -931,25 +932,27 @@ export class NakoCompiler {
   addPlugin (po: {[key: string]: any}, persistent = true): void {
     // 変数のメタ情報を確認
     const __v0 = this.__varslist[0]
-    if (__v0.meta === undefined) { __v0.meta = {} }
+    let meta = __v0.get('meta')
+    if (meta === undefined) {
+      meta = {}
+      __v0.set('meta', meta)
+    }
 
     // プラグインの値をオブジェクトにコピー
     for (const key in po) {
       const v = po[key]
-      this.funclist[key] = v
+      this.funclist.set(key, v)
       if (persistent) {
         this.pluginFunclist[key] = JSON.parse(JSON.stringify(v))
       }
       if (v.type === 'func') {
-        __v0[key] = v.fn
+        __v0.set(key, v.fn)
         if (v.asyncFn) { // asyncFn を正しく実行するために pure に変更する (core#142)
           v.pure = true
         }
       } else if (v.type === 'const' || v.type === 'var') {
-        __v0[key] = v.value
-        __v0.meta[key] = {
-          readonly: (v.type === 'const')
-        }
+        __v0.set(key, v.value)
+        meta[key] = { readonly: v.type === 'const' }
       } else {
         console.error('[プラグイン追加エラー]', v)
         throw new Error('プラグインの追加でエラー。')
@@ -1016,9 +1019,10 @@ export class NakoCompiler {
    * @param {boolean} asyncFn Promiseを返す関数かを指定
    */
   addFunc (key: string, josi: FuncArgs, fn: any, returnNone = true, asyncFn = false): void {
-    this.funclist[key] = { josi, fn, type: 'func', return_none: returnNone, asyncFn, pure: true }
-    this.pluginFunclist[key] = cloneAsJSON(this.funclist[key])
-    this.__varslist[0][key] = fn
+    const funcObj: FuncListItem = { josi, fn, type: 'func', return_none: returnNone, asyncFn, pure: true }
+    this.funclist.set(key, funcObj)
+    this.pluginFunclist[key] = cloneAsJSON(funcObj)
+    this.__varslist[0].set(key, fn)
   }
 
   /** (非推奨) 互換性のため ... 関数を追加する
@@ -1033,8 +1037,8 @@ export class NakoCompiler {
    * @param key プラグイン関数の関数名
    * @returns プラグイン・オブジェクト
    */
-  getFunc (key: string): FuncListItem {
-    return this.funclist[key]
+  getFunc (key: string): FuncListItem|undefined {
+    return this.funclist.get(key)
   }
 
   /** 同期的になでしこのプログラムcodeを実行する

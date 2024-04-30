@@ -2,9 +2,9 @@
  * file: plugin_snako.js
  * 簡単なファイル読み書きのプラグイン
  */
-import fs from 'fs'
-import { execSync } from 'child_process'
-import path from 'path'
+import fs from 'node:fs'
+import { execSync } from 'node:child_process'
+import path from 'node:path'
 
 export default {
   '初期化': {
@@ -18,10 +18,10 @@ export default {
         if (cmd.indexOf('snako') < 0) { nakofile = process.argv[1] } else { nakofile = process.argv[2] }
         return path.dirname(path.resolve(nakofile))
       }
-      sys.__v0['コマンドライン'] = process.argv
-      sys.__v0['ナデシコランタイムパス'] = process.argv[0]
-      sys.__v0['ナデシコランタイム'] = path.basename(process.argv[0])
-      sys.__v0['母艦パス'] = sys.__getBokanPath()
+      sys.__setSysVar('コマンドライン', process.argv)
+      sys.__setSysVar('ナデシコランタイムパス', process.argv[0])
+      sys.__setSysVar('ナデシコランタイム', path.basename(process.argv[0]))
+      sys.__setSysVar('母艦パス', sys.__getBokanPath())
     }
   },
   // @SNAKO
