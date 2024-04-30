@@ -2,9 +2,9 @@
  * file: plugin_snako.js
  * 簡単なファイル読み書きのプラグイン
  */
-import fs from 'fs'
-import { execSync } from 'child_process'
-import path from 'path'
+import fs from 'node:fs'
+import { execSync } from 'node:child_process'
+import path from 'node:path'
 
 export default {
   '初期化': {

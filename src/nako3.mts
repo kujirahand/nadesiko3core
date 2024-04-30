@@ -477,7 +477,7 @@ export class NakoCompiler {
     // プラグイン命令以外を削除する。
     this.funclist = new Map()
     for (const name of this.__v0.keys()) {
-      const original = this.pluginFunclist[name]
+      const original = this.pluginFunclist[name] // record
       if (!original) {
         continue
       }

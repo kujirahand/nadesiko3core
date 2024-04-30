@@ -1,10 +1,11 @@
 #!/usr/bin/env node --no-warnings=ExperimentalWarning --loader ts-node/esm
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 import com from '../index.mjs'
 import { NakoGlobal } from '../src/nako_global.mjs'
+import { argv as nodejs_argv } from 'node:process';
 
-import * as url from 'url'
+import * as url from 'node:url'
 import { NakoGenOptions } from '../src/nako_gen.mjs'
 import { NakoCompiler } from '../src/nako3.mjs'
 import PluginSnako from './plugin_snako.mjs'
@@ -92,7 +93,7 @@ function convert (nako: NakoCompiler, code: string, opt: CommandOptions): void {
   const genOpt = new NakoGenOptions(
     false,
     ['nako_errors.mjs', 'nako_core_version.mjs', 'plugin_system.mjs'],
-    'self.__varslist[0][\'ナデシコ種類\'] = \'snako\'')
+    '__self.__varslist[0].set(\'ナデシコ種類\', \'snako\')')
   // スタンドアロンコードを生成
   const js = nako.compileStandalone(code, opt.filename, genOpt)
   const jsFilename = opt.filename + '.js'
@@ -115,4 +116,4 @@ function showHelp (): void {
 }
 
 /** メイン処理を実行 */
-main(process.argv)
+main(nodejs_argv)

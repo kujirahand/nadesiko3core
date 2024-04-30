@@ -19,17 +19,17 @@ describe('nako_lexer_test', () => {
     const code2 = pre.convert(code).map((v) => v.text).join('')
     const tok = lex.tokenize(code2, 0, 'test.nako3')
     /** @type {any} */
-    const funclist = {}
+    const funclist = new Map()
     // @ts-ignore
     NakoLexer.preDefineFunc(tok, lex.logger, funclist)
-    assert.strictEqual(funclist.test__AAA.type, 'func')
+    assert.strictEqual(funclist.get('test__AAA').type, 'func')
   })
   it('変数は登録しないというテスト', () => {
     const code = 'HOGE=333\n'
     const code2 = pre.convert(code).map((v) => v.text).join('')
     const tok = lex.tokenize(code2, 0, 'test.nako3')
     /** @type {any} */
-    const funclist = {}
+    const funclist = new Map()
     NakoLexer.preDefineFunc(tok, lex.logger, funclist)
     assert.strictEqual(funclist.HOGE, undefined)
   })
