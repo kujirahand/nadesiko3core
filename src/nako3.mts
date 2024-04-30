@@ -932,7 +932,11 @@ export class NakoCompiler {
   addPlugin (po: {[key: string]: any}, persistent = true): void {
     // 変数のメタ情報を確認
     const __v0 = this.__varslist[0]
-    if (__v0.get('meta') === undefined) { __v0.set('meta', new Map()) }
+    let meta = __v0.get('meta')
+    if (meta === undefined) {
+      meta = {}
+      __v0.set('meta', meta)
+    }
 
     // プラグインの値をオブジェクトにコピー
     for (const key in po) {
@@ -948,7 +952,7 @@ export class NakoCompiler {
         }
       } else if (v.type === 'const' || v.type === 'var') {
         __v0.set(key, v.value)
-        __v0.get('meta').set(key, { readonly: v.type === 'const' })
+        meta[key] = { readonly: v.type === 'const' }
       } else {
         console.error('[プラグイン追加エラー]', v)
         throw new Error('プラグインの追加でエラー。')
