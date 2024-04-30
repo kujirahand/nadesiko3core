@@ -6,7 +6,6 @@ describe('variable_scope_test', async () => {
   const cmp = async (/** @type {string} */ code, /** @type {string} */ res) => {
     const nako = new NakoCompiler()
     const realResult = (await nako.runAsync(code)).log
-    console.log('@@@', realResult)
     assert.strictEqual(realResult, res)
   }
 

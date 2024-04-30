@@ -979,6 +979,7 @@ export class NakoGen {
   }
 
   convLetArray (node: Ast): string {
+    const id = this.loopId++
     const name = this._convGen(node.name as Ast, true)
     const list: Ast[] = node.index || []
     let codeInit = ''
@@ -987,14 +988,23 @@ export class NakoGen {
     // codeInit?
     if (node.checkInit) {
       const arrayDefCode = '[0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0]'
-      codeInit += `\n/*配列初期化*/if (!(${name} instanceof Array)) { ${name} = ${arrayDefCode}; /*console.log('初期化:${name}')*/ };`
-      for (let i = 0; i < list.length - 1; i++) {
-        const idx = this._convGen(list[i], true)
-        codeArray += `[${idx}]`
-        codeInit += `\n/*配列初期化${i}*/if (!(${name}${codeArray} instanceof Array)) { ${name}${codeArray} = ${arrayDefCode}; };`
-        // codeInit += `\n/*配列初期化${i}*/if (!(${name}${codeArray} instanceof Array)) { ${name}${codeArray} = ${arrayDefCode}; console.log('初期化:${i}:${name}${codeArray}',JSON.stringify(${name})) }; `
+      //
+      // [name]の内容は[__self.__varslist[2].get("a__A")]のようなものになっているはず
+      //
+      const nodeName: Token = node.name as Token
+      if (nodeName && nodeName.type === 'word') {
+        const word = nodeName.value
+        const tmpVar = `$nako_tmp_a${id}`
+        const initArrayCode = this.varname_set(word, arrayDefCode)
+        codeInit += `\n/*配列初期化*/if (!(${name} instanceof Array)) { ${initArrayCode} };\n`
+        codeInit += `${tmpVar} = ${name};\n`
+        for (let i = 0; i < list.length - 1; i++) {
+          const idx = this._convGen(list[i], true)
+          codeArray += `[${idx}]`
+          codeInit += `\n/*配列初期化${i}*/if (!(${tmpVar}${codeArray} instanceof Array)) { ${tmpVar}${codeArray} = ${arrayDefCode}; };`
+        }
+        codeInit += '\n'
       }
-      codeInit += '\n'
     }
     // array
     for (let i = 0; i < list.length; i++) {
