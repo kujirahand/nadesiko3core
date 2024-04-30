@@ -1991,8 +1991,8 @@ export class NakoParser extends NakoParserBase {
     const word = this.yValueWord()
     if (word) { return word }
     // 関数への参照
-    const func_pointer = this.yValueFuncPointer()
-    if (func_pointer) { return func_pointer }
+    const funcPtr = this.yValueFuncPointer()
+    if (funcPtr) { return funcPtr }
     // その他
     return null
   }
