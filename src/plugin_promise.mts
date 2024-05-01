@@ -1,4 +1,14 @@
 export default {
+  'meta': {
+    type: 'const',
+    value: {
+      pluginName: 'plugin_promise', // プラグインの名前
+      description: 'promise関連の命令を提供するプラグイン', // プラグインの説明
+      pluginVersion: '3.6.0', // プラグインのバージョン
+      nakoRuntime: ['wnako', 'cnako'], // 対象ランタイム
+      nakoVersion: '^3.6.0' // 要求なでしこバージョン
+    }
+  },
   '初期化': {
     type: 'func',
     josi: [],

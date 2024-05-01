@@ -1,55 +1,60 @@
 import { NakoRuntimeError } from './nako_errors.mjs'
+import { NakoSystem } from './plugin_api.mjs'
 
 export default {
   'meta': {
     type: 'const',
     value: {
       pluginName: 'plugin_system', // プラグインの名前
+      description: 'システム関連の命令を提供するプラグイン', // プラグインの説明
       pluginVersion: '3.6.0', // プラグインのバージョン
       nakoRuntime: ['wnako', 'cnako', 'phpnako'], // 対象ランタイム
-      nakoVersion: '^3.6.0' // 要求なでしこバージョン
+      nakoVersion: '3.6.0' // 要求なでしこバージョン
     }
   },
   '初期化': {
     type: 'func',
     josi: [],
     pure: false,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
+      // システム変数の初期化
+      const system: any = sys
       sys.isDebug = false
       // システム変数にアクセスするための関数を定義
-      sys.__setSysVar = (name: string, value: any) => sys.__v0.set(name, value)
+      sys.__setSysVar = (name: string, value: any) => (sys as any).__v0.set(name, value)
       sys.__getSysVar = (name: string, defaultValue: any = undefined) => {
-        const v = sys.__v0.get(name)
+        const v = (sys as any).__v0.get(name)
         if (v === undefined) { return defaultValue }
         return v
       }
-      sys.__setSore = (v: any) => { sys.__vars.set('それ', v); return v }
+      sys.__setSore = (v: any) => { (sys as any).__vars.set('それ', v); return v }
+      sys.__getSore = () => (sys as any).__vars.get('それ')
       sys.tags = {} // タグ情報
       // 言語バージョンを設定
       sys.__setSysVar('ナデシコバージョン', sys.version)
       sys.__setSysVar('ナデシコ言語バージョン', sys.coreVersion)
-      if (!sys.__namespaceList) { sys.__namespaceList = [] }
+      if (!system.__namespaceList) { system.__namespaceList = [] }
       // なでしこの関数や変数を探して返す
       sys.__findVar = function (nameStr: any, def: any): any {
         if (typeof nameStr === 'function') { return nameStr }
         // ローカル変数を探す
-        const localVar = sys.__locals.get(nameStr)
+        const localVar = system.__locals.get(nameStr)
         if (localVar) { return localVar }
         // 名前空間が指定されている場合
         if (nameStr.indexOf('__') >= 0) {
           for (let i = 2; i >= 0; i--) {
-            const varScope = sys.__varslist[i]
+            const varScope = system.__varslist[i]
             const scopeValue = varScope.get(nameStr)
             if (scopeValue) { return scopeValue }
           }
           return def
         }
         // 名前空間を参照して関数・変数名を解決する
-        const modList = sys.__modList ? sys.__modList : [sys.__modName]
+        const modList = system.__modList ? system.__modList : [system.__modName]
         for (const modName of modList) {
           const gname = modName + '__' + nameStr
           for (let i = 2; i >= 0; i--) {
-            const scope = sys.__varslist[i]
+            const scope = system.__varslist[i]
             const scopeValue = scope.get(gname)
             if (scopeValue) { return scopeValue }
           }
@@ -135,16 +140,16 @@ export default {
         return (typeof v) === 'bigint' ? v : parseFloat(v)
       }
       // undefinedチェック
-      sys.chk = (value:any, constId: number): any => {
+      system.chk = (value:any, constId: number): any => {
         if (typeof value === 'undefined') {
-          const cp = sys.constPools[constId]
+          const cp = system.constPools[constId]
           const [msgNo, msgArgs, fileNo, lineNo] = cp
-          let msg = sys.constPoolsTemplate[msgNo]
+          let msg = system.constPoolsTemplate[msgNo]
           for (const i in msgArgs) {
-            const arg = sys.constPoolsTemplate[msgArgs[i]]
+            const arg = system.constPoolsTemplate[msgArgs[i]]
             msg = msg.split(`$${i}`).join(arg)
           }
-          const fileStr = sys.constPoolsTemplate[fileNo]
+          const fileStr = system.constPoolsTemplate[fileNo]
           sys.logger.warn(msg, { file: fileStr, line: lineNo })
         }
         return value
@@ -155,9 +160,8 @@ export default {
     type: 'func',
     josi: [],
     pure: false,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       if (sys.__exec) { sys.__exec('全タイマー停止', [sys]) }
-      if (sys.__genMode === '非同期モード') { sys.__stopAsync(sys) }
       sys.__setSysVar('表示ログ', '')
     }
   },
@@ -228,7 +232,7 @@ export default {
     type: 'func',
     josi: [],
     pure: false,
-    fn: function (sys: any): any {
+    fn: function (sys: NakoSystem): any {
       return sys.__exec('空ハッシュ', [sys])
     }
   },
@@ -286,7 +290,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       sys.__setSysVar('表示ログ', '')
     },
     return_none: true
@@ -513,7 +517,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       if (!sys.__reisetu) { sys.__reisetu = 0 }
       sys.__reisetu++
     },
@@ -523,7 +527,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       if (!sys.__reisetu) { sys.__reisetu = 0 }
       sys.__reisetu++
     },
@@ -533,7 +537,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       if (!sys.__reisetu) { sys.__reisetu = 0 }
       sys.__reisetu++
     },
@@ -543,7 +547,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       sys.__reisetu = 0
     },
     return_none: true
@@ -552,7 +556,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       sys.__reisetu += 100 // bonus point
     },
     return_none: true
@@ -561,7 +565,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       if (!sys.__reisetu) { sys.__reisetu = 0 }
       return sys.__reisetu
     }
@@ -573,7 +577,7 @@ export default {
     josi: [['を', 'で']],
     pure: true,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    fn: function (src: string, sys: any) {
+    fn: function (src: string, sys: NakoSystem) {
       // [メモ] ↑のsys は eval の中でも有効なので消さない!!
       // https://github.com/kujirahand/nadesiko3/issues/1237
       return eval(src) // eslint-disable-line
@@ -724,7 +728,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       // デバッグモードでなければ例外を投げることでプログラムを終了させる
       sys.__setSysVar('forceClose', true)
       if (!sys.__getSysVar('useDebug')) { throw new Error('__終わる__') }
@@ -2316,7 +2320,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       // clearInterval
       for (let i = 0; i < sys.__interval.length; i++) {
         const timerId = sys.__interval[i]
@@ -2369,7 +2373,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       return sys.__formatDate(new Date())
     }
   },
@@ -2377,7 +2381,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       const t = Date.now() + (24 * 60 * 60 * 1000)
       return sys.__formatDate(new Date(t))
     }
@@ -2386,7 +2390,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       const t = Date.now() - (24 * 60 * 60 * 1000)
       return sys.__formatDate(new Date(t))
     }
@@ -2704,7 +2708,7 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       sys.isDebug = true
       console.log(sys)
     }
@@ -2743,8 +2747,8 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
-      const vars: any = sys.__varslist[1]
+    fn: function (sys: NakoSystem) {
+      const vars: Map<string, any> = (sys as any).__varslist[1]
       const res: string[] = []
       for (const key of vars.keys()) {
         res.push(key)
@@ -2756,8 +2760,8 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
-      const vars: any = sys.__varslist[0]
+    fn: function (sys: NakoSystem) {
+      const vars: Map<string, any> = (sys as any).__v0
       const res: string[] = []
       for (const key of vars.keys()) {
         if (key.startsWith('__') || key.startsWith('!') || key === 'meta') { continue }
@@ -2778,10 +2782,9 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       const a = []
-      for (const f in sys.pluginfiles) { a.push(f) }
-
+      for (const f in (sys as any).pluginfiles) { a.push(f) }
       return a
     }
   },
@@ -2789,10 +2792,9 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       const a = []
-      for (const f in sys.__module) { a.push(f) }
-
+      for (const f in (sys as any).__module) { a.push(f) }
       return a
     }
   },
@@ -2853,9 +2855,9 @@ export default {
     type: 'func',
     josi: [['に', 'へ']],
     pure: true,
-    fn: function (s: string, sys: any) {
+    fn: function (s: string, sys: NakoSystem) {
       // push namespace
-      sys.__namespaceList.push([sys.__getSysVar('名前空間'), sys.__getSysVar('プラグイン名')])
+      (sys as any).__namespaceList.push([sys.__getSysVar('名前空間'), sys.__getSysVar('プラグイン名')])
       sys.__setSysVar('名前空間', s)
     },
     return_none: true
@@ -2864,9 +2866,9 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
+    fn: function (sys: NakoSystem) {
       // pop namespace
-      const a = sys.__namespaceList.pop()
+      const a = (sys as any).__namespaceList.pop()
       if (a) {
         sys.__setSysVar('名前空間', a[0])
         sys.__setSysVar('プラグイン名', a[1])

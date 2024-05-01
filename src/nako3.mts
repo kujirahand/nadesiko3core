@@ -25,6 +25,7 @@ import PluginPromise from './plugin_promise.mjs'
 import PluginTest from './plugin_test.mjs'
 
 const cloneAsJSON = (x: any): any => JSON.parse(JSON.stringify(x))
+const PLUGIN_MIN_VERSION_INT = 600 // = minor * 100 + patch
 
 export interface NakoCompilerOption {
   useBasicPlugin: boolean;
@@ -930,12 +931,36 @@ export class NakoCompiler {
    * @param persistent falseのとき、次以降の実行では使えない
    */
   addPlugin (po: {[key: string]: any}, persistent = true): void {
-    // 変数のメタ情報を確認
+    // __v0を取得
     const __v0 = this.__varslist[0]
-    let meta = __v0.get('meta')
-    if (meta === undefined) {
-      meta = {}
-      __v0.set('meta', meta)
+    // プラグインのメタ情報をチェック (#1034) (#1647)
+    let __pluginInfo = __v0.get('__pluginInfo')
+    if (!__pluginInfo) {
+      __pluginInfo = {}
+      __v0.set('__pluginInfo', __pluginInfo)
+    }
+    if (po.meta) {
+      if (po.meta.value && typeof (po.meta) === 'object') {
+        const meta = po.meta
+        const metaValue = meta.value || { pluginName: 'unknown', nakoVersion: '0.0.0' }
+        const pluginName = metaValue.pluginName || 'unknown'
+        // version check
+        const nakoVersion = (metaValue.nakoVersion || '0.0.0') + '.0.0'
+        const versions = nakoVersion.split('.').map((v) => parseInt(v))
+        const intVersion = versions[1] * 100 + versions[2]
+        if (PLUGIN_MIN_VERSION_INT > intVersion) {
+          const errMsg = `なでしこプラグイン『${pluginName}』は古い形式なので正しく動作しない可能性があります。` +
+            `(ランタイムの要求: ${PLUGIN_MIN_VERSION_INT}/プラグイン: ${intVersion})`
+          console.warn(errMsg, 'see', 'https://github.com/kujirahand/nadesiko3/issues/1647')
+          this.logger.warn(errMsg)
+          metaValue.nakoVersionResult = false
+        } else {
+          metaValue.nakoVersionResult = true
+        }
+        // プラグイン情報を記録
+        __pluginInfo[pluginName] = metaValue
+      }
+      delete po.meta
     }
 
     // プラグインの値をオブジェクトにコピー
@@ -952,7 +977,8 @@ export class NakoCompiler {
         }
       } else if (v.type === 'const' || v.type === 'var') {
         __v0.set(key, v.value)
-        meta[key] = { readonly: v.type === 'const' }
+        // メタ情報としての const | var は現在利用していない
+        // meta[key] = { readonly: v.type === 'const' }
       } else {
         console.error('[プラグイン追加エラー]', v)
         throw new Error('プラグインの追加でエラー。')
@@ -980,14 +1006,6 @@ export class NakoCompiler {
       delete po['初期化']
       const initKey = `!${objName}:初期化`
       po[initKey] = def
-    }
-    // メタ情報をチェック (#1034)
-    if (po.meta && po.meta.value && typeof (po.meta) === 'object') {
-      const meta = po.meta
-      delete po.meta
-      const pluginName = meta.value.pluginName || objName
-      const metaKey = `__${pluginName}`.replace('-', '__')
-      po[metaKey] = meta
     }
     this.addPlugin(po, persistent)
   }
