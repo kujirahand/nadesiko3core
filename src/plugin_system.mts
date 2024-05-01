@@ -19,7 +19,11 @@ export default {
       sys.isDebug = false
       // システム変数にアクセスするための関数を定義
       sys.__setSysVar = (name: string, value: any) => sys.__v0.set(name, value)
-      sys.__getSysVar = (name: string) => sys.__v0.get(name)
+      sys.__getSysVar = (name: string, defaultValue: any = undefined) => {
+        const v = sys.__v0.get(name)
+        if (v === undefined) { return defaultValue }
+        return v
+      }
       sys.__setSore = (v: any) => { sys.__vars.set('それ', v); return v }
       // バージョン番号を設定
       sys.__setSysVar('ナデシコバージョン', sys.version)
