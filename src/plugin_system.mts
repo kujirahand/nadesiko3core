@@ -15,7 +15,6 @@ export default {
     josi: [],
     pure: false,
     fn: function (sys: any) {
-      // 言語バージョンを設定
       sys.isDebug = false
       // システム変数にアクセスするための関数を定義
       sys.__setSysVar = (name: string, value: any) => sys.__v0.set(name, value)
@@ -25,10 +24,11 @@ export default {
         return v
       }
       sys.__setSore = (v: any) => { sys.__vars.set('それ', v); return v }
-      // バージョン番号を設定
+      sys.tags = {} // タグ情報
+      // 言語バージョンを設定
       sys.__setSysVar('ナデシコバージョン', sys.version)
       sys.__setSysVar('ナデシコ言語バージョン', sys.coreVersion)
-      sys.__namespaceList = []
+      if (!sys.__namespaceList) { sys.__namespaceList = [] }
       // なでしこの関数や変数を探して返す
       sys.__findVar = function (nameStr: any, def: any): any {
         if (typeof nameStr === 'function') { return nameStr }
