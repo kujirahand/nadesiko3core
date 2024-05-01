@@ -23,6 +23,7 @@ export interface NakoSystem {
   __exec (func: string, params: any[]): any;
   __setSore(v: any): void;
   __getSore(): any;
+  __loadScript(url: string): Promise<void>; // JSのスクリプトを読み込む (ex) グラフ描画(plguin_browser_chart.mts)
   logger: any; // Logger
   // 便利なメソッド
   __zero (s: string, keta: number): string; // 桁を指定してゼロ埋めする
