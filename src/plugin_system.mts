@@ -2728,7 +2728,7 @@ export default {
         sys.__setSysVar('__DEBUG強制待機', 0)
         // ブレイクポイント or __DEBUG強制待機 が指定されたか？
         if (breakpoints.indexOf(curLine) >= 0 || forceLine) {
-          if (sys.__setSysVar('プラグイン名') !== 'メイン') { return } // 現状メインのみデバッグする
+          if (sys.__getSysVar('プラグイン名') !== 'メイン') { return } // 現状メインのみデバッグする
           console.log(`@__DEBUG_BP_WAIT(${curLine})`)
           const timerId = setInterval(() => {
             if (sys.__getSysVar('__DEBUG待機フラグ') === 1) {
