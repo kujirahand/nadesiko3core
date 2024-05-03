@@ -793,7 +793,7 @@ export class NakoCompiler {
     // 他に実行している「なでしこ」があればクリアする
     this.__globals.forEach((sys: NakoGlobal) => {
       // core #56
-      sys.__setSysVar('forceClose', true)
+      sys.__setSysVar('__forceClose', true)
       sys.reset()
     })
     this.__globals = [] // clear

@@ -730,8 +730,8 @@ export default {
     pure: true,
     fn: function (sys: NakoSystem) {
       // デバッグモードでなければ例外を投げることでプログラムを終了させる
-      sys.__setSysVar('forceClose', true)
-      if (!sys.__getSysVar('useDebug')) { throw new Error('__終わる__') }
+      sys.__setSysVar('__forceClose', true)
+      if (!sys.__getSysVar('__useDebug')) { throw new Error('__終わる__') }
     }
   },
 

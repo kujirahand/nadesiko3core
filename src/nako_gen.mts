@@ -236,7 +236,7 @@ export class NakoGen {
         debugCode += `await __v0.get('__DEBUG_BP_WAIT')(${lineNo}, __self);`
       }
       // end
-      debugCode += 'if (__v0.get(\'forceClose\')) { return - 1 };'
+      debugCode += 'if (__v0.get(\'__forceClose\')) { return -1 };'
     }
     // 例: __v0.set('__line', 'l1:main.nako3')
     // return `__v0.set('__line', ${lineDataJSON});` + debugCode
@@ -321,8 +321,8 @@ export class NakoGen {
     code += `const __modList = __self.__modList = ${JSON.stringify(com.getModList())}\n`
     code += 'const __line = (lineno) => { __self.__v0.set(\'__line\', lineno); }\n'
     code += '__v0.set(\'__line\', \'l0:__getDefFuncCode\');\n'
-    code += '__v0.set(\'forceClose\', false);\n'
-    code += `__v0.set('useDebug', ${this.debugOption.useDebug});\n`
+    code += '__v0.set(\'__forceClose\', false);\n'
+    code += `__v0.set('__useDebug', ${this.debugOption.useDebug});\n`
     // 定数を埋め込む
     code += '__self.constPools = ' + JSON.stringify(this.constPools) + ';\n'
     code += '__self.constPoolsTemplate = ' + JSON.stringify(this.constPoolsTemplate) + ';\n'
