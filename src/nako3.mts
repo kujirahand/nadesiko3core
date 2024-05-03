@@ -917,12 +917,12 @@ export class NakoCompiler {
    * JavaScriptのみで動くコードを取得する場合
    * @param code
    * @param filename
-   * @param opt
+   * @param opt? オプション
    */
-  compileStandalone (code: string, filename: string, opt: NakoGenOptions|null = null): string {
-    if (opt === null) { opt = new NakoGenOptions() }
+  compileStandalone (code: string, filename: string, options?: NakoGenOptions): string {
+    if (options === undefined) { options = new NakoGenOptions() }
     const ast = this.parse(code, filename)
-    return this.generateCode(ast, opt).standalone
+    return this.generateCode(ast, options).standalone
   }
 
   /**

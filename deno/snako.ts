@@ -54,7 +54,7 @@ async function main (argvOrg: string[]) {
   nako.addPluginObject('PluginSnako', PluginSnako)
   // 実行前にイベントを挟みたいとき
   nako.addListener('beforeRun', (g: NakoGlobal) => {
-    g.__varslist[0]['ナデシコ種類'] = 'snako'
+    g.__setSysVar('ナデシコ種類', 'snako')
   })
   // logger を設定 --- リスナーを登録することでデバッグレベルを指定
   const logger = nako.getLogger()
@@ -87,10 +87,10 @@ async function main (argvOrg: string[]) {
 // -c オプションを指定したとき
 function convert (nako: NakoCompiler, code: string, opt: CommandOptions): void {
   // オプションを指定
-  const genOpt = new NakoGenOptions(
+  const genOpt: NakoGenOptions = new NakoGenOptions(
     false,
     ['nako_errors.mjs', 'nako_core_version.mjs', 'plugin_system.mjs'],
-    '__self.__varslist[0].set(\'ナデシコ種類\', \'snako\')')
+    '__self.__setSysVar(\'ナデシコ種類\', \'snako\')')
   // スタンドアロンコードを生成
   const js = nako.compileStandalone(code, opt.filename, genOpt)
   const jsFilename = opt.filename + '.js'
