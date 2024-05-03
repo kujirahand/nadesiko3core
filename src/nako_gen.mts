@@ -239,7 +239,8 @@ export class NakoGen {
       debugCode += 'if (__v0.get(\'forceClose\')) { return - 1 };'
     }
     // 例: __v0.set('__line', 'l1:main.nako3')
-    return `__v0.set('__line', ${lineDataJSON});` + debugCode
+    // return `__v0.set('__line', ${lineDataJSON});` + debugCode
+    return `__line(${lineDataJSON});` + debugCode
   }
 
   /**
@@ -308,6 +309,7 @@ export class NakoGen {
   getDefFuncCode (com: NakoCompiler, opt: NakoGenOptions): string {
     let code = ''
     // よく使う変数のショートカット
+    // jsInit の部分に設定するコード
     code += `const nakoVersion = { version: ${JSON.stringify(com.version)} }\n`
     code += 'const __self = self;\n'
     code += '__self.__self = __self;\n'
@@ -317,6 +319,7 @@ export class NakoGen {
     code += 'const __v1 = __self.__v1 = __self.__varslist[1];\n'
     code += 'const __vars = __self.__vars = __self.__varslist[2];\n'
     code += `const __modList = __self.__modList = ${JSON.stringify(com.getModList())}\n`
+    code += 'const __line = (lineno) => { __self.__v0.set(\'__line\', lineno); }\n'
     code += '__v0.set(\'__line\', \'l0:__getDefFuncCode\');\n'
     code += '__v0.set(\'forceClose\', false);\n'
     code += `__v0.set('useDebug', ${this.debugOption.useDebug});\n`
@@ -685,7 +688,7 @@ export class NakoGen {
     // システム関数・変数の場合
     if (i === 0) {
       const pv = this.__self.getNakoFunc(name)
-      if (!pv) { return `${res.js}/*err:${lno}*/` }
+      if (!pv) { return `${res.js}/*[link_error]l${lno}:${position.file}*/` }
       if (pv.type === 'const' || pv.type === 'var') { return res.js }
       if (pv.type === 'func') {
         if (!pv.josi || pv.josi.length === 0) { return `(${res.js}())` }
@@ -1124,7 +1127,7 @@ export class NakoGen {
     // コードを生成
     const code =
       this.convLineno(node, false) + '\n' +
-      `/*[convForeach id=${id}]*/\n` +
+      `// [convForeach id=${id}]\n` +
       `let ${loopDataVar} = ${targetData};\n` +
       '// foreach Map?\n' +
       `if (${loopDataVar} instanceof Map) { // Objectに強制変換\n` +
@@ -1143,7 +1146,7 @@ export class NakoGen {
       `  ${block}\n` +
       '  // [/convForeach::block]\n' +
       '}\n' +
-      `/*[/convForeach id=${id}]*/\n`
+      `// [/convForeach id=${id}]\n`
     return code
   }
 
@@ -1226,12 +1229,15 @@ export class NakoGen {
 
   convWhile (node: Ast): string {
     const cond = this._convGen(node.cond as Ast, true)
-    const block = this.convGenLoop(node.block as Ast)
+    const block = trim(cleanGeneratedCode(this.convGenLoop(node.block as Ast), 1))
     const code =
+      '// [convWhile]\n' +
+      this.convLineno(node, false) + '\n' +
       `while (${cond})` + '{\n' +
       `  ${block}` + '\n' +
-      '}\n'
-    return this.convLineno(node, false) + code
+      '}\n' +
+      '// [convWhile]\n'
+    return code
   }
 
   convAtohantei (node: Ast): string {
@@ -1272,13 +1278,29 @@ export class NakoGen {
   }
 
   convIf (node: Ast): string {
+    // 条件
     const expr = this._convGen(node.expr as Ast, true)
-    const block = this._convGen(node.block as Ast, false)
-    const falseBlock = (node.false_block === null)
-      ? ''
-      : 'else {' + this._convGen(node.false_block as Ast, false) + '};\n'
-    return this.convLineno(node, false) +
-      `if (${expr}) {\n  ${block}\n}` + falseBlock + ';\n'
+    // TRUEブロック
+    const block = trim(cleanGeneratedCode(this._convGen(node.block as Ast, false), 1))
+    // FALSEブロック
+    let falseBlock = ''
+    if (node.false_block) {
+      falseBlock = trim(cleanGeneratedCode(this.convGenLoop(node.false_block as Ast), 1))
+    }
+    let code =
+      '// [convIf]\n' +
+      this.convLineno(node, false) + '\n' +
+      `if (${expr}) {\n` +
+      `  ${block}\n` +
+      '}'
+    if (falseBlock !== '') {
+      code +=
+        '  else {\n' +
+        `  ${falseBlock}\n` +
+        '}\n'
+    }
+    code += '\n// [/convIf]\n'
+    return code
   }
 
   convFuncGetArgsCalcType (_funcName: string, _func: any, node: Ast): [any, any] {

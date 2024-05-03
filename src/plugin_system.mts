@@ -21,14 +21,14 @@ export default {
       const system: any = sys
       sys.isDebug = false
       // システム変数にアクセスするための関数を定義
-      sys.__setSysVar = (name: string, value: any) => (sys as any).__v0.set(name, value)
-      sys.__getSysVar = (name: string, defaultValue: any = undefined) => {
-        const v = (sys as any).__v0.get(name)
+      sys.__setSysVar = (name: string, value: any): void => system.__v0.set(name, value)
+      sys.__getSysVar = (name: string, defaultValue: any = undefined): any => {
+        const v = system.__v0.get(name)
         if (v === undefined) { return defaultValue }
         return v
       }
-      sys.__setSore = (v: any) => { (sys as any).__vars.set('それ', v); return v }
-      sys.__getSore = () => (sys as any).__vars.get('それ')
+      sys.__setSore = (v: any): any => { (sys as any).__vars.set('それ', v); return v }
+      sys.__getSore = (): any => (sys as any).__vars.get('それ')
       sys.tags = {} // タグ情報
       // 言語バージョンを設定
       sys.__setSysVar('ナデシコバージョン', sys.version)
