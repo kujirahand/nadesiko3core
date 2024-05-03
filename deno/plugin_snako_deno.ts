@@ -6,6 +6,16 @@ import path from 'node:path'
 import { exec, OutputMode } from "https://deno.land/x/exec/mod.ts"
 
 export default {
+  'meta': {
+    type: 'const',
+    value: {
+      pluginName: 'plugin_snako_deno', // プラグインの名前
+      description: '最小の機能を提供するプラグイン', // プラグインの説明
+      pluginVersion: '3.6.3', // プラグインのバージョン
+      nakoRuntime: ['cnako'], // 対象ランタイム
+      nakoVersion: '3.6.3' // 要求なでしこバージョン
+    }
+  },
   '初期化': {
     type: 'func',
     josi: [],
