@@ -2,6 +2,7 @@
 import assert from 'assert'
 
 import { NakoCompiler } from '../src/nako3.mjs'
+// import plugin_node from '../../src/plugin_node.mts'
 // import { NakoSyntaxError } from '../src/nako_errors.mjs'
 
 describe('side_effects_test', async () => {
@@ -33,9 +34,10 @@ describe('side_effects_test', async () => {
   })
   it('プラグイン変数の上書き', async () => {
     const nako = new NakoCompiler()
-    nako.addPluginObject('SideEffectTestPlugin', {
+    nako.addPlugin({
+      'meta': { type: 'const', value: { pluginName: 'SideEffectTestPlugin', nakoVersion: '3.6.3' } },
       'プラグイン変数': { type: 'var', value: 100 }
-    })
+    }, true)
     await nako.runAsync('プラグイン変数=20', 'main.nako3') // プラグイン変数 = 20
     nako.reset() // ここで変数がリセットされるので、上記のプラグイン変数が有効になる
     assert.strictEqual((await nako.runAsync('プラグイン変数を表示', 'main.nako3')).log, '100')
@@ -63,7 +65,11 @@ describe('side_effects_test', async () => {
     const nako = new NakoCompiler()
 
     let count = 0
-    nako.addPluginObject('ClearTest', {
+    nako.addPlugin({
+      'meta': {
+        type: 'const',
+        value: { pluginName: 'init_clear_plugin', nakoVersion: '3.6.3' }
+      },
       '初期化': {
         type: 'func',
         josi: [],
@@ -81,7 +87,7 @@ describe('side_effects_test', async () => {
           log.push('!クリア' + sys.x)
         }
       }
-    })
+    }, true)
     // NakoGlobalのテスト
     const process1 = await nako.runAsync('a=1')
     const process2 = await nako.runAsync('a=1')
@@ -91,8 +97,8 @@ describe('side_effects_test', async () => {
   })
   it('余分なNakoGlobalが生成されないこと #1246', async () => {
     const nako3 = new NakoCompiler()
-    const g1 = nako3.runSync('A=10')
-    const g2 = nako3.runSync('B=10')
+    const g1 = await nako3.runAsync('A=10')
+    const g2 = await nako3.runAsync('B=10')
     assert.strictEqual(g1.guid, g2.guid)
   })
 })

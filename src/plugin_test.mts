@@ -2,6 +2,9 @@
  * file: plugin_test.js
  * テスト実行用プラグイン
  */
+
+import { NakoSystem } from './plugin_api.mjs'
+
 export default {
   'meta': {
     type: 'const',
@@ -11,6 +14,14 @@ export default {
       pluginVersion: '3.6.0', // プラグインのバージョン
       nakoRuntime: ['wnako', 'cnako', 'phpnako'], // 対象ランタイム
       nakoVersion: '^3.6.0' // 要求なでしこバージョン
+    }
+  },
+  '初期化': {
+    type: 'func',
+    josi: [],
+    pure: true,
+    fn: function (): void {
+      // 初期化不要
     }
   },
   // @テスト
@@ -29,7 +40,7 @@ export default {
     type: 'func',
     josi: [['と'], ['で']],
     pure: false,
-    fn: function (a: any, b: any, sys: any) {
+    fn: function (a: any, b: any, sys: NakoSystem) {
       sys.__exec('ASSERT等', [a, b, sys])
     }
   },
@@ -37,7 +48,7 @@ export default {
     type: 'func',
     josi: [['と'], ['が']],
     pure: false,
-    fn: function (a: any, b: any, sys: any) {
+    fn: function (a: any, b: any, sys: NakoSystem) {
       sys.__exec('ASSERT等', [a, b, sys])
     }
   }

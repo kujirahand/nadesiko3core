@@ -19,7 +19,7 @@ export class NakoGlobal {
   __labels: {[key: string]: any}
   __genMode: string
   __module: {[key: string]: any}
-  pluginfiles: {[key: string]: FuncList}
+  pluginfiles: Record<string, any>
   index: number
   nextIndex: number
   numFailures: number

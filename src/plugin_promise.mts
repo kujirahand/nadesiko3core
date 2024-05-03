@@ -1,3 +1,5 @@
+import { NakoSystem } from './plugin_api.mjs'
+
 export default {
   'meta': {
     type: 'const',
@@ -13,9 +15,9 @@ export default {
     type: 'func',
     josi: [],
     pure: true,
-    fn: function (sys: any) {
-      if (sys.__promise == null) {
-        sys.__promise = {
+    fn: function (sys: NakoSystem) {
+      if ((sys as any).__promise == null) {
+        (sys as any).__promise = {
           setLastPromise: function (promise: any) {
             sys.__setSysVar('そ', promise)
             return promise
@@ -31,8 +33,8 @@ export default {
     type: 'func',
     josi: [['を', 'で']],
     pure: true,
-    fn: function (callback: any, sys: any) {
-      return sys.__promise.setLastPromise(new Promise((resolve, reject) => {
+    fn: function (callback: any, sys: NakoSystem) {
+      return (sys as any).__promise.setLastPromise(new Promise((resolve, reject) => {
         return callback(resolve, reject)
       }))
     },
@@ -42,8 +44,8 @@ export default {
     type: 'func',
     josi: [['を'], ['の', 'が', 'に']],
     pure: true,
-    fn: function (callback: any, promise: any, sys: any) {
-      return sys.__promise.setLastPromise(promise.then((result:any) => {
+    fn: function (callback: any, promise: any, sys: NakoSystem) {
+      return (sys as any).__promise.setLastPromise(promise.then((result:any) => {
         sys.__setSysVar('対象', result)
         return callback(result)
       }))
@@ -54,8 +56,8 @@ export default {
     type: 'func',
     josi: [['を'], ['の', 'が', 'に']],
     pure: true,
-    fn: function (cbFunc: any, promise: any, sys: any): any {
-      return sys.__promise.setLastPromise(promise.then((result: any) => {
+    fn: function (cbFunc: any, promise: any, sys: NakoSystem): any {
+      return (sys as any).__promise.setLastPromise(promise.then((result: any) => {
         sys.__setSysVar('対象', result)
         return cbFunc(true, result, sys)
       }, (reason: any) => {
@@ -69,8 +71,8 @@ export default {
     type: 'func',
     josi: [['を'], ['の', 'が', 'に']],
     pure: true,
-    fn: function (callback: any, promise: any, sys: any): any {
-      return sys.__promise.setLastPromise(promise.catch((err: any) => {
+    fn: function (callback: any, promise: any, sys: NakoSystem): any {
+      return (sys as any).__promise.setLastPromise(promise.catch((err: any) => {
         sys.__setSysVar('対象', err)
         return callback(err)
       }))
@@ -81,8 +83,8 @@ export default {
     type: 'func',
     josi: [['を'], ['の', 'が', 'に']],
     pure: true,
-    fn: function (callback: any, promise: any, sys: any): any {
-      return sys.__promise.setLastPromise(promise.finally(() => {
+    fn: function (callback: any, promise: any, sys: NakoSystem): any {
+      return (sys as any).__promise.setLastPromise(promise.finally(() => {
         return callback()
       }))
     },
@@ -94,7 +96,7 @@ export default {
     pure: true,
     fn: function (...args:any): any {
       const sys = args.pop()
-      return sys.__promise.setLastPromise(Promise.all(args))
+      return (sys as any).__promise.setLastPromise(Promise.all(args))
     },
     return_none: false
   }

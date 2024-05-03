@@ -184,11 +184,11 @@ export class NakoCompiler {
    * 基本的なプラグインを追加する
    */
   addBasicPlugins () {
-    this.addPluginObject('PluginSystem', PluginSystem)
-    this.addPluginObject('PluginMath', PluginMath)
-    this.addPluginObject('PluginPromise', PluginPromise)
-    this.addPluginObject('PluginAssert', PluginTest)
-    this.addPluginObject('PluginCSV', PluginCSV)
+    this.addPlugin(PluginSystem)
+    this.addPlugin(PluginMath)
+    this.addPlugin(PluginPromise)
+    this.addPlugin(PluginTest)
+    this.addPlugin(PluginCSV)
   }
 
   /**
@@ -929,8 +929,9 @@ export class NakoCompiler {
    * プラグイン・オブジェクトを追加
    * @param po プラグイン・オブジェクト
    * @param persistent falseのとき、次以降の実行では使えない
+   * @param fpath ファイルパス
    */
-  addPlugin (po: {[key: string]: any}, persistent = true): void {
+  addPlugin (po: {[key: string]: any}, persistent = true, fpath = ''): void {
     // __v0を取得
     const __v0 = this.__varslist[0]
     // プラグインのメタ情報をチェック (#1034) (#1647)
@@ -939,31 +940,63 @@ export class NakoCompiler {
       __pluginInfo = {}
       __v0.set('__pluginInfo', __pluginInfo)
     }
+    // バージョンチェック
+    let intVersion = 0
+    let pluginName = 'unknown'
+    let metaValue = { pluginName: 'unknown', nakoVersionResult: true, nakoVersion: '0.0.0', path: '' }
     if (po.meta) {
       if (po.meta.value && typeof (po.meta) === 'object') {
         const meta = po.meta
-        const metaValue = meta.value || { pluginName: 'unknown', nakoVersion: '0.0.0' }
-        const pluginName = metaValue.pluginName || 'unknown'
+        metaValue = meta.value || { pluginName: 'unknown', nakoVersion: '0.0.0' }
+        pluginName = metaValue.pluginName || 'unknown'
         // version check
         const nakoVersion = (metaValue.nakoVersion || '0.0.0') + '.0.0'
         const versions = nakoVersion.split('.').map((v) => parseInt(v))
-        const intVersion = versions[1] * 100 + versions[2]
-        if (PLUGIN_MIN_VERSION_INT > intVersion) {
-          const errMsg = `なでしこプラグイン『${pluginName}』は古い形式なので正しく動作しない可能性があります。` +
-            `(ランタイムの要求: ${PLUGIN_MIN_VERSION_INT}/プラグイン: ${intVersion})`
-          console.warn(errMsg, 'see', 'https://github.com/kujirahand/nadesiko3/issues/1647')
-          this.logger.warn(errMsg)
-          metaValue.nakoVersionResult = false
-        } else {
-          metaValue.nakoVersionResult = true
-        }
-        // プラグイン情報を記録
-        __pluginInfo[pluginName] = metaValue
+        intVersion = versions[1] * 100 + versions[2]
+        // fpath
+        metaValue.path = fpath
       }
-      delete po.meta
     }
-
-    // プラグインの値をオブジェクトにコピー
+    // unknown の場合は、関数名からプラグイン名を自動生成する
+    if (pluginName === 'unknown') {
+      pluginName = Object.keys(po).join('-')
+    }
+    // プラグイン名の重複を確認
+    if (__pluginInfo[pluginName] !== undefined) {
+      // プラグイン名が重複した場合はプラグインとして登録しない
+      this.logger.info(`プラグイン名『${pluginName}』が重複しているため、プラグインとして登録しませんでした。`)
+      return
+    }
+    // Windowsのパスやファイル名に使えない文字列があると、JSファイル書き出しでエラーになるので置換
+    const removeInvalidFilenameChars = (str: string): string => {
+      return str.replace(/[^a-zA-z0-9\-_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBF\uF900-\uFAFF]/g, '_')
+    }
+    pluginName = removeInvalidFilenameChars(pluginName)
+    // プラグイン情報を記録
+    __pluginInfo[pluginName] = metaValue
+    // バージョンチェック
+    if (PLUGIN_MIN_VERSION_INT > intVersion) {
+      const keyStr: string = Object.keys(po).join(',')
+      if (pluginName === 'unknown') {
+        pluginName = keyStr.substring(0, 30) + '...'
+      }
+      const errMsg = `なでしこプラグイン『${pluginName}』は古い形式なので正しく動作しない可能性があります。` +
+        `(ランタイムの要求: ${PLUGIN_MIN_VERSION_INT}/プラグイン: ${intVersion})`
+      console.warn(errMsg, 'see', 'https://github.com/kujirahand/nadesiko3/issues/1647')
+      this.logger.warn(errMsg)
+      metaValue.nakoVersionResult = false
+    }
+    // 初期化とクリアを変換する
+    this.__module[pluginName] = po
+    this.pluginfiles[pluginName] = '*'
+    // `初期化`と`クリア`をチェック
+    if (typeof (po['初期化']) === 'object') {
+      const def = po['初期化']
+      delete po['初期化']
+      const initKey = `!${pluginName}:初期化`
+      po[initKey] = def
+    }
+    // プラグインの値を、なでしこシステム変数(Map)にコピー
     for (const key in po) {
       const v = po[key]
       this.funclist.set(key, v)
@@ -993,39 +1026,38 @@ export class NakoCompiler {
 
   /**
    * プラグイン・オブジェクトを追加(ブラウザ向け)
-   * @param objName オブジェクト名
+   * @param objName オブジェクト名 (今後プラグイン名は、meta.value.pluginNameに指定する)
    * @param po 関数リスト
    * @param persistent falseのとき、次以降の実行では使えない
    */
   addPluginObject (objName: string, po: {[key: string]: any}, persistent = true): void {
-    this.__module[objName] = po
-    this.pluginfiles[objName] = '*'
-    // 初期化をチェック
-    if (typeof (po['初期化']) === 'object') {
-      const def = po['初期化']
-      delete po['初期化']
-      const initKey = `!${objName}:初期化`
-      po[initKey] = def
+    // metaプロパティがなければ互換性のため適当に追加
+    if (po.meta === undefined) {
+      po.meta = { type: 'const', value: { pluginName: objName, nakoVersion: '0.0.0' } }
     }
     this.addPlugin(po, persistent)
   }
 
   /**
    * プラグイン・ファイルを追加(Node.js向け)
-   * @param objName オブジェクト名
+   * @param objName オブジェクト名(ただし、v3.6.3以降のバージョンでは無効になる)
    * @param fpath ファイルパス
    * @param po 登録するオブジェクト
    * @param persistent falseのとき、次以降の実行では使えない
+   * @deprecated 利用は非推奨
    */
-  addPluginFile (objName: string, fpath: string, po: {[key: string]: any}, persistent = true): void {
-    // Windowsのパスがあると、JSファイル書き出しでエラーになるので、置換する
-    if (objName.indexOf('\\') >= 0) {
-      objName = objName.replace(/\\/g, '/')
-    }
-    this.addPluginObject(objName, po, persistent)
-    if (this.pluginfiles[objName] === undefined) {
-      this.pluginfiles[objName] = fpath
-    }
+  addPluginFile (_objName: string, fpath: string, po: {[key: string]: any}, persistent = true): void {
+    this.addPluginFromFile(fpath, po, persistent)
+  }
+
+  /**
+ * プラグイン・ファイルを追加(Node.js向け)
+ * @param fpath ファイルパス
+ * @param po 登録するオブジェクト
+ * @param persistent falseのとき、次以降の実行では使えない
+ */
+  addPluginFromFile (fpath: string, po: { [key: string]: any }, persistent = true): void {
+    this.addPlugin(po, persistent, fpath)
   }
 
   /**

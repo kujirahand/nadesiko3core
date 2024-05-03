@@ -1,4 +1,6 @@
 /** plugin_math */
+import { NakoSystem } from './plugin_api.mjs'
+
 export default {
   'meta': {
     type: 'const',
@@ -130,7 +132,7 @@ export default {
     josi: [['の']],
     pure: false,
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    fn: function (v: number, sys: any): number {
+    fn: function (v: number, sys: NakoSystem): number {
       return sys.__exec('SIGN', [v])
     }
   },
