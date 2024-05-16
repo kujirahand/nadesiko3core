@@ -807,7 +807,8 @@ export class NakoGen {
     }
     let variableDeclarations = ''
     const indent = '    '
-    const popStack = ''
+    let pushStack = ''
+    let popStack = ''
     const initialNames: Set<string> = new Set()
     if (this.speedMode.invalidSore === 0) {
       initialNames.add('それ')
@@ -817,8 +818,18 @@ export class NakoGen {
     this.varslistSet.push(this.varsSet)
     // JSの引数と引数をバインド
     variableDeclarations += indent + 'const 引数 = arguments;\n'
-    // ローカル変数を生成
-    variableDeclarations += indent + 'const __vars = new Map();\n'
+    // ローカル変数を生成 (再帰関数呼び出しで引数の値が壊れる問題がある #1663)
+    // 暫定変数__localVarsに現在のローカル変数の値をPUSHし、変数を抜ける時にPOPする)
+    // 関数として宣言しているが、JS関数となでしこ関数では変数管理の方法が異なるため、完全なローカル変数としては使えない
+    // 必ず、pushStack/popStack する必要がある
+    pushStack += '\n// PUSH STACK\n'
+    pushStack += 'const __localvars = __self.__vars;\n'
+    pushStack += '__self.__vars = new Map();\n'
+    pushStack += 'try {\n'
+    popStack += '} finally {\n'
+    popStack += indent + '// POP STACK\n'
+    popStack += indent + 'self.__vars = __localvars;\n'
+    popStack += '}\n'
     // 宣言済みの名前を保存
     const varsDeclared = Array.from(this.varsSet.names.values())
     let code = ''
@@ -895,7 +906,7 @@ export class NakoGen {
     const tof = (this.usedAsyncFn) ? topOfFunctionAsync : topOfFunction
     // 関数コード全体を構築
     const lineInfo = '  ' + this.convLineno(node, true, 1) + '\n'
-    code = tof + performanceMonitorInjectAtStart + variableDeclarations + lineInfo + code + popStack
+    code = tof + performanceMonitorInjectAtStart + pushStack + variableDeclarations + lineInfo + code + popStack
     code += endOfFunction
 
     // 名前があれば、関数を登録する

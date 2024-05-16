@@ -160,4 +160,19 @@ describe('関数呼び出しテスト', async () => {
       'TMPを表示。\n'
     await cmp(code, '<<あいうえお>>')
   })
+  it('再帰呼び出しでローカル関数の引数が壊れる #1663', async () => {
+    const code = '' +
+      'CHECK=0\n' +
+      '●(AとBで)AAAとは\n' +
+      '　　もし、A<0ならば、0で戻る。\n' +
+      '　　REC1=A\n' +
+      '　　(A-1)と0でAAA\n' +
+      '　　REC2=A\n' +
+      '　　もし、REC1=REC2ならば、CHECK=1\n' + // 再帰呼び出ししても、引数Aの値は変わらないはず
+      '　　(A+B)を戻す\n' +
+      'ここまで\n' +
+      '4と0でAAA;\n' +
+      'CHECKを表示\n'
+    await cmp(code, '1')
+  })
 })
