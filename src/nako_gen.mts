@@ -1419,7 +1419,7 @@ export class NakoGen {
         funcEnd += '/* 全ての展開されたローカル変数を __self.__locals から受け取る */\n'
         for (const v of localVars) {
           if (v.js !== 'それ') {
-            funcEnd += `${v.js} = __self.__locals[${v.str}];\n`
+            funcEnd += `__self.__varslist[2].set(${v.str}, __self.__locals[${v.str}]);\n`
           }
         }
       }
