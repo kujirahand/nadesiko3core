@@ -964,7 +964,6 @@ export class NakoCompiler {
     // プラグイン名の重複を確認
     if (__pluginInfo[pluginName] !== undefined) {
       // プラグイン名が重複した場合はプラグインとして登録しない
-      this.logger.info(`プラグイン名『${pluginName}』が重複しているため、プラグインとして登録しませんでした。`)
       return
     }
     // Windowsのパスやファイル名に使えない文字列があると、JSファイル書き出しでエラーになるので置換
