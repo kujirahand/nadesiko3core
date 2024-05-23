@@ -130,7 +130,6 @@ export default {
         s = s.replace(/[\s:\-T]/g, '/')
         s += '/0/0/0' // 日付だけのときのために時間分を足す
         const a = s.split('/')
-        console.log("@@@", a)
         return new Date(parseInt(a[0]), parseInt(a[1]) - 1, parseInt(a[2]),
           parseInt(a[3]), parseInt(a[4]), parseInt(a[5]))
       }
