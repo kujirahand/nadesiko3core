@@ -114,8 +114,8 @@ export class NakoCompiler {
       options = { useBasicPlugin: true }
     }
     // 環境のリセット
-    this.__varslist = [new Map(), new Map(), new Map()] // このオブジェクトは変更しないこと (this.gen.__varslist と共有する)
-    this.__locals = new Map() // ローカル変数
+    this.__varslist = [this.newVaiables(), this.newVaiables(), this.newVaiables()] // このオブジェクトは変更しないこと (this.gen.__varslist と共有する)
+    this.__locals = this.newVaiables() // ローカル変数
     this.__self = this
     this.__vars = this.__varslist[2] // alias of __varslist[2]
     this.__v1 = this.__varslist[1] // alias of __varslist[1]
@@ -127,11 +127,11 @@ export class NakoCompiler {
     this.__globalObj = null
     this.__module = {} // requireなどで取り込んだモジュールの一覧
     this.pluginFunclist = {} // プラグインで定義された関数
-    this.funclist = new Map() // プラグインで定義された関数 + ユーザーが定義した関数
-    this.moduleExport = new Map()
+    this.funclist = this.newVaiables() // プラグインで定義された関数 + ユーザーが定義した関数
+    this.moduleExport = this.newVaiables()
     this.pluginfiles = {} // 取り込んだファイル一覧
     this.commandlist = new Set() // プラグインで定義された定数・変数・関数の名前
-    this.nakoFuncList = new Map() // __v1に配置するJavaScriptのコードで定義された関数
+    this.nakoFuncList = this.newVaiables() // __v1に配置するJavaScriptのコードで定義された関数
     this.eventList = [] // 実行前に環境を変更するためのイベント
     this.codeGenerateor = {} // コードジェネレータ
     this.debugOption = { useDebug: false, waitTime: 0 }
@@ -469,11 +469,11 @@ export class NakoCompiler {
      * __varslist[1] なでしこグローバル領域
      * __varslist[2] 最初のローカル変数 ( == __vars }
      */
-    this.__varslist = [this.__varslist[0], new Map(), new Map()]
+    this.__varslist = [this.__varslist[0], this.newVaiables(), this.newVaiables()]
     this.__v0 = this.__varslist[0] // alias of __varslist[0]
     this.__v1 = this.__varslist[1] // alias of __varslist[1]
     this.__vars = this.__varslist[2] // alias of __varslist[2]
-    this.__locals = new Map()
+    this.__locals = this.newVaiables()
 
     // プラグイン命令以外を削除する。
     this.funclist = new Map()
@@ -771,7 +771,7 @@ export class NakoCompiler {
   }
 
   /** (非推奨)
-   * @param code
+   * @param code 非同期で実行する
    * @param fname
    * @param isReset
    * @param isTest テストかどうか。stringの場合は1つのテストのみ。
@@ -1008,9 +1008,9 @@ export class NakoCompiler {
           v.pure = true
         }
       } else if (v.type === 'const' || v.type === 'var') {
-        __v0.set(key, v.value)
         // メタ情報としての const | var は現在利用していない
         // meta[key] = { readonly: v.type === 'const' }
+        __v0.set(key, v.value)
       } else {
         console.error('[プラグイン追加エラー]', v)
         throw new Error('プラグインの追加でエラー。')
@@ -1120,5 +1120,13 @@ export class NakoCompiler {
   async runReset (code: string, fname = 'main.nako3', preCode = ''): Promise<NakoGlobal> {
     const opts = newCompilerOptions({ resetAll: true, resetEnv: true })
     return this._runEx(code, fname, opts, preCode)
+  }
+
+  /**
+   * 新規のなでしこ変数管理オブジェクトを生成
+   * @returns 変数管理オブジェクト
+   */
+  newVaiables (initVars?: Map<string, any>): Map<string, any> {
+    return new Map(initVars)
   }
 }

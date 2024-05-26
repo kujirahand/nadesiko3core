@@ -1792,7 +1792,12 @@ import path from 'path'
 import { NakoRuntimeError } from './nako3runtime/nako_errors.mjs'
 __codeImportFiles__
 // --- init global self
-const self = {}
+const self = {
+  newVariables: () => {
+    const map = new Map()
+    return map
+  }
+}
 self.coreVersion = '__coreVersion__'
 self.version = '__version__'
 self.logger = {
@@ -1801,7 +1806,7 @@ self.logger = {
   send: (level, message) => { console.log(message) },
   runtimeError: (message, lineInfo) => { console.error(message, lineInfo) }
 };
-self.__varslist = [new Map(), new Map(), new Map()]
+self.__varslist = [self.newVariables(), self.newVariables(), self.newVariables()]
 self.__v0 = self.__varslist[0]
 self.initFuncList = []
 self.clearFuncList = []
@@ -1830,7 +1835,7 @@ for (const mod of __importNames__) {
 }
 __self.__vars = __self.__varslist[2];
 __self.__module = {};
-__self.__locals = new Map();
+__self.__locals = __self.newVariables();
 __self.__genMode = 'sync';
 // プラグインの初期化コードを実行
 __self.initFuncList.map(f => f(self))

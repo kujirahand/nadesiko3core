@@ -29,7 +29,7 @@ export default {
       }
       sys.__setSore = (v: any): any => { (sys as any).__vars.set('それ', v); return v }
       sys.__getSore = (): any => (sys as any).__vars.get('それ')
-      sys.tags = {} // タグ情報
+      sys.tags = {} // タグ - プラグイン側で自由に使えるオブジェクト
       // 言語バージョンを設定
       sys.__setSysVar('ナデシコバージョン', sys.version)
       sys.__setSysVar('ナデシコ言語バージョン', sys.coreVersion)

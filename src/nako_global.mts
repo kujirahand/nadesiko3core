@@ -2,7 +2,7 @@ import { NakoCompiler } from './nako3.mjs'
 import { NakoColors } from './nako_colors.mjs'
 import { NakoGen } from './nako_gen.mjs'
 import { NakoLogger } from './nako_logger.mjs'
-import { CompilerOptions, FuncList, NakoVars } from './nako_types.mjs'
+import { CompilerOptions, NakoVars } from './nako_types.mjs'
 
 /**
  * コンパイルされたなでしこのプログラムで、グローバル空間のthisが指すオブジェクト
@@ -37,9 +37,9 @@ export class NakoGlobal {
     // ユーザーのプログラムから編集される変数
     this.__locals = new Map()
     this.__varslist = [
-      new Map(compiler.__varslist[0]), // system
-      new Map(compiler.__varslist[1]), // global
-      new Map(compiler.__varslist[2]) // local [2][3][4][5] ...
+      compiler.newVaiables(compiler.__varslist[0]), // system
+      compiler.newVaiables(compiler.__varslist[1]), // global
+      compiler.newVaiables(compiler.__varslist[2]) // local [2][3][4][5] ...
     ]
     this.numFailures = 0
     this.index = 0
