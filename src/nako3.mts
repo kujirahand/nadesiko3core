@@ -979,11 +979,13 @@ export class NakoCompiler {
       if (pluginName === 'unknown') {
         pluginName = keyStr.substring(0, 30) + '...'
       }
-      const errMsg = `なでしこプラグイン『${pluginName}』は古い形式なので正しく動作しない可能性があります。` +
-        `(ランタイムの要求: ${PLUGIN_MIN_VERSION_INT}/プラグイン: ${intVersion})`
-      console.warn(errMsg, 'see', 'https://github.com/kujirahand/nadesiko3/issues/1647')
-      this.logger.warn(errMsg)
-      metaValue.nakoVersionResult = false
+      if (pluginName !== '') {
+        const errMsg = `なでしこプラグイン『${pluginName}』は古い形式なので正しく動作しない可能性があります。` +
+          `(ランタイムの要求: ${PLUGIN_MIN_VERSION_INT}/プラグイン: ${intVersion})`
+        console.warn(errMsg, 'see', 'https://github.com/kujirahand/nadesiko3/issues/1647')
+        this.logger.warn(errMsg)
+        metaValue.nakoVersionResult = false
+      }
     }
     // 初期化とクリアを変換する
     this.__module[pluginName] = po
