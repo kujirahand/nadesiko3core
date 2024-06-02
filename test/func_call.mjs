@@ -1,18 +1,22 @@
 /* eslint-disable no-undef */
 import assert from 'assert'
 import { NakoCompiler } from '../src/nako3.mjs'
-import { NakoSyntaxError } from '../src/nako_errors.mjs'
 
 describe('関数呼び出しテスト', async () => {
   const cmp = async (/** @type {string} */ code, /** @type {string} */ res) => {
     const nako = new NakoCompiler()
     nako.logger.debug('code=' + code)
-    assert.strictEqual((await nako.runAsync(code)).log, res)
+    const g = await nako.runAsync(code, 'main.nako3')
+    if (code.indexOf('秒待') >= 0) {
+      await forceWait(200)
+    }
+    assert.strictEqual(g.log, res)
   }
-  const cmd = async (/** @type {string} */ code) => {
-    const nako = new NakoCompiler()
-    nako.logger.debug('code=' + code)
-    await nako.runAsync(code)
+  // 強制的にミリ秒待機
+  function forceWait(/** @type {number} */ms) {
+    return /** @type {Promise<void>} */(new Promise((resolve, reject) => {
+      setTimeout(() => { resolve() }, ms);
+    }));
   }
   // --- test ---
   it('関数式の呼び出し - 足す(2,3)を表示。', async () => {
@@ -101,23 +105,6 @@ describe('関数呼び出しテスト', async () => {
     await cmp('1と2と3を連続加算して表示。', '6')
     await cmp('1に2と3を連続加算して表示。', '6')
   })
-  // 関数の呼び出し演算子は廃止 #1376
-  /*
-  it('エラー/関数の呼び出し演算子 #891/引数がない関数', async () => {
-    const funcName = 'AAA'
-    assert.throws(
-      () => cmd(`●${funcName};それは5;ここまで;${funcName}←`),
-      NakoSyntaxError, `引数がない関数『${funcName}』を関数呼び出し演算子で呼び出すことはできません。`
-    )
-  })
-  it('エラー/関数の呼び出し演算子 #891/引数が異なる', async () => {
-    const funcName = 'テスト'
-    assert.throws(
-      () => cmd(`●${funcName}(aとbを);それはa*b;ここまで;${funcName}<--8と`),
-      NakoSyntaxError, `関数『${funcName}』呼び出しで引数の数(1)が定義(2)と違います。`
-    )
-  })
-  */
   it('ローカル変数が解決できない1 #1210', async () => {
     await cmp('S＝「あいうえお」;A＝「かきくけこ」;AをFテスト;●(Sを)Fテストとは;Sを表示;ここまで', 'かきくけこ')
   })
@@ -174,5 +161,33 @@ describe('関数呼び出しテスト', async () => {
       '4と0でAAA;\n' +
       'CHECKを表示\n'
     await cmp(code, '1')
+  })
+  it('非同期処理の関数呼び出しで戻り値がundefinedになる1', async () => {
+    const code = `
+●(Sで)BBBとは
+　　B=S&「BBB」
+　　0.01秒待つ
+　　それはB
+ここまで。
+「CCC」でBBBを表示
+    `
+    await cmp(code, 'CCCBBB')
+  })
+  it('非同期処理の関数呼び出しで戻り値がundefinedになる2', async () => {
+    const code = `
+●(Sで)AAA
+　　Aとは変数=S&「AAA」
+　　0.01秒待つ
+　　それはA
+ここまで
+●（Sで）BBB
+　　Bとは変数=S&「BBB」&(SでAAA)
+　　0.01秒待つ
+　　それはB
+ここまで。
+「CCC」でBBB
+それを表示
+    `
+    await cmp(code, 'CCCBBBCCCAAA')
   })
 })
