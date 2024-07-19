@@ -198,6 +198,16 @@ export class NakoLexer {
         i++
         continue
       }
+      // 永遠に繰り返す→永遠の間に置換 #1686
+      if (t.type === 'word' && t.value === '永遠' && t.josi === 'に') {
+        const t2 = tokens[i + 1]
+        if (t2.value === '繰返') {
+          t2.value = '間'
+          t2.josi = 'の'
+        }
+        i++
+        continue
+      }
       // N回をN|回に置換
       if (t.type === 'word' && t.josi === '' && t.value.length >= 2) {
         if (t.value.match(/回$/)) {
