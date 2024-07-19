@@ -106,6 +106,8 @@ export class NakoCompiler {
   public coreVersion: string
   public filename: string
   public debugOption: NakoDebugOption
+  public reservedWords: string[]
+  public josiList: string[]
   /**
    * @param {undefined | {'useBasicPlugin':true|false}} options
    */
@@ -157,6 +159,9 @@ export class NakoCompiler {
     // 関数一覧を設定
     this.lexer.setFuncList(this.funclist)
     this.lexer.setModuleExport(this.moduleExport)
+    // link for plysin_system::予約語一覧取得/助詞一覧取得
+    this.reservedWords = this.lexer.reservedWords
+    this.josiList = this.lexer.josiList
   }
 
   /** モジュール(名前空間)の一覧を取得する */

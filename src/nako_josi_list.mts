@@ -51,3 +51,4 @@ josiListMono.sort((a, b) => b.length - a.length)
 // 正規表現で助詞をマッチできるようにする
 const pat = '^[\\t ]*(' + josiListMono.join('|') + ')'
 export const josiRE = new RegExp(pat)
+export const josiListExport = josiList

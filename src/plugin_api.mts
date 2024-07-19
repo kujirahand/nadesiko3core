@@ -33,6 +33,8 @@ export interface NakoSystem {
   __formatTime (t: Date): string;
   __str2date(s: string): Date;
   __parseFloatOrBigint(v: any): number | bigint;
+  josiList: string[];
+  reservedWords: string[];
   // 実際には存在するが利用が非推奨なメソッドやプロパティ
   // __module: string[];
   // __namespaceList: string[];

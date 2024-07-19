@@ -2829,17 +2829,8 @@ export default {
     josi: [],
     pure: true,
     asyncFn: true,
-    fn: function () {
-      return new Promise((resolve, reject) => {
-        import('./nako_josi_list.mjs')
-          .then((mod) => {
-            const obj = Object.assign({}, mod)
-            resolve(obj.josiList)
-          })
-          .catch((err) => {
-            reject(err)
-          })
-      })
+    fn: function (sys: NakoSystem) {
+      return sys.josiList
     }
   },
   '予約語一覧取得': { // @文法として定義されている予約語の一覧を取得する // @よやくごいちらんしゅとく
@@ -2847,22 +2838,8 @@ export default {
     josi: [],
     pure: true,
     asyncFn: true,
-    fn: function () {
-      // const words = require('./nako_reserved_words.mjs')
-      return new Promise((resolve, reject) => {
-        import('./nako_reserved_words.mjs')
-          .then((mod) => {
-            const obj = Object.assign({}, mod)
-            const w = []
-            for (const key in obj.default) {
-              w.push(key)
-            }
-            resolve(w)
-          })
-          .catch((err) => {
-            reject(err)
-          })
-      })
+    fn: function (sys: NakoSystem) {
+      return sys.reservedWords
     }
   },
   // @プラグイン管理

@@ -10,7 +10,7 @@ import { NakoLogger } from './nako_logger.mjs'
 import { isIndentChars } from './nako_indent_chars.mjs'
 
 // 助詞の一覧
-import { josiRE, removeJosiMap, tararebaMap } from './nako_josi_list.mjs'
+import { josiRE, removeJosiMap, tararebaMap, josiListExport } from './nako_josi_list.mjs'
 
 // 字句解析ルールの一覧
 import { rules, unitRE, NakoLexParseResult } from './nako_lex_rules.mjs'
@@ -25,6 +25,8 @@ export class NakoLexer {
   public result: Token[]
   public modName: string
   public moduleExport: ExportMap
+  public reservedWords: string[]
+  public josiList: string[]
   /**
    * @param logger
    */
@@ -35,6 +37,8 @@ export class NakoLexer {
     this.result = []
     this.modName = 'main.nako3' // モジュール名
     this.moduleExport = new Map()
+    this.reservedWords = Array.from(reservedWords.keys()) // for plugin_system::予約語一覧取得
+    this.josiList = josiListExport // for plugin_system::助詞一覧取得
   }
 
   /** 関数一覧をセット */

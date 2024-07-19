@@ -27,6 +27,8 @@ export class NakoGlobal {
   logger: NakoLogger
   compiler: NakoCompiler
   lastJSCode: string
+  public josiList: string[]
+  public reservedWords: string[]
   /**
    * @param compiler
    * @param gen
@@ -64,6 +66,8 @@ export class NakoGlobal {
     // 以下のメソッドで使うため
     this.logger = compiler.getLogger()
     this.compiler = compiler
+    this.josiList = compiler.josiList
+    this.reservedWords = compiler.reservedWords
   }
 
   clearLog () {
