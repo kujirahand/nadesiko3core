@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 /**
  * nadesiko v3
  */
@@ -159,7 +160,7 @@ export class NakoCompiler {
     // 関数一覧を設定
     this.lexer.setFuncList(this.funclist)
     this.lexer.setModuleExport(this.moduleExport)
-    
+
     // link for plysin_system::予約語一覧取得/助詞一覧取得
     this.reservedWords = JSON.parse(JSON.stringify(this.lexer.reservedWords)) // 外部公開用のデータなので複製して保持する
     this.josiList = JSON.parse(JSON.stringify(this.lexer.josiList))

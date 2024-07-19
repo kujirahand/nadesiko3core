@@ -1,0 +1,8 @@
+{
+  "tasks": {
+    "hello": "deno run --allow-env --allow-read --allow-run deno/snako.ts -e '「こんにちは」と表示。'"
+  },
+  "unstable": [
+    "sloppy-imports"
+  ]
+}
