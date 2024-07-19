@@ -1132,7 +1132,7 @@ export default {
     type: 'func',
     josi: [['の', 'を'], ['で']],
     pure: true,
-    fn: function (s: any, a: any) {
+    fn: function (s: string, a: string) {
       return ('' + s).split('' + a)
     }
   },
@@ -1140,7 +1140,7 @@ export default {
     type: 'func',
     josi: [['を'], ['で']],
     pure: true,
-    fn: function (s: any, a: any) {
+    fn: function (s: string, a: string) {
       s = '' + s
       a = '' + a
       const i = s.indexOf(a)
@@ -1154,7 +1154,7 @@ export default {
     type: 'func',
     josi: [['から', 'の'], ['まで', 'を']],
     pure: true,
-    fn: function (s: any, a: any, sys: any) {
+    fn: function (s: string, a: string, sys: any) {
       s = String(s)
       const i = s.indexOf(a)
       if (i < 0) {
@@ -1163,6 +1163,32 @@ export default {
       }
       sys.__setSysVar('対象', s.substring(i + a.length))
       return s.substring(0, i)
+    }
+  },
+  '範囲切取': { // @文字列Sで文字列AからBまでの部分を抽出して返す。切り取った残りは特殊変数『対象』に代入される。(v1非互換) // @はんいきりとる
+    type: 'func',
+    josi: [['で', 'の'], ['から'], ['まで', 'を']],
+    pure: true,
+    fn: function (s: string, a: string, b: string, sys: any) {
+      s = String(s)
+      let mae = ''
+      let usiro = ''
+      const i = s.indexOf(a)
+      if (i < 0) {
+        sys.__setSysVar('対象', s)
+        return ''
+      }
+      mae = s.substring(0, i)
+      const subS = s.substring(i + a.length)
+      const j = subS.indexOf(b)
+      if (j < 0) {
+        sys.__setSysVar('対象', '')
+        return subS
+      }
+      const result = subS.substring(0, j)
+      usiro = subS.substring(j + b.length)
+      sys.__setSysVar('対象', mae + usiro)
+      return result
     }
   },
   '文字削除': { // @文字列SのA文字目からB文字分を削除して返す // @もじさくじょ

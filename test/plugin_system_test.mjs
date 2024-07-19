@@ -650,4 +650,14 @@ describe('plugin_system_test', async () => {
     await cmp('もし4が偶数ならば「OK」と表示。', 'OK')
     await cmp('もし3が奇数ならば「OK」と表示。', 'OK')
   })
+  it('範囲切り取る(core#164)', async () => {
+    await cmp('S=「aaa[bbb]ccc」。Sの「[」から「]」まで範囲切り取って表示', 'bbb')
+    await cmp('S=「aaa[bbb]ccc」。Sの「[」から「]」まで範囲切り取る。対象を表示', 'aaaccc')
+    await cmp('S=「aaa[[bbb]]ccc」。Sの「[[」から「]]」まで範囲切り取って表示', 'bbb')
+    await cmp('S=「aaa[[bbb]]ccc」。Sの「[[」から「]]」まで範囲切り取る。対象を表示', 'aaaccc')
+    // 見つからなかった時の動作
+    await cmp('S=「aaa[[bbb]]ccc」。Sの「<<」から「>>」まで範囲切り取る。「{それ}::{対象}」を表示', '::aaa[[bbb]]ccc')
+    await cmp('S=「aaa[[bbb]]ccc」。Sの「[[」から「>>」まで範囲切り取る。「{それ}::{対象}」を表示', 'bbb]]ccc::')
+    await cmp('S=「aaa[[bbb]]ccc」。Sの「<<」から「]]」まで範囲切り取る。「{それ}::{対象}」を表示', '::aaa[[bbb]]ccc')
+  })
 })
