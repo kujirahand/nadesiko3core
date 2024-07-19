@@ -658,9 +658,6 @@ export default {
     josi: [['を', 'で']],
     pure: false,
     fn: function (code: string, sys: any) {
-      if (sys.__genMode === '非同期モード') {
-        throw new Error('非同期モードでは「ナデシコ」は利用できません。')
-      }
       sys.__setSysVar('表示ログ', '')
       sys.__self.runEx(code, sys.__modName, { resetEnv: false, resetLog: true })
       const outLog = sys.__getSysVar('表示ログ') + ''
@@ -674,9 +671,6 @@ export default {
     type: 'func',
     josi: [['を', 'で']],
     fn: function (code: string, sys: any) {
-      if (sys.__genMode === '非同期モード') {
-        throw new Error('非同期モードでは「ナデシコ続」は利用できません。')
-      }
       sys.__self.runEx(code, sys.__modName, { resetEnv: false, resetAll: false })
       const out = sys.__getSysVar('表示ログ') + ''
       if (out) {
@@ -2279,7 +2273,6 @@ export default {
         // 使用中リストに追加したIDを削除
         const i = sys.__timeout.indexOf(timerId)
         if (i >= 0) { sys.__timeout.splice(i, 1) }
-        if (sys.__genMode === '非同期モード') { sys.newenv = true }
         try {
           f(timerId, sys)
         } catch (e: any) {
@@ -2304,7 +2297,6 @@ export default {
       if (typeof f === 'string') { f = sys.__findFunc(f, '秒毎') }
       // タイマーをセット
       const timerId = setInterval(() => {
-        if (sys.__genMode === '非同期モード') { sys.newenv = true }
         f(timerId, sys)
       }, parseFloat(n) * 1000)
       // タイマーIDを追加
