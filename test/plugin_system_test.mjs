@@ -657,7 +657,7 @@ describe('plugin_system_test', async () => {
     await cmp('S=「aaa[[bbb]]ccc」。Sの「[[」から「]]」まで範囲切り取る。対象を表示', 'aaaccc')
     // 見つからなかった時の動作
     await cmp('S=「aaa[[bbb]]ccc」。Sの「<<」から「>>」まで範囲切り取る。「{それ}::{対象}」を表示', '::aaa[[bbb]]ccc')
-    await cmp('S=「aaa[[bbb]]ccc」。Sの「[[」から「>>」まで範囲切り取る。「{それ}::{対象}」を表示', 'bbb]]ccc::')
+    await cmp('S=「aaa[[bbb]]ccc」。Sの「[[」から「>>」まで範囲切り取る。「{それ}::{対象}」を表示', 'bbb]]ccc::aaa')
     await cmp('S=「aaa[[bbb]]ccc」。Sの「<<」から「]]」まで範囲切り取る。「{それ}::{対象}」を表示', '::aaa[[bbb]]ccc')
   })
   it('「予約語一覧取得」「助詞一覧取得」 #1692', async () => {

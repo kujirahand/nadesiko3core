@@ -1182,7 +1182,7 @@ export default {
       const subS = s.substring(i + a.length)
       const j = subS.indexOf(b)
       if (j < 0) {
-        sys.__setSysVar('対象', '')
+        sys.__setSysVar('対象', mae)
         return subS
       }
       const result = subS.substring(0, j)
