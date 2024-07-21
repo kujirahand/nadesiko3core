@@ -65,14 +65,15 @@ export class NakoGen {
   private flagLoop: boolean // 変換中のソースがループの中かどうかを判定する
   private constPools: Array<any> // 定数プール用
   private constPoolsTemplate: string[] // 定数プール生成用テンプレート
+  private defFuncName: string // 関数定義中の関数名
   // コード生成オプション
   private speedMode: SpeedMode
   private performanceMonitor: PerformanceMonitor
   private warnUndefinedVar: boolean
-  private warnUndefinedReturnUserFunc: number
-  private warnUndefinedCallingUserFunc: number
-  private warnUndefinedCallingSystemFunc: number
-  private warnUndefinedCalledUserFuncArgs: number
+  private warnUndefinedReturnUserFunc: boolean
+  private warnUndefinedCallingUserFunc: boolean
+  private warnUndefinedCallingSystemFunc: boolean
+  private warnUndefinedCalledUserFuncArgs: boolean
   // 変数管理
   private varslistSet: VarsSet[] // [システム変数一覧, グローバル変数一覧, ローカル変数一覧]で変数セットを記録
   private varsSet: VarsSet // ローカルな変数を記録
@@ -137,6 +138,9 @@ export class NakoGen {
     this.varsSet = { isFunction: false, names: new Set(), readonly: new Set() }
     this.varslistSet[2] = this.varsSet
 
+    // 現在定義中の関数名
+    this.defFuncName = ''
+
     // 1以上のとき高速化する。
     // 実行速度優先ブロック内で1増える。
     this.speedMode = {
@@ -158,15 +162,15 @@ export class NakoGen {
     /**
      * 未定義の変数の警告を行う
      */
-    this.warnUndefinedVar = true
     this.constPools = []
     this.constPoolsTemplate = []
 
-    // undefinedの警告制御
-    this.warnUndefinedReturnUserFunc = 0 // ユーザー関数で {戻り値が必要} が示された時に 1 となる
-    this.warnUndefinedCallingUserFunc = 1
-    this.warnUndefinedCallingSystemFunc = 1
-    this.warnUndefinedCalledUserFuncArgs = 1
+    // undefinedの警告制御 (「厳しくチェック」でオンになる)
+    this.warnUndefinedVar = false
+    this.warnUndefinedReturnUserFunc = false
+    this.warnUndefinedCallingUserFunc = false
+    this.warnUndefinedCallingSystemFunc = false
+    this.warnUndefinedCalledUserFuncArgs = false
 
     this.debugOption = com.debugOption
   }
@@ -511,6 +515,9 @@ export class NakoGen {
       case 'eol':
         code += this.convComment(node)
         break
+      case 'run_mode':
+        code += this.convRunMode(node)
+        break
       case 'break':
         code += this.convCheckLoop(node, 'break')
         break
@@ -705,7 +712,7 @@ export class NakoGen {
     return this.genVar(name, node)
   }
 
-  convComment (node:Ast): string {
+  convComment (node: Ast): string {
     let commentSrc = String(node.value)
     commentSrc = commentSrc.replace(/\n/g, '¶')
     const lineNo = this.convLineno(node, false)
@@ -714,6 +721,21 @@ export class NakoGen {
       return ';' + lineNo + '\n'
     }
     return ';' + lineNo + '//' + commentSrc + '\n'
+  }
+
+  convRunMode (node: Ast): string {
+    const mode = node.value
+    let isStrict = false
+    if (mode === '厳しくチェック') {
+      // 厳しくチェックモードの場合、変数の未定義チェックを行う
+      isStrict = true
+    }
+    this.warnUndefinedVar = isStrict
+    this.warnUndefinedReturnUserFunc = isStrict
+    this.warnUndefinedCallingUserFunc = isStrict
+    this.warnUndefinedCallingSystemFunc = isStrict
+    this.warnUndefinedCalledUserFuncArgs = isStrict
+    return `/* 実行モード: ${mode} */`
   }
 
   convReturn (node: Ast): string {
@@ -730,10 +752,11 @@ export class NakoGen {
       } else {
         return lno + 'return;'
       }
-    if (this.warnUndefinedReturnUserFunc === 0) {
+    if (!this.warnUndefinedReturnUserFunc) {
       return lno + `return ${value};`
     } else {
-      const poolIndex = this.addConstPool('ユーザ関数からundefinedが返されています', [], node.file, node.line)
+      const funcName: string = (this.defFuncName) ? this.defFuncName : '無名関数'
+      const poolIndex = this.addConstPool(`ユーザ関数『${funcName}』からundefinedが返されています`, [], node.file, node.line)
       return lno + `return (__self.chk(${value}, ${poolIndex}));`
     }
   }
@@ -775,6 +798,8 @@ export class NakoGen {
   }
 
   convDefFuncCommon (node: Ast, name: string): string {
+    // 定義中の関数名を記録
+    this.defFuncName = name
     // パフォーマンスモニタ:ユーザ関数のinjectの定義
     let performanceMonitorInjectAtStart = ''
     let performanceMonitorInjectAtEnd = ''
@@ -837,7 +862,7 @@ export class NakoGen {
     const meta = (!name) ? node.meta : (node.name as Ast).meta
     for (let i = 0; i < meta.varnames.length; i++) {
       const word = meta.varnames[i]
-      if (this.warnUndefinedCalledUserFuncArgs === 0) {
+      if (!this.warnUndefinedCalledUserFuncArgs) {
         code += indent + this.varname_set(word, `arguments[${i}]`) + ';\n'
       } else {
         // check undefined
@@ -923,6 +948,7 @@ export class NakoGen {
     this.varslistSet.pop()
     this.varsSet = this.varslistSet[this.varslistSet.length - 1]
     if (name) { this.__self.__varslist[1].set(name, code) }
+    this.defFuncName = '' // 関数名をクリア
     return code
   }
 
@@ -1441,7 +1467,7 @@ export class NakoGen {
     const noCheckFuncs: {[key: string]: boolean} = { 'TYPEOF': true, '変数型確認': true }
     // 関数呼び出しコードの構築
     let argsCode: string
-    if ((this.warnUndefinedCallingUserFunc === 0 && res.i !== 0) || (this.warnUndefinedCallingSystemFunc === 0 && res.i === 0)) {
+    if ((!this.warnUndefinedCallingUserFunc && res.i !== 0) || (!this.warnUndefinedCallingSystemFunc && res.i === 0)) {
       argsCode = args.join(',')
     } else {
       const argsA: string[] = []

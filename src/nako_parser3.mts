@@ -109,15 +109,18 @@ export class NakoParser extends NakoParserBase {
     if (this.check('エラー監視')) { return this.yTryExcept() }
     if (this.accept(['抜ける'])) { return { type: 'break', josi: '', ...map, end: this.peekSourceMap() } }
     if (this.accept(['続ける'])) { return { type: 'continue', josi: '', ...map, end: this.peekSourceMap() } }
+    // 実行モードの指定
     if (this.accept(['DNCLモード'])) { return this.yDNCLMode(1) }
     if (this.accept(['DNCL2モード'])) { return this.yDNCLMode(2) }
     if (this.accept(['not', 'string', 'モード設定'])) { return this.ySetGenMode(this.y[1].value) }
     if (this.accept(['not', 'モジュール公開既定値', 'eq', 'string'])) { return this.yExportDefault(this.y[3].value) }
+    if (this.accept(['not', '厳チェック'])) { return this.ySetMode('厳しくチェック') } // (#1698) 
     // (memo) 現状「取込」はプリプロセス段階(NakoCompiler.listRequireStatements)で処理される
     // if (this.accept(['require', 'string', '取込'])) { return this.yRequire() }
-    // 廃止された構文 #1611
-    if (this.check('逐次実行')) { return this.yTikuji() }
+    // <廃止された構文>
+    if (this.check('逐次実行')) { return this.yTikuji() } // 廃止 #1611
     if (this.accept(['not', '非同期モード'])) { return this.yASyncMode() }
+    // </廃止された構文>
 
     if (this.check2(['func', 'eq'])) {
       const word: Token = this.get() || NewEmptyToken()
@@ -200,31 +203,11 @@ export class NakoParser extends NakoParserBase {
     return { type: 'eol', ...map, end: this.peekSourceMap() }
   }
 
-  /*
-  // NakoCompiler.listRequireStatements で実装されているので不要
-  yRequire (): Ast {
-    console.log('@@@yRequire')
-    const nameToken = this.y[1]
-    const filename: string = nameToken.value
-    const modName = NakoLexer.filenameToModName(filename)
-    if (this.modList.indexOf(modName) < 0) {
-      // 優先度が最も高いのは modList[0]
-      // [memo] モジュールの検索優先度は、下に書くほど高くなる
-      const modSelf: string|undefined = this.modList.shift()
-      if (modSelf) {
-        this.modList.unshift(modName)
-        this.modList.unshift(modSelf)
-      }
-    }
-    return {
-      type: 'require',
-      value: filename,
-      josi: '',
-      ...this.peekSourceMap(),
-      end: this.peekSourceMap()
-    }
+  /** @returns {Ast} */
+  ySetMode (mode: string): Ast {
+    const map = this.peekSourceMap()
+    return { type: 'run_mode', value: mode, ...map, end: this.peekSourceMap() }
   }
-  */
 
   /** @returns {Ast} */
   yBlock (): Ast {
