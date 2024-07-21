@@ -1715,7 +1715,7 @@ export default {
   '配列削除': { // @配列AのI番目(0起点)の要素を削除して返す。Aの内容を書き換える。辞書型変数ならキーIを削除する。 // @はいれつさくじょ
     type: 'func',
     josi: [['の', 'から'], ['を']],
-    pure: false,
+    pure: true,
     fn: function (a: any, i: any, sys: any) {
       return sys.__exec('配列切取', [a, i, sys])
     }
@@ -2002,7 +2002,7 @@ export default {
   '表行列交換': { // @二次元配列Aの行と列を交換して返す。 // @ひょうぎょうれつこうかん
     type: 'func',
     josi: [['の', 'を']],
-    pure: false,
+    pure: true,
     fn: function (a: any, sys: any) {
       if (!(a instanceof Array)) { throw new Error('『表行列交換』には配列を指定する必要があります。') }
       const cols = sys.__exec('表列数', [a])
@@ -2021,7 +2021,7 @@ export default {
   '表右回転': { // @二次元配列Aを90度回転して返す。 // @ひょうみぎかいてん
     type: 'func',
     josi: [['の', 'を']],
-    pure: false,
+    pure: true,
     fn: function (a: any, sys: any) {
       if (!(a instanceof Array)) { throw new Error('『表右回転』には配列を指定する必要があります。') }
       const cols = sys.__exec('表列数', [a])
@@ -2179,7 +2179,7 @@ export default {
   'ハッシュキー列挙': { // @ハッシュAのキー一覧を配列で返す。 // @はっしゅきーれっきょ
     type: 'func',
     josi: [['の']],
-    pure: false,
+    pure: true,
     fn: function (a: any, sys: any) {
       return sys.__exec('辞書キー列挙', [a, sys])
     }
@@ -2200,7 +2200,7 @@ export default {
   'ハッシュキー削除': { // @ハッシュAからキーKEYを削除して返す。 // @はっしゅきーさくじょ
     type: 'func',
     josi: [['から', 'の'], ['を']],
-    pure: false,
+    pure: true,
     fn: function (a: any, key: any, sys: any) {
       return sys.__exec('辞書キー削除', [a, key, sys])
     }

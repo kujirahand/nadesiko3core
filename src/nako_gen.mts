@@ -162,8 +162,8 @@ export class NakoGen {
     this.constPools = []
     this.constPoolsTemplate = []
 
-    // 暫定変数
-    this.warnUndefinedReturnUserFunc = 1
+    // undefinedの警告制御
+    this.warnUndefinedReturnUserFunc = 0 // ユーザー関数で {戻り値が必要} が示された時に 1 となる
     this.warnUndefinedCallingUserFunc = 1
     this.warnUndefinedCallingSystemFunc = 1
     this.warnUndefinedCalledUserFuncArgs = 1
