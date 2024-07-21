@@ -1922,11 +1922,11 @@ export class NakoParser extends NakoParserBase {
       // 引数の個数をチェック
       const meta = f.meta
       const args: any = []
-      if (!meta) { throw NakoSyntaxError.fromNode(`一語関数『${f.name}』は存在しません。`, tt) }
+      if (!meta) { throw NakoSyntaxError.fromNode(`一語関数『${f.value}』は存在しません。`, tt) }
       if (meta.josi && meta.josi.length === 1) {
         args.push({ type: 'word', value: 'それ' })
       } else if (meta.josi && meta.josi.length >= 2) {
-        throw NakoSyntaxError.fromNode(`関数『${f.name}』で引数が指定されていません。${meta.josi.length}個の引数を指定してください。`, tt)
+        throw NakoSyntaxError.fromNode(`関数『${f.value}』で引数が指定されていません。${meta.josi.length}個の引数を指定してください。`, tt)
       }
       return {
         type: 'func',
