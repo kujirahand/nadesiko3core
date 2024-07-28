@@ -90,8 +90,8 @@ export interface Ast {
     right?: Ast | Ast[]; // 演算子の場合
     // eslint-disable-next-line camelcase
     false_block?: Ast[] | Ast; // if
-    from?: Ast[] | Ast; // for
-    to?: Ast[] | Ast; // for
+    from?: Ast | null; // for
+    to?: Ast; // for
     inc?: Ast[] | Ast | null | string; // for
     word?: Ast | Token | null; // for
     flagDown?: boolean; // for
@@ -150,6 +150,12 @@ export type NakoComEventName = 'finish' | 'beforeRun' | 'beforeGenerate' | 'afte
 export interface NakoEvent {
   eventName: NakoComEventName
   callback: (event: any) => void
+}
+
+/// 範囲オブジェクト (#1704)
+export interface RangeObject {
+  先頭: number,
+  末尾: number,
 }
 
 /**
