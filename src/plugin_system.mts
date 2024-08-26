@@ -154,12 +154,15 @@ export default {
         }
         return value
       }
-      // eval function
+      // eval function #1733
       sys.__evalJS = (src: string) => {
+        // evalのスコープを変えるためのテクニック
+        // https://esbuild.github.io/content-types/#direct-eval
+        const _eval = eval
         try {
-          return eval(src) // eslint-disable-line
+          return _eval(src)
         } catch (e) {
-          console.error('[eval]', e)
+          console.warn('[eval]', e)
           return null
         }
       }
@@ -168,7 +171,6 @@ export default {
   '!クリア': {
     type: 'func',
     josi: [],
-    pure: false,
     fn: function (sys: NakoSystem) {
       if (sys.__exec) { sys.__exec('全タイマー停止', [sys]) }
       sys.__setSysVar('表示ログ', '')
@@ -277,7 +279,7 @@ export default {
     josi: [['と', 'を']],
     isVariableJosi: true,
     pure: true,
-    fn: function (...a:any) {
+    fn: function (...a: any) {
       const sys = a.pop()
       const v = a.join('')
       sys.__exec('表示', [v, sys])
@@ -289,7 +291,7 @@ export default {
     josi: [['と', 'を']],
     isVariableJosi: true,
     pure: true,
-    fn: function (...a:any) {
+    fn: function (...a: any) {
       const sys = a.pop()
       const v = a.join('')
       sys.__exec('継続表示', [v, sys])
@@ -598,11 +600,8 @@ export default {
     type: 'func',
     josi: [['を', 'で']],
     pure: true,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     fn: function (src: string, sys: NakoSystem) {
-      // [メモ] ↑のsys は eval の中でも有効なので消さない!!
-      // https://github.com/kujirahand/nadesiko3/issues/1237
-      return sys.__evalJS(src) // eslint-disable-line
+      return sys.__evalJS(src) // #1733
     }
   },
   'JSオブジェクト取得': { // @なでしこで定義した関数や変数nameのJavaScriptオブジェクトを取得する // @JSおぶじぇくとしゅとく
