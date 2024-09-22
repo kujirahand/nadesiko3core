@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // なでしこの字句解析を行う
 // 既に全角半角を揃えたコードに対して字句解析を行う
 import { opPriority } from './nako_parser_const.mjs'
@@ -16,11 +17,12 @@ import { josiRE, removeJosiMap, tararebaMap, josiListExport } from './nako_josi_
 import { rules, unitRE, NakoLexParseResult } from './nako_lex_rules.mjs'
 import { NakoLexerError, InternalLexerError } from './nako_errors.mjs'
 
-import { Token, FuncList, FuncArgs, ExportMap, FuncListItem } from './nako_types.mjs'
+import { FuncList, FuncArgs, ExportMap, FuncListItem } from './nako_types.mjs'
+import { Token, TokenDefFunc } from './nako_token.mjs'
 
 export class NakoLexer {
   public logger: NakoLogger
-  public funclist: FuncList
+  public funclist: FuncList // 先読みした関数の一覧
   public modList: string[]
   public result: Token[]
   public modName: string
@@ -214,7 +216,7 @@ export class NakoLexer {
           t.value = t.value.substring(0, t.value.length - 1)
           // N回を挿入
           if (!t.endOffset) { t.endOffset = 1 }
-          const kai = { type: '回', value: '回', indent: t.indent, line: t.line, column: t.column, file: t.file, josi: '', startOffset: t.endOffset - 1, endOffset: t.endOffset, rawJosi: '' }
+          const kai: Token = { type: '回', value: '回', indent: t.indent, line: t.line, column: t.column, file: t.file, josi: '', startOffset: t.endOffset - 1, endOffset: t.endOffset, rawJosi: '' }
           tokens.splice(i + 1, 0, kai)
           t.endOffset--
           i++
@@ -237,7 +239,7 @@ export class NakoLexer {
       if (i >= 1) { prevToken = tokens[i - 1] }
       if (prevToken.type === 'eol') { isMumei = false }
       // 関数名や引数を得る
-      const defToken = t
+      const defToken = t as TokenDefFunc
       i++ // skip "●" or "関数"
       let josi = []
       let varnames = []
@@ -365,9 +367,10 @@ export class NakoLexer {
           const gname1 = `${modSelf}__${funcName}`
           const gfo1 = this.funclist.get(gname1)
           if (gfo1 && gfo1.type === 'func') {
-            t.type = isFuncPointer ? 'func_pointer' : 'func'
-            t.meta = gfo1
-            t.value = gname1
+            const tt = t as TokenDefFunc
+            tt.type = isFuncPointer ? 'func_pointer' : 'func'
+            tt.meta = gfo1
+            tt.value = gname1
             if (isFuncPointer) {
               isFuncPointer = false
               tokens.splice(i - 1, 1)
@@ -380,9 +383,10 @@ export class NakoLexer {
             const gfo = this.funclist.get(gname)
             const exportDefault = this.moduleExport.get(mod)
             if (gfo && gfo.type === 'func' && (gfo.isExport === true || (gfo.isExport !== false && exportDefault !== false))) {
-              t.type = isFuncPointer ? 'func_pointer' : 'func'
-              t.meta = gfo
-              t.value = gname
+              const tt = t as TokenDefFunc
+              tt.type = isFuncPointer ? 'func_pointer' : 'func'
+              tt.meta = gfo
+              tt.value = gname
               if (isFuncPointer) {
                 isFuncPointer = false
                 tokens.splice(i - 1, 1)
@@ -390,12 +394,12 @@ export class NakoLexer {
               break
             }
           }
-          if (t.type === 'func' || t.type === 'func_pointer') { continue }
         }
         const fo = this.funclist.get(funcName)
         if (fo && fo.type === 'func') {
-          t.type = isFuncPointer ? 'func_pointer' : 'func'
-          t.meta = fo
+          const tt = t as TokenDefFunc
+          tt.type = isFuncPointer ? 'func_pointer' : 'func'
+          tt.meta = fo
           if (isFuncPointer) {
             isFuncPointer = false
             tokens.splice(i - 1, 1)
@@ -458,7 +462,7 @@ export class NakoLexer {
         if (!t.rawJosi) { t.rawJosi = t.josi }
         const startOffset = t.endOffset === undefined ? undefined : t.endOffset - t.rawJosi.length
         tokens.splice(i + 1, 0, {
-          type: t.josi,
+          type: 'とは',
           indent: t.indent,
           line: t.line,
           column: t.column,

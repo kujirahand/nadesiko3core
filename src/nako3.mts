@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // deno-lint-ignore-file no-explicit-any
 /**
  * nadesiko v3
  */
 // types
-import { Token, Ast, FuncList, FuncListItem, FuncArgs, NakoEvent, CompilerOptions, NakoComEventName, NakoDebugOption, ExportMap } from './nako_types.mjs'
+import { Token, FuncList, FuncListItem, FuncArgs, NakoEvent, CompilerOptions, NakoComEventName, NakoDebugOption, ExportMap } from './nako_types.mjs'
+import { Ast, AstBlocks } from './nako_ast.mjs'
 // parser / lexer
 import { NakoParser } from './nako_parser3.mjs'
 import { NakoLexer } from './nako_lexer.mjs'
@@ -622,6 +624,7 @@ export class NakoCompiler {
 
     tokens = this.converttoken(tokens, true, filename)
 
+    // 'string_ex'トークンから変換された'code'トークンを字句解析する
     for (let i = 0; i < tokens.length; i++) {
       if (tokens[i] && tokens[i].type === 'code') {
         const children = this.lexCodeToken(tokens[i].value, tokens[i].line, filename, tokens[i].startOffset || 0)
@@ -668,36 +671,21 @@ export class NakoCompiler {
   }
 
   getUsedFuncs (ast: Ast): Set<string> {
-    const queue = [ast]
     this.usedFuncs = new Set()
-
-    while (queue.length > 0) {
-      const ast_ = queue.pop()
-
-      if (ast_ !== null && ast_ !== undefined && ast_.block !== null && ast_.block !== undefined) {
-        this.getUsedAndDefFuncs(queue, JSON.parse(JSON.stringify(ast_.block)))
-      }
-    }
+    this._getUsedFuncs(ast)
     return this.deleteUnNakoFuncs()
   }
 
-  getUsedAndDefFuncs (astQueue: Ast[], blockQueue: Ast[]): void {
-    while (blockQueue.length > 0) {
-      const block = blockQueue.pop()
-
-      if (block !== null && block !== undefined) {
-        this.getUsedAndDefFunc(block, astQueue, blockQueue)
+  _getUsedFuncs (ast: Ast): void {
+    if (!ast) { return }
+    if ((ast.type === 'func' || ast.type === 'func_pointer')&& ast.name) {
+      this.usedFuncs.add(ast.name as string)
+    }
+    else if ((ast as AstBlocks).blocks) { // プロパティにblocksを含んでいる？
+      for (const a of (ast as AstBlocks).blocks) {
+        this._getUsedFuncs(a)
       }
     }
-  }
-
-  getUsedAndDefFunc (block: Ast, astQueue: any[], blockQueue: Ast[]): void {
-    if (['func', 'func_pointer'].includes(block.type) && block.name !== null && block.name !== undefined) {
-      this.usedFuncs.add(block.name as string)
-    }
-    astQueue.push([block, block.block as Ast])
-    // eslint-disable-next-line prefer-spread
-    blockQueue.push.apply(blockQueue, [block.value].concat(block.args))
   }
 
   deleteUnNakoFuncs (): Set<string> {
