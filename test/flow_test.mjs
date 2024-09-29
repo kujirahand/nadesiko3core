@@ -6,8 +6,7 @@ describe('flow_test', async () => {
   // nako.logger.addListener('trace', ({ browserConsole }) => { console.log(...browserConsole) })
   const cmp = async (/** @type {string} */ code, /** @type {string} */ res) => {
     const nako = new NakoCompiler()
-    nako.logger.debug('code=' + code)
-    assert.strictEqual((await nako.runAsync(code)).log, res)
+    assert.strictEqual((await nako.runAsync(code, 'main.nako3')).log, res)
   }
   it('もし', async () => {
     await cmp('もし3>1ならば「あ」と表示。', 'あ')
@@ -430,6 +429,24 @@ describe('flow_test', async () => {
       'ここまで\n' +
       'Aを表示;', '321')
   })
+  it('「AからBまでNずつ減らし繰り返す」文でBからAまでも実行してしまう問題 #1753', async () => {
+    await cmp(
+      'A="";Nを1から3まで繰り返す\n' +
+      '　　A=A&N\n' +
+      'ここまで\n' +
+      'Aを表示;', '123')
+    // 増やすのに減らさない
+    await cmp(
+      'A="";Nを1から3まで1ずつ増やし繰り返す\n' +
+      '　　A=A&N\n' +
+      'ここまで\n' +
+      'Aを表示;', '123')
+    await cmp(
+      'A="";Nを1から3まで1ずつ減らし繰り返す\n' +
+      '　　A=A&N\n' +
+      'ここまで\n' +
+      'Aを表示;', '')
+  })
   it('もしの省略を実装する nadesiko3#1604', async () => {
     await cmp(
       'A=10;Aが10と一致するならば\n' +
@@ -446,5 +463,25 @@ describe('flow_test', async () => {
     await cmp(
       'A=10;Aが10と等しいならば、「OK3」と表示。\n' +
       '', 'OK3')
+  })
+  it('範囲オブジェクトを指定した繰り返し #1704', async () => {
+    await cmp('N=0;1…3を繰り返す\nN=N+それ;\nここまで;Nを表示。', '6')
+    await cmp('N=「」;1から3の範囲を繰り返す\nN=N&それ;\nここまで;Nを表示。', '123')
+    await cmp('N=「」;0…9を繰り返す\nN=N&それ;\nここまで;Nを表示。', '0123456789')
+  })
+  it('対象がローカル変数になっていた問題 #1723', async () => {
+    await cmp('関数 Fとは; [1]を反復; ここまで。対象=1;ここまで；対象＝50;F；対象を表示。', '1')
+  })
+  it('多重ループ内の反復で、回数や対象の値を復元するように配慮する #1735', async () => {
+    // 回: 回数
+    await cmp('2回;TMP=回数;2回「i{回数}」を表示;「o{TMP}={回数}」を表示;ここまで。', 'i1\ni2\no1=1\ni1\ni2\no2=2')
+    // 回: それ
+    await cmp('2回;TMP=それ;2回「i{それ}」を表示;「o{TMP}={それ}」を表示;ここまで。', 'i1\ni2\no1=1\ni1\ni2\no2=2')
+    // 反復: 対象
+    await cmp('[1,2]を反復;TMP=対象;[4]を反復,「i{対象}」を表示;「o{TMP}={対象}」を表示;ここまで;', 'i4\no1=1\ni4\no2=2')
+    // 反復: 対象キー
+    await cmp('[1,2]を反復;TMP=対象キー;[4]を反復,「i{対象キー}」を表示;「o{TMP}={対象キー}」を表示;ここまで;', 'i0\no0=0\ni0\no1=1')
+    // 反復: それ
+    await cmp('[1,2]を反復;TMP=それ;[4]を反復,「i{それ}」を表示;「o{TMP}={それ}」を表示;ここまで;', 'i4\no1=1\ni4\no2=2')
   })
 })

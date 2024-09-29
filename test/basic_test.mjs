@@ -7,14 +7,14 @@ describe('basic', async () => {
   // nako.logger.addListener('trace', ({ browserConsole }) => { console.log(...browserConsole) })
   const cmp = async (/** @type {string} */code, /** @type {string} */res) => {
     const nako = new NakoCompiler()
-    nako.logger.debug('code=' + code)
-    assert.strictEqual((await nako.runAsync(code)).log, res)
+    // nako.logger.debug('code=' + code)
+    assert.strictEqual((await nako.runAsync(code, 'main.nako3')).log, res)
   }
   const cmpNakoFuncs = (/** @type {string} */code, /** @type {Set<string>} */res) => {
     const nako = new NakoCompiler()
-    nako.logger.debug('code=' + code)
-    nako.parse(code, 'main.nako3')
-    assert.deepStrictEqual(nako.usedFuncs, res)
+    // nako.logger.debug('code=' + code)
+    const ast = nako.parse(code, 'main.nako3')
+    assert.deepStrictEqual(nako.getUsedFuncs(ast), res)
   }
   // --- test ---
   it('print simple', async () => {
@@ -35,9 +35,17 @@ describe('basic', async () => {
     await cmp('\'abc\'を表示', 'abc')
     await cmp('『abc{30}abc』を表示', 'abc{30}abc')
   })
-  it('exstring', async () => {
+  it('string_ex1', async () => {
     await cmp('a=30;「abc{a}abc」を表示', 'abc30abc')
     await cmp('a=30;「abc｛a｝abc」を表示', 'abc30abc')
+  })
+  it('string_ex2', async () => {
+    await cmp('a=30;「abc{a+1}abc」を表示', 'abc31abc')
+    await cmp('a=30;「abc｛a+1｝abc」を表示', 'abc31abc')
+  })
+  it('string_ex3', async () => {
+    await cmp('a=30;「abc{aに2を掛ける}abc」を表示', 'abc60abc')
+    await cmp('s=「  @   」;「abc{sをトリム}abc」を表示', 'abc@abc')
   })
   it('raw string - 🌿 .. 🌿', async () => {
     await cmp('a=🌿abc🌿;aを表示', 'abc')
@@ -114,8 +122,7 @@ describe('basic', async () => {
   // #1229
   it('usedFuncs', async () => {
     cmpNakoFuncs('3を表示', new Set(['表示']))
-    cmpNakoFuncs('●({関数}fでaを)演算処理とは;それは、f(a);ここまで;●(aを)二倍処理とは;それはa*2;ここまで;二倍処理で2を演算処理して表示',
-      new Set(['表示']))
+    cmpNakoFuncs('●({関数}fでaを)演算処理とは;それは、f(a);ここまで;●(aを)二倍処理とは;それはa*2;ここまで;二倍処理で2を演算処理して表示', new Set(['表示']))
   })
   it('論文などで使われる句読点「，」を「、」(#735)', async () => {
     await cmp('A1=30;B1=20;(A1+B1)を，表示', '50')
@@ -256,7 +263,7 @@ describe('basic', async () => {
   it('無名関数が警告を出す問題の修正 #841', async () => {
     let log = ''
     const nako = new NakoCompiler()
-    nako.logger.addListener('warn', ({ noColor }) => { log += noColor })
+    nako.getLogger().addListener('warn', ({ noColor }) => { log += noColor })
     nako.parse(
       'f = 関数(x) それは、x。ここまで。\n' +
       'g = 関数(x) それは、x。ここまで。\n'

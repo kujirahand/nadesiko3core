@@ -7,15 +7,15 @@ import { NakoCompiler } from '../src/nako3.mjs'
 describe('plugin_system_test', async () => {
   const cmp = async (/** @type {string} */ code, /** @type {string} */ res) => {
     const nako = new NakoCompiler()
-    nako.logger.debug('code=' + code)
-    const g = await nako.runAsync(code)
+    nako.getLogger().debug('code=' + code)
+    const g = await nako.runAsync(code, 'main.nako3')
     assert.strictEqual(g.log, res)
   }
-  const cmpex = async (/** @type {string} */ code, /** @type { name: String, message: string } */ exinfo) => {
+  const cmpex = async (/** @type {string} */ code, /** @type { name: string, message: string } */ exinfo) => {
     const nako = new NakoCompiler()
-    nako.logger.debug('code=' + code)
+    nako.getLogger().debug('code=' + code)
     try {
-      const g = nako.runAsync(code)
+      const g = nako.runAsync(code, 'main.nako3')
     } catch (err) {
       console.log(err.message)
       assert.strictEqual(err.name, exinfo.name)
@@ -208,6 +208,12 @@ describe('plugin_system_test', async () => {
     await cmp('A={"aaa":1,"bbb":2};' +
       'Aから"aaa"を配列削除;' +
       'AをJSONエンコードして表示。', '{"bbb":2}')
+  })
+  it('配列切り取りで範囲を指定 #1704', async () => {
+    await cmp('A=[0,1,2,3,4,5]; B=Aの1…3を配列切り取り;' +
+      'BをJSONエンコードして表示;AをJSONエンコードして表示。', '[1,2,3]\n[0,4,5]')
+    await cmp('A=[0,1,2,3,4,5]; B=Aの0…0を配列切り取り;' +
+      'BをJSONエンコードして表示;AをJSONエンコードして表示。', '[0]\n[1,2,3,4,5]')
   })
   it('配列複製', async () => {
     await cmp('A=[1,2,3];B=Aを配列複製。B[0]=100。Bを「:」で配列結合。表示。', '100:2:3')
@@ -663,5 +669,33 @@ describe('plugin_system_test', async () => {
   it('「予約語一覧取得」「助詞一覧取得」 #1692', async () => {
     await cmp('予約語一覧取得して「|」で配列結合。それの文字数。もし、それが10以上ならば「OK」と表示', 'OK')
     await cmp('助詞一覧取得して「|」で配列結合。それの文字数。もし、それが10以上ならば「OK」と表示', 'OK')
+  })
+  it('配列切り取り', async () => {
+    // 範囲オブジェクトを指定
+    await cmp('A=[0,1,2,3,4,5];B=Aから1…3を配列切り取る。BをJSONエンコードして表示', '[1,2,3]')
+    // 要素番号を指定
+    await cmp('A=[0,1,2,3,4,5];B=Aから0を配列切り取る。Bを表示', '0')
+    await cmp('A=[0,1,2,3,4,5];B=Aから0を配列切り取る。AをJSONエンコードして表示', '[1,2,3,4,5]')
+  })
+  it('範囲オブジェクトを指定する関数 #1704', async () => {
+    await cmp('A=[0,1,2,3,4,5];Aから1…3を参照してJSONエンコードして表示', '[1,2,3]')
+    await cmp('A=[0,1,2,3,4,5];Aから1…3を配列範囲コピーしてJSONエンコードして表示', '[1,2,3]')
+    await cmp('A=[0,1,2,3,4,5];B=Aから1…3を配列切り取り;AをJSONエンコードして表示', '[0,4,5]')
+  })
+  it('参照 #1704', async () => {
+    // 文字列の場合
+    await cmp('A="012345";Aから1…3を参照して表示', '123')
+    // 辞書型の場合
+    await cmp('A={"a":1,"b":2};Aから"b"を参照して表示', '2')
+    // 配列型の場合
+    await cmp('A=[0,1,2,3];Aから0...1を参照してJSONエンコードして表示', '[0,1]')
+    await cmp('A=[0,1,2,3];Aから0...3を参照してJSONエンコードして表示', '[0,1,2,3]')
+    await cmp('A=[0,1,2,3];Aから0...5を参照してJSONエンコードして表示', '[0,1,2,3]') // 範囲を超えて指定もエラーにならない
+    await cmp('A=[0,1,2,3];Aから5...9を参照してJSONエンコードして表示', '[]') // 範囲を超えて指定もエラーにならない
+  })
+  it('「?? 計算式文」 #1745', async () => {
+    await cmp('??1+1', '2')
+    await cmp('??1+2*3', '7')
+    await cmp('??(1+2)*3', '9')
   })
 })
