@@ -5,7 +5,7 @@ import { NakoCompiler } from '../src/nako3.mjs'
 describe('dncl2 (core #41)', async () => {
   const cmp = async (code, res) => {
     const nako = new NakoCompiler()
-    const g = await nako.runAsync(code)
+    const g = await nako.runAsync(code, 'main.nako3')
     const resultValue = g.log
     // console.log(resultValue, '=', res)
     assert.strictEqual(resultValue, res)
