@@ -139,7 +139,7 @@ export class NakoParser extends NakoParserBase {
     if (this.check('エラー監視')) { return this.yTryExcept() }
     if (this.accept(['抜ける'])) { return { type: 'break', josi: '', ...map, end: this.peekSourceMap() } }
     if (this.accept(['続ける'])) { return { type: 'continue', josi: '', ...map, end: this.peekSourceMap() } }
-    if (this.check('??')) { return this.yPrint() }
+    if (this.check('??')) { return this.yDebugPrint() }
     // 実行モードの指定
     if (this.accept(['DNCLモード'])) { return this.yDNCLMode(1) }
     if (this.accept(['DNCL2モード'])) { return this.yDNCLMode(2) }
@@ -699,9 +699,8 @@ export class NakoParser extends NakoParserBase {
 
   /**
    * 表示(関数)を返す 「??」のエイリアスで利用 (#1745)
-   * @returns {AstCallFunc | null}
    */
-  yPrint (): AstCallFunc | null {
+  yDebugPrint (): AstCallFunc | null {
     const map = this.peekSourceMap()
     const t = this.get() // skip '??'
     if (!t || t.value !== '??') {
@@ -711,11 +710,11 @@ export class NakoParser extends NakoParserBase {
     if (!arg) {
       throw NakoSyntaxError.fromNode('『??(計算式)』で指定してください。', map)
     }
-    const meta = this.funclist.get('表示')
-    if (!meta) { throw new Error('関数『表示』が見つかりません。plugin_systemをシステムに追加してください。') }
+    const meta = this.funclist.get('ハテナ関数実行')
+    if (!meta) { throw new Error('関数『ハテナ関数実行』が見つかりません。plugin_systemをシステムに追加してください。') }
     return {
       type: 'func',
-      name: '表示',
+      name: 'ハテナ関数実行',
       blocks: [arg],
       josi: '',
       meta,
@@ -2261,7 +2260,9 @@ export class NakoParser extends NakoParserBase {
           this.checkArrayIndex(this.y[1]),
           this.checkArrayIndex(this.y[3])
         ]
+        const aa = ast.index.pop()
         ast.index = this.checkArrayReverse(index)
+        if (aa) { ast.index.unshift(aa) }
         ast.josi = this.y[4].josi
         return this.y[4].josi === '' // 助詞があればそこで終了(false)を返す
       }
@@ -2273,7 +2274,9 @@ export class NakoParser extends NakoParserBase {
           this.checkArrayIndex(this.y[3]),
           this.checkArrayIndex(this.y[5])
         ]
+        const aa = ast.index.pop()
         ast.index = this.checkArrayReverse(index)
+        if (aa) { ast.index.unshift(aa) }
         ast.josi = this.y[6].josi
         return this.y[6].josi === '' // 助詞があればそこで終了(false)を返す
       }
@@ -2444,8 +2447,27 @@ export class NakoParser extends NakoParserBase {
     return a
   }
 
+  yJSONObject(): AstBlocks | Ast | null {
+    const a = this.yJSONObjectRaw()
+    if (!a) { return null }
+    // 配列の直後に@や[]があるか？助詞がある場合には、別の引数の可能性があるので無視。 (例) [0,1,2]を[3,4,5]に配列＊＊＊
+    if (a.josi === '' && this.checkTypes(['@', '['])) {
+      const ast: Ast = {
+        type: 'ref_array',
+        name: '__ARRAY__',
+        index: [a],
+        josi: '',
+        line: a.line,
+        end: this.peekSourceMap()
+      }
+      this.yValueWordGetIndex(ast)
+      return ast
+    }
+    return a
+  }
+
   /** @returns {Ast | null} */
-  yJSONObject (): AstBlocks | null {
+  yJSONObjectRaw (): AstBlocks | null {
     const map = this.peekSourceMap()
     if (this.accept(['{', '}'])) {
       return {
@@ -2496,8 +2518,28 @@ export class NakoParser extends NakoParserBase {
     return a
   }
 
+  yJSONArray(): AstBlocks | Ast | null {
+    // 配列を得る
+    const a = this.yJSONArrayRaw()
+    if (!a) { return null }
+    // 配列の直後に@や[]があるか？助詞がある場合には、別の引数の可能性があるので無視。 (例) [0,1,2]を[3,4,5]に配列＊＊＊
+    if (a.josi === '' && this.checkTypes(['@', '['])) {
+      const ast: Ast = {
+        type: 'ref_array',
+        name: '__ARRAY__',
+        index: [a],
+        josi: '',
+        line: a.line,
+        end: this.peekSourceMap()
+      }
+      this.yValueWordGetIndex(ast)
+      return ast
+    }
+    return a
+  }
+
   /** @returns {AstBlocks | null} */
-  yJSONArray (): AstBlocks | null {
+  yJSONArrayRaw (): AstBlocks | null {
     const map = this.peekSourceMap()
     if (this.accept(['[', ']'])) {
       return {
