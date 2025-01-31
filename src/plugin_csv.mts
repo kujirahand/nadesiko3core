@@ -1,4 +1,4 @@
-import { options, parse, stringify } from './nako_csv.mjs'
+import { CSVOptions, options, parse, stringify } from './nako_csv.mjs'
 
 const PluginCSV = {
   'meta': {
@@ -24,7 +24,7 @@ const PluginCSV = {
     type: 'func',
     josi: [['を', 'の', 'で']],
     pure: true,
-    fn: function (str: string): string[][] {
+    fn: function (str: string): (string | number)[][] {
       options.delimiter = ','
       return parse(str)
     }
@@ -33,7 +33,7 @@ const PluginCSV = {
     type: 'func',
     josi: [['を', 'の', 'で']],
     pure: true,
-    fn: function (str: string): string[][] {
+    fn: function (str: string): (string|number)[][] {
       options.delimiter = '\t'
       return parse(str)
     }
@@ -55,6 +55,24 @@ const PluginCSV = {
       options.delimiter = '\t'
       return stringify(a)
     }
+  },
+  'CSVオプション設定': { // @「CSV取得」「表CSV変換」命令のオプションOBJ{delimiter,eol,auto_convert_number}をオブジェクトで指定 // @CSVおぷしょんせってい
+    type: 'func',
+    josi: [['を','で']],
+    pure: true,
+    fn: function (obj: { [key: string]: unknown }): void {
+      for (const key in obj) {
+        const value: unknown = obj[key]
+        if (key === 'delimiter' || key === '区切文字') {
+          options.delimiter = value as string
+        } else if (key === 'eol') {
+          options.eol = value as string
+        } else if (key === 'auto_convert_number') {
+          options.auto_convert_number = value as boolean
+        }
+      }
+    },
+    return_none: true
   }
 }
 export default PluginCSV
