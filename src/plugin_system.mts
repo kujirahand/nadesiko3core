@@ -223,13 +223,13 @@ export default {
   'ナデシコ言語バージョン': { type: 'const', value: '?' }, // @なでしこげんごばーじょん
   'ナデシコエンジン': { type: 'const', value: 'nadesi.com/v3' }, // @なでしこえんじん
   'ナデシコ種類': { type: 'const', value: '?' }, // @なでしこしゅるい
-  'はい': { type: 'const', value: 1 }, // @はい
-  'いいえ': { type: 'const', value: 0 }, // @いいえ
-  '真': { type: 'const', value: 1 }, // @しん
-  '偽': { type: 'const', value: 0 }, // @ぎ
-  '永遠': { type: 'const', value: 1 }, // @えいえん
-  'オン': { type: 'const', value: 1 }, // @おん
-  'オフ': { type: 'const', value: 0 }, // @おふ
+  'はい': { type: 'const', value: true }, // @はい
+  'いいえ': { type: 'const', value: false }, // @いいえ
+  '真': { type: 'const', value: true }, // @しん
+  '偽': { type: 'const', value: false }, // @ぎ
+  '永遠': { type: 'const', value: true }, // @えいえん
+  'オン': { type: 'const', value: true }, // @おん
+  'オフ': { type: 'const', value: false }, // @おふ
   '改行': { type: 'const', value: '\n' }, // @かいぎょう
   'タブ': { type: 'const', value: '\t' }, // @たぶ
   'カッコ': { type: 'const', value: '「' }, // @かっこ
@@ -288,6 +288,14 @@ export default {
     pure: false,
     fn: function (sys: NakoSystem): any {
       return sys.__exec('空ハッシュ', [sys])
+    }
+  },
+  '真偽判定': { // @引数bが真(true)ならば「真」を偽(false)ならば「偽」を返す // @しんぎはんてい
+    type: 'func',
+    josi: [['の', 'を']],
+    pure: true,
+    fn: function (b: any): string {
+      return b ? '真' : '偽'
     }
   },
 
@@ -986,28 +994,28 @@ export default {
   },
 
   // @論理演算
-  '論理OR': { // @(ビット演算で)AとBの論理和を返す(v1非互換)。 // @ろんりOR
+  '論理OR': { // @AとBの論理和を返す(v1非互換)。 // @ろんりOR
     type: 'func',
     josi: [['と'], ['の']],
     pure: true,
-    fn: function (a: any, b: any) {
+    fn: function (a: any, b: any): any {
       return (a || b)
     }
   },
-  '論理AND': { // @(ビット演算で)AとBの論理積を返す(v1非互換)。日本語の「AかつB」に相当する // @ろんりAND
+  '論理AND': { // @AとBの論理積を返す(v1非互換)。日本語の「AかつB」に相当する // @ろんりAND
     type: 'func',
     josi: [['と'], ['の']],
     pure: true,
-    fn: function (a: any, b: any) {
+    fn: function (a: any, b: any): boolean {
       return (a && b)
     }
   },
-  '論理NOT': { // @値Vが0ならば1、それ以外ならば0を返す(v1非互換) // @ろんりNOT
+  '論理NOT': { // @値Vが0や空ならばtrue、それ以外ならばfalseを返す(v1非互換) // @ろんりNOT
     type: 'func',
     josi: [['の']],
     pure: true,
-    fn: function (v: any): number {
-      return (!v) ? 1 : 0
+    fn: function (v: any): boolean {
+      return (!v) ? true : false
     }
   },
 
@@ -1016,7 +1024,7 @@ export default {
     type: 'func',
     josi: [['と'], ['の']],
     pure: true,
-    fn: function (a: any, b: any) {
+    fn: function (a: any, b: any): any {
       return (a | b)
     }
   },
@@ -1024,7 +1032,7 @@ export default {
     type: 'func',
     josi: [['と'], ['の']],
     pure: true,
-    fn: function (a: any, b: any) {
+    fn: function (a: any, b: any): any {
       return (a & b)
     }
   },
@@ -1032,7 +1040,7 @@ export default {
     type: 'func',
     josi: [['と'], ['の']],
     pure: true,
-    fn: function (a: any, b: any) {
+    fn: function (a: any, b: any): any {
       return (a ^ b)
     }
   },
@@ -1040,7 +1048,7 @@ export default {
     type: 'func',
     josi: [['の']],
     pure: true,
-    fn: function (v: any) {
+    fn: function (v: any): any {
       return (~v)
     }
   },
@@ -1048,7 +1056,7 @@ export default {
     type: 'func',
     josi: [['を'], ['で']],
     pure: true,
-    fn: function (v: any, a: any) {
+    fn: function (v: number, a: number): number {
       return (v << a)
     }
   },
@@ -1056,7 +1064,7 @@ export default {
     type: 'func',
     josi: [['を'], ['で']],
     pure: true,
-    fn: function (v: any, a: any) {
+    fn: function (v: number, a: number): number {
       return (v >> a)
     }
   },
@@ -1064,7 +1072,7 @@ export default {
     type: 'func',
     josi: [['を'], ['で']],
     pure: true,
-    fn: function (v: any, a: any) {
+    fn: function (v: number, a: number): number {
       return (v >>> a)
     }
   },
@@ -1074,7 +1082,7 @@ export default {
     type: 'func',
     josi: [['の']],
     pure: true,
-    fn: function (v: any) {
+    fn: function (v: any): number {
       if (!Array.from) { return String(v).length }
       return Array.from(v).length
     }

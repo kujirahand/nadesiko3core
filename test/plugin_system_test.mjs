@@ -407,10 +407,27 @@ describe('plugin_system_test', async () => {
     await cmp('XOR(0,1)を表示', '1')
     await cmp('NOT(0xFF)を表示', '-256')
   })
-  it('論理演算', async () => {
-    await cmp('論理OR(1,0)を表示', '1')
-    await cmp('論理AND(1,0)を表示', '0')
-    await cmp('論理NOT(1)を表示', '0')
+  it('真偽判定', async () => { // #1936
+    await cmp('1の真偽判定を表示', '真')
+    await cmp('trueの真偽判定を表示', '真')
+    await cmp('"a"の真偽判定を表示', '真')
+    await cmp('「」の真偽判定を表示', '偽')
+    await cmp('0の真偽判定を表示', '偽')
+  })
+  it('論理演算', async () => { // #1936
+    // OR
+    await cmp('論理OR(真,真)の真偽判定を表示', '真')
+    await cmp('論理OR(真,偽)の真偽判定を表示', '真')
+    await cmp('論理OR(偽,偽)の真偽判定を表示', '偽')
+    // AND
+    await cmp('論理AND(真,偽)の真偽判定を表示', '偽')
+    await cmp('論理AND(偽,真)の真偽判定を表示', '偽')
+    await cmp('論理AND(真,真)の真偽判定を表示', '真')
+    // NOT
+    await cmp('論理NOT(真)の真偽判定を表示', '偽')
+    await cmp('論理NOT(0)の真偽判定を表示', '真')
+    await cmp('論理NOT("")の真偽判定を表示', '真')
+    await cmp('論理NOT("a")の真偽判定を表示', '偽')
   })
   it('英数記号全角半角変換', async () => {
     await cmp('「＃！」を英数記号半角変換して表示', '#!')
