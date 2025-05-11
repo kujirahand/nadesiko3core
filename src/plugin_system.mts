@@ -53,7 +53,7 @@ export default {
         // 名前空間を参照して関数・変数名を解決する
         const modList = system.__modList ? system.__modList : [system.__modName]
         for (const modName of modList) {
-          const gname = modName + '__' + nameStr
+          const gname = `${modName}__${nameStr}`
           for (let i = 2; i >= 0; i--) {
             const scope = system.__varslist[i]
             const scopeValue = scope.get(gname)
@@ -83,7 +83,7 @@ export default {
       sys.__interval = []
       // 日付処理などに使う
       const z2 = sys.__zero2 = (s: string|number): string => {
-        s = '00' + s
+        s = '00' + String(s)
         return s.substring(s.length - 2)
       }
       sys.__zero = (s: string, keta: number): string => {
@@ -93,13 +93,13 @@ export default {
         return s.substring(s.length - keta)
       }
       sys.__formatDate = (t: Date): string => {
-        return t.getFullYear() + '/' + z2(t.getMonth() + 1) + '/' + z2(t.getDate())
+        return String(t.getFullYear()) + '/' + z2(t.getMonth() + 1) + '/' + z2(t.getDate())
       }
       sys.__formatTime = (t: Date): string => {
         return z2(t.getHours()) + ':' + z2(t.getSeconds()) + ':' + z2(t.getMinutes())
       }
       sys.__formatDateTime = (t: Date, fmt: string): string => {
-        const dateStr = t.getFullYear() + '/' + z2(t.getMonth() + 1) + '/' + z2(t.getDate())
+        const dateStr = String(t.getFullYear()) + '/' + z2(t.getMonth() + 1) + '/' + z2(t.getDate())
         const timeStr = z2(t.getHours()) + ':' + z2(t.getMinutes()) + ':' + z2(t.getSeconds())
         if (fmt.match(/^\d+\/\d+\/\d+\s+\d+:\d+:\d+$/)) {
           return dateStr + ' ' + timeStr
@@ -159,6 +159,7 @@ export default {
       sys.__evalSafe = (src: string) => {
         // evalのスコープを変えるためのテクニック
         // https://esbuild.github.io/content-types/#direct-eval
+        // eslint-disable-next-line no-eval
         const _eval = eval
         try {
           return _eval(src)
@@ -171,6 +172,7 @@ export default {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       sys.__evalJS = (src: string, sys?: NakoSystem) => {
         try {
+          // eslint-disable-next-line no-eval
           return eval(src)
         } catch (e) {
           console.warn('[eval]', e)
@@ -178,7 +180,7 @@ export default {
         }
       }
       // Propアクセス支援
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+      // eslint-disable-next-line @typescript-eslint/ban-types
       sys.__registPropAccessor = (f: Function, getProp: (prop: string|string[], sys: NakoSystem) => any, setProp: (prop: string|string[], value: object, sys: NakoSystem) => any) => {
         system.__propAccessor.push(
           {
@@ -306,10 +308,10 @@ export default {
     pure: true,
     fn: function (s: string, sys: any) {
       // 継続表示の一時プールを出力
-      s = sys.__printPool + s
+      s = String(sys.__printPool) + s
       sys.__printPool = ''
       //
-      sys.__setSysVar('表示ログ', sys.__getSysVar('表示ログ') + s + '\n')
+      sys.__setSysVar('表示ログ', String(sys.__getSysVar('表示ログ')) + s + '\n')
       sys.logger.send('stdout', s + '')
     },
     return_none: true
@@ -383,7 +385,7 @@ export default {
     isVariableJosi: false,
     pure: true,
     fn: function (a: any, b: any) {
-      if (typeof(a) === 'bigint' || typeof(b) === 'bigint') {
+      if (typeof (a) === 'bigint' || typeof (b) === 'bigint') {
         return BigInt(a) + BigInt(b)
       }
       return parseFloat(a) + parseFloat(b)
@@ -402,10 +404,10 @@ export default {
       let isBigInt = false
       let sum = 0
       for (const v of a) {
-        if (typeof(v) === 'bigint') {
+        if (typeof (v) === 'bigint') {
           isBigInt = true
           break
-         }
+        }
         sum += parseFloat(v)
       }
       if (isBigInt) {
@@ -613,6 +615,7 @@ export default {
     fn: function (b: any, ...a: any) {
       a.pop() // 必ず末尾に sys があるので、末尾のシステム変数を除外
       a.push(b)
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       return a.reduce((p: any, c: any) => p + c)
     }
   },
@@ -648,7 +651,7 @@ export default {
     }
   },
   '最小値': { // @2個以上の数値のうち最小値を返す。// @さいしょうち
-   type: 'func',
+    type: 'func',
     josi: [['の'], ['と']],
     isVariableJosi: true,
     pure: true,
@@ -812,7 +815,7 @@ export default {
     fn: function (code: string, sys: any) {
       sys.__setSysVar('表示ログ', '')
       sys.__self.runEx(code, sys.__modName, { resetEnv: false, resetLog: true })
-      const outLog = sys.__getSysVar('表示ログ') + ''
+      const outLog = String(sys.__getSysVar('表示ログ'))
       if (outLog) {
         sys.logger.trace(outLog)
       }
@@ -824,7 +827,7 @@ export default {
     josi: [['を', 'で']],
     fn: function (code: string, sys: any) {
       sys.__self.runEx(code, sys.__modName, { resetEnv: false, resetAll: false })
-      const out = sys.__getSysVar('表示ログ') + ''
+      const out = String(sys.__getSysVar('表示ログ'))
       if (out) {
         sys.logger.trace(out)
       }
@@ -1018,7 +1021,7 @@ export default {
     pure: true,
     fn: function (r: any, g: any, b: any): string {
       const z2 = (v: any): string => {
-        const v2: string = '00' + (parseInt('' + v).toString(16))
+        const v2: string = '00' + (parseInt(String(v)).toString(16))
         return v2.substring(v2.length - 2, v2.length)
       }
       return '#' + z2(r) + z2(g) + z2(b)
@@ -1047,7 +1050,7 @@ export default {
     josi: [['の']],
     pure: true,
     fn: function (v: any): boolean {
-      return (!v) ? true : false
+      return (!v)
     }
   },
 
@@ -1180,7 +1183,7 @@ export default {
     fn: function (s: string, i: number, a: string): string {
       if (i <= 0) { i = 1 }
       const strArray = Array.from(s)
-      strArray.splice(i-1, 0, a)
+      strArray.splice(i - 1, 0, a)
       return strArray.join('')
     }
   },
@@ -1236,7 +1239,7 @@ export default {
     fn: function (...a: any) {
       a.pop() // NakoSystemを取り除く
       return a.join('')
-    },
+    }
   },
   '文字列連結': { // @引数(可変)に指定した文字列を連結して文字列を返す // @もじれつれんけつ
     type: 'func',
@@ -1246,7 +1249,7 @@ export default {
     fn: function (...a: any) {
       a.pop() // NakoSystemを取り除く
       return a.join('')
-    },
+    }
   },
   '文字列分解': { // @文字列Vを一文字ずつに分解して返す // @もじれつぶんかい
     type: 'func',
@@ -1289,7 +1292,7 @@ export default {
     type: 'func',
     josi: [['で', 'の'], ['から'], ['を', '']],
     pure: true,
-    fn: function (s: any, a: any, cnt: number) {
+    fn: function (s: any, a: number, cnt: number) {
       cnt = cnt || 1
       // return (String(s).substring(a - 1, a + cnt - 1))
       // サロゲートペアを考慮
@@ -1494,7 +1497,7 @@ export default {
     pure: true,
     fn: function (s: string): string {
       const kanaToHira = (str: string) => {
-        return String(str).replace(/[\u30a1-\u30f6]/g, function (m) {
+        return String(str).replace(/[\u30a1-\u30f6]/g, function (m: string) {
           const chr = m.charCodeAt(0) - 0x60
           return String.fromCharCode(chr)
         })
@@ -1508,7 +1511,7 @@ export default {
     pure: true,
     fn: function (s: string): string {
       const hiraToKana = (str: string) => {
-        return String(str).replace(/[\u3041-\u3096]/g, function (m) {
+        return String(str).replace(/[\u3041-\u3096]/g, function (m: string) {
           const chr = m.charCodeAt(0) + 0x60
           return String.fromCharCode(chr)
         })
@@ -1521,7 +1524,7 @@ export default {
     josi: [['の', 'を']],
     pure: true,
     fn: function (s: string): string {
-      return String(s).replace(/[A-Za-z0-9]/g, function (v: any) {
+      return String(s).replace(/[A-Za-z0-9]/g, function (v: string) {
         return String.fromCharCode(v.charCodeAt(0) + 0xFEE0)
       })
     }
@@ -1531,7 +1534,7 @@ export default {
     josi: [['の', 'を']],
     pure: true,
     fn: function (s: string): string {
-      return String(s).replace(/[Ａ-Ｚａ-ｚ０-９]/g, function (v: any) {
+      return String(s).replace(/[Ａ-Ｚａ-ｚ０-９]/g, function (v: string) {
         return String.fromCharCode(v.charCodeAt(0) - 0xFEE0)
       })
     }
@@ -1541,7 +1544,8 @@ export default {
     josi: [['の', 'を']],
     pure: true,
     fn: function (s: string): string {
-      return String(s).replace(/[\x20-\x7F]/g, function (v: any) {
+      return String(s).replace(/[\x20-\x7E]/g, function (v: string) {
+        if (v === ' ') { return '　' } // 半角スペース(0x20)を全角スペース(U+3000)に
         return String.fromCharCode(v.charCodeAt(0) + 0xFEE0)
       })
     }
@@ -1551,7 +1555,8 @@ export default {
     josi: [['の', 'を']],
     pure: true,
     fn: function (s: string): string {
-      return String(s).replace(/[\uFF00-\uFF5F]/g, function (v: any) {
+      return String(s).replace(/[\u3000\uFF00-\uFF5F]/g, function (v: string) {
+        if (v === '　') { return ' ' } // 全角スペース(U+3000)を半角スペース(U+0020)
         return String.fromCharCode(v.charCodeAt(0) - 0xFEE0)
       })
     }
@@ -1696,7 +1701,7 @@ export default {
     type: 'func',
     josi: [['を', 'が'], ['で', 'に']],
     pure: true,
-    fn: function (a: any, b: any, sys: any): string {
+    fn: function (a: string, b: string, sys: any): string {
       let re
       const f = ('' + b).match(/^\/(.+)\/([a-zA-Z]*)$/)
       // パターンがない場合
@@ -1893,7 +1898,7 @@ export default {
     type: 'func',
     josi: [['の'], ['に', 'へ'], ['を']],
     pure: true,
-    fn: function (a: any, i: any, b: any) {
+    fn: function (a: any, i: number, b: any) {
       if (a instanceof Array && b instanceof Array) { // 配列ならOK
         for (let j = 0; j < b.length; j++) { a.splice(i + j, 0, b[j]) }
 
@@ -2069,7 +2074,7 @@ export default {
   },
   '配列範囲コピー': { // @配列Aの範囲I(数値化範囲オブジェクト)を複製して返す。 // @はいれつはんいこぴー
     type: 'func',
-    josi: [['の','から'],['を']],
+    josi: [['の', 'から'], ['を']],
     pure: true,
     fn: function (a: any, i: any) {
       if (!Array.isArray(a)) {
@@ -2084,7 +2089,7 @@ export default {
       // 範囲オブジェクトのとき
       if (typeof i === 'object' && typeof i['先頭'] === 'number') {
         const start = i['先頭']
-        const last = i['末尾'] + 1
+        const last = Number(i['末尾']) + 1
         return JSON.parse(JSON.stringify(a.slice(start, last)))
       }
       return undefined
@@ -2104,7 +2109,7 @@ export default {
         // 範囲オブジェクトのとき
         if (typeof i === 'object' && typeof i['先頭'] === 'number') {
           const start = i['先頭']
-          const last = i['末尾'] + 1
+          const last = Number(i['末尾']) + 1
           return a.substring(start, last)
         }
         throw new Error(`『参照』で文字列型の範囲指定(${JSON.stringify(i)})が不正です。`)
@@ -2117,7 +2122,7 @@ export default {
         // 範囲オブジェクトのとき
         if (typeof i === 'object' && typeof i['先頭'] === 'number') {
           const start = i['先頭']
-          const last = i['末尾'] + 1
+          const last = Number(i['末尾']) + 1
           return a.slice(start, last)
         }
       }
@@ -2206,16 +2211,42 @@ export default {
       return result
     }
   },
-  '配列要素作成': { // @値AをB個持つ配列を生成して返す。 // @はいれつようそさくせい
+  '配列要素作成': { // @値AをB個持つ配列を生成して返す。引数Bに配列を指定すると二次元以上の配列を生成する。// @はいれつようそさくせい
     type: 'func',
-    josi: [['を'], ['だけ']],
+    josi: [['を'], ['だけ', 'で']],
     pure: true,
-    fn: function (a: number, b: number) {
-      const result: number[] = []
-      for (let i = 0; i < b; i++) {
-        result.push(a)
+    fn: function (a: any, b: number | number[]) {
+      // value が配列やオブジェクトでも深くコピーするヘルパー
+      const cloneValue = (v: any): any => {
+        if (Array.isArray(v)) {
+          return (v).map(item => cloneValue(item)) as any
+        }
+        if (v instanceof Date) {
+          return new Date(v.getTime())
+        }
+        if (typeof v === 'object' && v !== null) {
+          return JSON.parse(JSON.stringify(v))
+        }
+        return v
       }
-      return result
+      // 再帰的に配列を生成する関数
+      const full = function (value: any, shape: number | number[]): any {
+        // 1次元：shape が数値
+        if (!Array.isArray(shape)) {
+          return Array.from({ length: shape }, () => cloneValue(value))
+        }
+        // 1次元：shape が数値
+        if (Array.isArray(shape) && shape.length === 1) {
+          return Array.from({ length: shape[0] }, () => cloneValue(value))
+        }
+        // 多次元：shape が配列
+        const [first, ...rest] = shape
+        return Array.from(
+          { length: first },
+          () => full(cloneValue(value), rest)
+        )
+      }
+      return full(a, b)
     }
   },
   '配列関数適用': { // @引数を1つ持つ関数Fを、配列Aの全要素に適用した、新しい配列を返す。 // @はいれつかんすうてきよう
@@ -2708,9 +2739,9 @@ export default {
     josi: [],
     pure: true,
     fn: function () {
-      const z2 = (n: any) => {
-        n = '00' + n
-        return n.substring(n.length - 2, n.length)
+      const z2 = (n: number): string => {
+        const ns = '00' + String(n)
+        return ns.substring(ns.length - 2, ns.length)
       }
       const t = new Date()
       return z2(t.getHours()) + ':' + z2(t.getMinutes()) + ':' + z2(t.getSeconds())
@@ -2863,10 +2894,10 @@ export default {
       fmt = fmt.replace(/(YYYY|ccc|WWW|MMM|YY|MM|DD|HH|mm|ss|[MDHmsW])/g, (m: string) => {
         switch (m) {
           case 'YYYY': return t.getFullYear()
-          case 'YY': return ('' + t.getFullYear()).substring(2)
-          case 'MM': return sys.__zero2(t.getMonth() + 1)
+          case 'YY': return (String(t.getFullYear())).substring(2)
+          case 'MM': return sys.__zero2(String(t.getMonth() as number + 1))
           case 'DD': return sys.__zero2(t.getDate())
-          case 'M': return (t.getMonth() + 1)
+          case 'M': return (t.getMonth() as number + 1)
           case 'D': return (t.getDate())
           case 'HH': return sys.__zero2(t.getHours())
           case 'mm': return sys.__zero2(t.getMinutes())
@@ -2888,17 +2919,17 @@ export default {
     type: 'func',
     josi: [['を']],
     pure: true,
-    fn: function (s: string, sys: any) {
+    fn: function (s: string, sys: NakoSystem) {
       const d = sys.__str2date(s)
       const t = d.getTime()
       for (const era of sys.__getSysVar('元号データ')) {
-        const gengo = era['元号']
+        const gengo = String(era['元号'])
         const d2 = sys.__str2date(era['改元日'])
         const t2 = d2.getTime()
         if (t2 <= t) {
           let y: any = (d.getFullYear() - d2.getFullYear()) + 1
           if (y === 1) { y = '元' }
-          return gengo + y + '年' + sys.__zero2(d.getMonth() + 1) + '月' + sys.__zero2(d.getDate()) + '日'
+          return gengo + String(y) + '年' + sys.__zero2(d.getMonth() + 1) + '月' + sys.__zero2(d.getDate()) + '日'
         }
       }
       throw new Error('『和暦変換』は明示以前の日付には対応していません。')
@@ -2921,8 +2952,8 @@ export default {
     fn: function (a: any, b: any, sys: any) {
       const t1 = sys.__str2date(a)
       const t2 = sys.__str2date(b)
-      return ((t2.getFullYear() * 12 + t2.getMonth()) -
-        (t1.getFullYear() * 12 + t1.getMonth()))
+      return (t2.getFullYear() * 12 + Number(t2.getMonth())) -
+        (t1.getFullYear() * 12 + Number(t1.getMonth()))
     }
   },
   '日数差': { // @日付AとBの差を日数で求めて返す。A<Bなら正の数、そうでないなら負の数を返す。 // @にっすうさ
@@ -2989,7 +3020,7 @@ export default {
     type: 'func',
     josi: [['に'], ['を']],
     pure: true,
-    fn: function (s: any, a: any, sys: any) {
+    fn: function (s: string, a: string, sys: any) {
       const op = a.charAt(0)
       if (op === '-' || op === '+') {
         a = a.substring(1)
@@ -3000,7 +3031,7 @@ export default {
         parseInt(aa[1]) * 60 +
         parseInt(aa[2])
       if (op === '-') { sec *= -1 }
-      const rd = new Date(d.getTime() + (sec * 1000))
+      const rd = new Date(Number(d.getTime()) + (sec * 1000))
       return sys.__formatDateTime(rd, s)
     }
   },
@@ -3008,7 +3039,7 @@ export default {
     type: 'func',
     josi: [['に'], ['を']],
     pure: true,
-    fn: function (s: any, a: any, sys: any) {
+    fn: function (s: string, a: string, sys: any) {
       let op = 1
       const opc = a.charAt(0)
       if (opc === '-' || opc === '+') {
@@ -3020,9 +3051,9 @@ export default {
       const addY = parseInt(aa[0]) * op
       const addM = parseInt(aa[1]) * op
       const addD = parseInt(aa[2]) * op
-      d.setFullYear(d.getFullYear() + addY)
-      d.setMonth(d.getMonth() + addM)
-      d.setDate(d.getDate() + addD)
+      d.setFullYear(Number(d.getFullYear()) + addY)
+      d.setMonth(Number(d.getMonth()) + addM)
+      d.setDate(Number(d.getDate()) + addD)
       return sys.__formatDateTime(d, s)
     }
   },
@@ -3030,7 +3061,7 @@ export default {
     type: 'func',
     josi: [['に'], ['を']],
     pure: true,
-    fn: function (s: any, a: any, sys: any) {
+    fn: function (s: string, a: string, sys: any) {
       const r = ('' + a).match(/([+|-]?)(\d+)(年|ヶ月|日|週間|時間|分|秒)$/)
       if (!r) { throw new Error('『日付加算』は『(+｜-)1(年|ヶ月|日|時間|分|秒)』の書式で指定します。') }
       switch (r[3]) {
@@ -3066,12 +3097,12 @@ export default {
     pure: true,
     fn: function (s: any, sys: NakoSystem) {
       // 行番号の情報を得る
-      const lineInfo: string = sys.__getSysVar('__line', 0) + '::'
+      const lineInfo: string = String(sys.__getSysVar('__line', 0)) + '::'
       const a = lineInfo.split(':', 2)
       const no = parseInt(String(a[0]).replace('l', '')) + 1
       const fname = a[1]
       // オブジェクトならJSON文字列に変換
-      if (typeof s == 'object') {
+      if (typeof s === 'object') {
         s = JSON.stringify(s)
       }
       s = `${fname}(${no}): ${s}`
@@ -3106,7 +3137,6 @@ export default {
           for (const f of fa) {
             param = f(param, sys)
           }
-          return
         }
         return
       }
