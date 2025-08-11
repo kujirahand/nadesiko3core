@@ -1422,6 +1422,22 @@ export default {
       return strArray.join('')
     }
   },
+  '文字始': { // @文字列SがAから始まるならば真を返す // @もじはじまる
+    type: 'func',
+    josi: [['が'], ['で', 'から']],
+    pure: true,
+    fn: function (s: string, a: string): boolean {
+      return s.startsWith(a)
+    }
+  },
+  '文字終': { // @文字列SがAで終わるならば真を返す // @もじおわる
+    type: 'func',
+    josi: [['が'], ['で']],
+    pure: true,
+    fn: function (s: string, a: string): boolean {
+      return s.endsWith(a)
+    }
+  },
 
   // @置換・トリム
   '置換': { // @文字列Sのうち文字列AをBに全部置換して返す // @ちかん
