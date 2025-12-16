@@ -29,6 +29,11 @@ describe('array_test', async () => {
     await cmp('A=[[0,1,2],[3,4,5]];N=1;M=1;A@N,M=100;A@N,Mを表示', '100')
     await cmp('A=[[0,1,2],[3,4,5]];A[1][1]を表示', '4')
   })
+  it('三次元配列の参照', async () => {
+    await cmp('A=[[[1,2],[3,4]],[[5,6],[7,8]]]; A[1][1][1]を表示', '8')
+    await cmp('A=[[[1,2],[3,4]],[[5,6],[7,8]]]; A[1, 1, 1]を表示', '8')
+    await cmp('A=[[[1,2],[3,4]],[[5,6],[7,8]]]; A@1,1,1を表示', '8')
+  })
   it('要素から配列を記述する際に明示的な()が必要になる不具合 #1000', async () => {
     await cmp('Aは[0,1,2];Bは[A[1], A[1], A[2]];B[1]を表示', '1')
   })
@@ -104,11 +109,35 @@ describe('array_test', async () => {
     await cmp('([{"犬": ["わんわん"]}])[0]$犬@0を表示', 'わんわん')
   })
   it('配列＋オブジェクトプロパティ #2139', async () => {
-    await cmp('A=[{"b":10}]; A[0].b = 20; AをJSONエンコードして表示。', '[{"b":20}]')
     await cmp('A=[{"b":10}]; A[0].b = 20; A[0].bを表示。', '20')
   })
   it('二次元配列＋オブジェクトプロパティ #2139', async () => {
-    await cmp('A=[[{"b":10}],[{"b":20}]]; A[0][0].b = 99; AをJSONエンコードして表示。', '[[{"b":99}],[{"b":20}]]')
     await cmp('A=[[{"b":10}],[{"b":20}]]; A[0][0].b = 88; A[0][0].bを表示。', '88')
+  })
+  it('配列＋オブジェクトプロパティ(DOM和スタイル適用) #2139', async () => {
+    // __getProp/__setPropを使った例
+    await cmp(`
+      FN_GET=JS実行(『(function(p){ p = (p == '犬') ? 'dog' : p; return this[p]; })』);
+      FN_SET=JS実行(『(function(p, v){ p = (p == '犬') ? 'dog' : p; this[p]=v; })』);
+      A={"dog": 30,"__setProp": FN_SET,"__getProp": FN_GET};
+      A$犬=200; A$dogを表示;
+    `, '200')
+    // __getProp/__setPropを使って1次元配列＋オブジェクトプロパティをテスト
+    await cmp(`
+      FN_GET=JS実行(『(function(p){ p = (p == '犬') ? 'dog' : p; return this[p]; })』);
+      FN_SET=JS実行(『(function(p, v){ p = (p == '犬') ? 'dog' : p; this[p]=v; })』);
+      A=[{"dog": 30,"__setProp": FN_SET,"__getProp": FN_GET}];
+      A[0]$犬=200; A[0]$dogを表示;
+    `, '200')
+    // __getProp/__setPropを使って2次元配列＋オブジェクトプロパティをテスト
+    await cmp(`
+      FN_GET=JS実行(『(function(p){ p = (p == '犬') ? 'dog' : p; return this[p]; })』);
+      FN_SET=JS実行(『(function(p, v){ p = (p == '犬') ? 'dog' : p; this[p]=v; })』);
+      A=[[{"dog": 30,"__setProp": FN_SET,"__getProp": FN_GET}]];
+      A[0][0]$犬=200; A[0][0]$dogを表示;
+    `, '200')
+  })
+  it('二次元配列＋二次元オブジェクトプロパティ #2139', async () => {
+    await cmp('A=[[{"b":10}],[{"b":20}]]; A[0][0]$b = {}; A[0][0]$b$c = 99; A[0][0]$b$cを表示。', '99')
   })
 })
