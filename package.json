@@ -1,6 +1,6 @@
 {
   "name": "nadesiko3core",
-  "version": "3.7.16",
+  "version": "3.7.17",
   "description": "Japanese Programming Language Nadesiko v3 core",
   "main": "index.mjs",
   "type": "module",
@@ -51,6 +51,6 @@
   },
   "dependencies": {
     "cross-env": "^10.0.0",
-    "smol-toml": "1.4.1"
+    "smol-toml": "1.6.1"
   }
 }
