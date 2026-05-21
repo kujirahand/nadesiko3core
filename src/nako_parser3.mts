@@ -813,7 +813,7 @@ export class NakoParser extends NakoParserBase {
     return ans
   }
 
-  yGetArgParen(y: Ast[]): Ast[] { // C言語風呼び出しでカッコの中を取得
+  yGetArgParen(y: Ast[], funcName?: string): Ast[] { // C言語風呼び出しでカッコの中を取得
     let isClose = false
     const si = this.stack.length
     while (!this.isEOF()) {
@@ -831,7 +831,8 @@ export class NakoParser extends NakoParserBase {
       break
     }
     if (!isClose) {
-      throw NakoSyntaxError.fromNode(`C風関数『${(y[0] as AstStrValue).value}』でカッコが閉じていません`, y[0])
+      const name = funcName || (y[0] as AstStrValue).value || this.nodeToStr(y[0], { depth: 0, typeName: '関数' }, false)
+      throw NakoSyntaxError.fromNode(`C風関数『${name}』でカッコが閉じていません`, y[0])
     }
     const a: Ast[] = []
     while (si < this.stack.length) {
@@ -839,6 +840,31 @@ export class NakoParser extends NakoParserBase {
       if (v) { a.unshift(v) }
     }
     return a
+  }
+
+  /** 関数の戻り値を続けてC風呼び出しする */
+  yApplyCallValue(callee: Ast): Ast {
+    let node = callee
+    while (this.check('(')) {
+      this.get() // skip '('
+      const args = this.yGetArgParen([node], '関数呼び出しの結果')
+      if (!this.check(')')) {
+        throw NakoSyntaxError.fromNode('C風関数呼び出しのエラー', node)
+      }
+      const close = this.get()
+      node = {
+        type: 'call_value',
+        blocks: [node, ...args],
+        josi: close?.josi || '',
+        startOffset: node.startOffset,
+        endOffset: close?.endOffset,
+        line: node.line,
+        column: node.column,
+        file: node.file,
+        end: this.peekSourceMap()
+      } as AstBlocks
+    }
+    return node
   }
 
   /** @returns {AstRepeatTimes | null} */
@@ -1542,7 +1568,7 @@ export class NakoParser extends NakoParserBase {
 
     // 「**して、**」の場合も一度切る
     if (RenbunJosi.indexOf(t.josi) >= 0) {
-      funcNode.josi = 'して'
+      funcNode.josi = (this.isReadingCalc && t.josi === 'には') ? '' : 'して'
       return funcNode
     }
     // 続き
@@ -2139,7 +2165,7 @@ export class NakoParser extends NakoParserBase {
     const t = this.yGetArg()
     if (!t) { return null }
     // 助詞がある？ つまり、関数呼び出しがある？
-    if (t.josi === '') { return t } // 値だけの場合
+    if (t.josi === '' && !this.canNextFuncTakeNoJosiArg()) { return t } // 値だけの場合
     // 関数の呼び出しがあるなら、スタックに載せて関数読み出しを呼ぶ
     const tmpReadingCalc = this.isReadingCalc
     this.isReadingCalc = true
@@ -2174,6 +2200,15 @@ export class NakoParser extends NakoParserBase {
       return this.yGetArgOperator(fCalc)
     }
     return fCalc
+  }
+
+  /** 次の関数が空助詞の値を引数として受け取れるか */
+  canNextFuncTakeNoJosiArg(): boolean {
+    if (!this.check('func')) { return false }
+    const func = this.peek() as TokenCallFunc | null
+    const josiList = func?.meta?.josi
+    if (!josiList) { return false }
+    return josiList.some((josi) => josi.indexOf('') >= 0)
   }
 
   /** @returns {Ast | null} */
@@ -2318,7 +2353,7 @@ export class NakoParser extends NakoParserBase {
           }
           asyncFn = !!meta.asyncFn
         }
-        return {
+        const funcNode = {
           type: 'func',
           name: funcName,
           blocks: args,
@@ -2328,6 +2363,7 @@ export class NakoParser extends NakoParserBase {
           ...map,
           end: this.peekSourceMap()
         } as AstCallFunc
+        return this.yApplyCallValue(funcNode)
       }
       throw NakoSyntaxError.fromNode('C風関数呼び出しのエラー', funcNameToken || NewEmptyToken())
     }
@@ -2497,7 +2533,7 @@ export class NakoParser extends NakoParserBase {
       const word = this.getVarNameRef(t)
 
       // word[n] || word@n
-      if (word.josi === '' && this.checkTypes(['[', '@'])) {
+      if ((word.josi === '' && this.checkTypes(['[', '@'])) || (word.josi !== '' && this.check('@'))) {
         const ast: Ast = {
           type: 'ref_array', // 配列参照
           name: word,
@@ -2514,7 +2550,7 @@ export class NakoParser extends NakoParserBase {
       }
 
       // オブジェクトプロパティ構文(参照) word$prop (#1793)
-      if (word.josi === '' && (this.check2(['$', 'word']) || this.check2(['$', 'string']))) {
+      if (this.check2(['$', 'word']) || this.check2(['$', 'string'])) {
         const propList: Ast[] = []
         let josi = ''
         while (this.check('$')) {
