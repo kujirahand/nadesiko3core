@@ -477,6 +477,8 @@ describe('plugin_system_test', async () => {
   it('URLパラメータ解析', async () => {
     await cmp('「http://hoge.com/」のURLパラメータ解析してJSONエンコードして表示', '{}')
     await cmp('「https://nadesi.com/?a=3&b=5」のURLパラメータ解析;それ["a"]を表示;それ["b"]を表示。', '3\n5')
+    await cmp('「https://nadesi.com/?a=3=3&b=5」のURLパラメータ解析;それ["a"]を表示;それ["b"]を表示。', '3=3\n5')
+    await cmp('「https://nadesi.com/?a&b=5」のURLパラメータ解析;それ["a"]を表示;それ["b"]を表示。', '\n5')
   })
   it('助詞省略形のコマンド', async () => {
     await cmp('3が1以上。もし、そうなら「OK」と表示。', 'OK')
@@ -775,6 +777,10 @@ describe('plugin_system_test', async () => {
   it('Unicodeサロゲートペアで文字数の数え方 - 文字削除 #1954', async () => {
     await cmp('S=「💧🔥🍵」;Sの2から1文字削除して表示', '💧🍵')
     await cmp('S=「1💧3🔥5🍵」;Sの3から2文字削除して表示', '1💧5🍵')
+  })
+  it('数字の文字数が0になる不具合 #2342', async () => {
+    await cmp('30の文字数を表示', '2')
+    await cmp('12345の文字数を表示', '5')
   })
   it('左トリム', async () => {
     await cmp('S=「 \t💧🔥🍵」;Sを左トリムして表示', '💧🔥🍵')

@@ -1,12 +1,50 @@
  
 /**
  * nadesiko v3 parser
+ *
+ * 再帰下降パーサ。トークン列を読み進めながら構文木(Ast)を組み立てる。
+ * 各構文規則は `yXxx` という名前のメソッドで、カーソル(this.index)と
+ * 計算用スタック(this.stack)を共有しながら相互に呼び合う。
+ * カーソル操作・スタック操作・変数検索は基底クラス NakoParserBase にある。
+ *
+ * ## 構文規則の呼び出し関係 (#2364)
+ *
+ * ```
+ * parse
+ *  └ startParser → ySentenceList → ySentence ─┬ yIF / yAtohantei / yTryExcept / yDebugPrint
+ *                                             ├ yDNCLMode / ySetGenMode / ySpeedMode ...
+ *                                             ├ yLet ── yLetArrayAt / yLetArrayBracket
+ *                                             ├ yDefFunc / yDefTest → yDefFuncCommon
+ *                                             └ yCall ─┬ yDainyu / ySadameru / yIncDec
+ *                                                      ├ yRepeatTime / yWhile / yFor /
+ *                                                      │ yForEach / ySwitch / yReturn
+ *                                                      └ yCallFunc → yMumeiFunc
+ *
+ * yCalc → yGetArg ─┬ yRange
+ *                  ├ yGetArgOperator → infixToAST()      … nako_parser_operator.mts
+ *                  └ yValue ─┬ yValueKakko / yValueWord / yMumeiFunc
+ *                            └ yJSONArray / yJSONObject → yJSONArrayValue /
+ *                              yJSONObjectValue → yCalc
+ * ```
+ *
+ * 上の図は主要な流れだけを示したもので、実際には
+ * `ySentence ↔ yBlock ↔ yCall ↔ yCalc ↔ yValue ↔ yJSON*` が
+ * 大きな相互再帰を成している。この相互再帰があるため、構文規則そのものは
+ * ファイルを分けても結合が下がらない。分離してあるのは、
+ * 相互再帰の外側にあってカーソルにもスタックにも触れないものだけ。
+ *
+ * - `nako_parser_operator.mts` … 演算子の優先順位による構文木の組み立て
+ * - `nako_parser_async.mts`    … 解析後に asyncFn を伝播させる後処理パス
+ * - `nako_parser_message.mts`  … エラーメッセージの組み立て
  */
 import { opPriority, RenbunJosi, operatorList } from './nako_parser_const.mjs'
 import { NakoParserBase } from './nako_parser_base.mjs'
+import { infixToAST } from './nako_parser_operator.mjs'
+import { checkAsyncFn } from './nako_parser_async.mjs'
+import { makeStackBalanceReport } from './nako_parser_message.mjs'
 import { NakoSyntaxError } from './nako_errors.mjs'
 import { NakoLexer } from './nako_lexer.mjs'
-import { FuncListItemType, FuncArgs, NewEmptyToken, SourceMap } from './nako_types.mjs'
+import { FuncListItemType, NewEmptyToken, SourceMap } from './nako_types.mjs'
 import { NodeType, Ast, AstEol, AstBlocks, AstOperator, AstConst, AstLet, AstLetArray, AstIf, AstWhile, AstAtohantei, AstFor, AstForeach, AstSwitch, AstRepeatTimes, AstDefFunc, AstCallFunc, AstStrValue, AstDefVar, AstDefVarList } from './nako_ast.mjs'
 import { Token, TokenDefFunc, TokenCallFunc } from './nako_token.mjs'
 
@@ -27,12 +65,8 @@ export class NakoParser extends NakoParserBase {
     const result = this.startParser()
 
     // 関数毎に非同期処理が必要かどうかを判定する
-    this.isModifiedNodes = false
-    this._checkAsyncFn(result)
-    while (this.isModifiedNodes) {
-      this.isModifiedNodes = false
-      this._checkAsyncFn(result)
-    }
+    // 「非同期関数を呼ぶ関数もまた非同期」と伝播していくので、変化が無くなるまで繰り返す
+    while (checkAsyncFn(result, this.funclist)) { /* 変化が無くなるまで繰り返す */ }
 
     return result
   }
@@ -79,34 +113,13 @@ export class NakoParser extends NakoParserBase {
     return { type: 'block', blocks, josi: '', ...map, end: this.peekSourceMap() }
   }
 
-  /** 余剰スタックのレポートを作る */
+  /** 余剰スタックのレポートを作る
+   * (レポートの組み立ては nako_parser_message.mts の makeStackBalanceReport) #2364
+   */
   makeStackBalanceReport(): string {
-    const words: string[] = []
-    this.stack.forEach((t) => {
-      let w = this.nodeToStr(t, { depth: 1 }, false)
-      if (t.josi) { w += t.josi }
-      words.push(w)
-    })
-    const desc = words.join(',')
-    // 最近使った関数の使い方レポートを作る #1093
-    let descFunc = ''
-    const chA = 'A'.charCodeAt(0)
-    for (const f of this.recentlyCalledFunc) {
-      descFunc += ' - '
-      let no = 0
-      const josiA: FuncArgs | undefined = (f).josi
-      if (josiA) {
-        for (const arg of josiA) {
-          const ch = String.fromCharCode(chA + no)
-          descFunc += ch
-          if (arg.length === 1) { descFunc += arg[0] } else { descFunc += `(${arg.join('|')})` }
-          no++
-        }
-      }
-      descFunc += String(f.name) + '\n'
-    }
+    const report = makeStackBalanceReport(this.stack, this.recentlyCalledFunc)
     this.recentlyCalledFunc = []
-    return `未解決の単語があります: [${desc}]\n次の命令の可能性があります:\n${descFunc}`
+    return report
   }
 
   yEOL(): AstEol | null {
@@ -196,6 +209,10 @@ export class NakoParser extends NakoParserBase {
     return null
   }
 
+  // ---------------------------------------------------------------------------
+  // 実行モードの指定と廃止された構文
+  // ---------------------------------------------------------------------------
+
   /** [廃止] 非同期モード #11 @returns {Ast} */
   yASyncMode(): Ast {
     this.logger.error('『非同期モード』構文は廃止されました(https://nadesi.com/v3/doc/go.php?1028)。', this.peek())
@@ -239,6 +256,10 @@ export class NakoParser extends NakoParserBase {
     const map = this.peekSourceMap()
     return { type: 'run_mode', value: mode, ...map, end: this.peekSourceMap() }
   }
+
+  // ---------------------------------------------------------------------------
+  // ブロックと関数定義
+  // ---------------------------------------------------------------------------
 
   /** @returns {AstBlocks} */
   yBlock(): AstBlocks {
@@ -387,6 +408,10 @@ export class NakoParser extends NakoParserBase {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // 条件分岐(もし文)
+  // ---------------------------------------------------------------------------
+
   /** 「もし」文の条件を取得 */
   yIFCond(): Ast {
     const map = this.peekSourceMap()
@@ -534,6 +559,10 @@ export class NakoParser extends NakoParserBase {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // 実行速度・パフォーマンスの指定
+  // ---------------------------------------------------------------------------
+
   ySpeedMode(): AstBlocks | null {
     const map: SourceMap = this.peekSourceMap()
     if (!this.check2(['string', '実行速度優先'])) {
@@ -649,6 +678,10 @@ export class NakoParser extends NakoParserBase {
     return { type: 'eol', ...this.peekSourceMap(), end: this.peekSourceMap() }
   }
 
+  // ---------------------------------------------------------------------------
+  // 引数の取得と演算子
+  // ---------------------------------------------------------------------------
+
   /**
    * 1つ目の値を与え、その後に続く計算式を取得し、優先規則に沿って並び替えして戻す
    * @param {Ast} firstValue
@@ -675,7 +708,7 @@ export class NakoParser extends NakoParserBase {
     }
     if (args.length === 0) { return null }
     if (args.length === 1) { return args[0] }
-    return this.infixToAST(args)
+    return infixToAST(args, this.logger)
   }
 
   /**
@@ -743,76 +776,6 @@ export class NakoParser extends NakoParserBase {
     return this.yGetArgOperator(value1)
   }
 
-  infixToPolish(list: Ast[]): Ast[] {
-    // 中間記法から逆ポーランドに変換
-    const priority = (t: Ast) => {
-      if (opPriority[t.type]) { return opPriority[t.type] }
-      return 10
-    }
-    const stack: Ast[] = []
-    const polish: Ast[] = []
-    while (list.length > 0) {
-      const t = list.shift()
-      if (!t) { break }
-      while (stack.length > 0) { // 優先順位を見て移動する
-        const sTop = stack[stack.length - 1]
-        if (priority(t) > priority(sTop)) { break }
-        const tpop = stack.pop()
-        if (!tpop) {
-          this.logger.error('計算式に間違いがあります。', t)
-          break
-        }
-        polish.push(tpop)
-      }
-      stack.push(t)
-    }
-    // 残った要素を積み替える
-    while (stack.length > 0) {
-      const t = stack.pop()
-      if (t) { polish.push(t) }
-    }
-    return polish
-  }
-
-  /** @returns {Ast | null} */
-  infixToAST(list: Ast[]): Ast | null {
-    if (list.length === 0) { return null }
-    // 逆ポーランドを構文木に
-    const josi = list[list.length - 1].josi
-    const node = list[list.length - 1]
-    const polish = this.infixToPolish(list)
-    /** @type {Ast[]} */
-    const stack = []
-    for (const t of polish) {
-      if (!opPriority[t.type]) { // 演算子ではない
-        stack.push(t)
-        continue
-      }
-      const b:Ast|undefined = stack.pop()
-      const a:Ast|undefined = stack.pop()
-      if (a === undefined || b === undefined) {
-        this.logger.debug('--- 計算式(逆ポーランド) ---\n' + JSON.stringify(polish))
-        throw NakoSyntaxError.fromNode('計算式でエラー', node)
-      }
-      /** @type {AstOperator} */
-      const op: AstOperator = {
-        type: 'op',
-        operator: t.type,
-        blocks: [a, b],
-        josi,
-        startOffset: a.startOffset,
-        endOffset: a.endOffset,
-        line: a.line,
-        column: a.column,
-        file: a.file
-      }
-      stack.push(op)
-    }
-    const ans = stack.pop()
-    if (!ans) { return null }
-    return ans
-  }
-
   yGetArgParen(y: Ast[], funcName?: string): Ast[] { // C言語風呼び出しでカッコの中を取得
     let isClose = false
     const si = this.stack.length
@@ -866,6 +829,10 @@ export class NakoParser extends NakoParserBase {
     }
     return node
   }
+
+  // ---------------------------------------------------------------------------
+  // 繰り返しと条件分岐の各構文
+  // ---------------------------------------------------------------------------
 
   /** @returns {AstRepeatTimes | null} */
   yRepeatTime(): AstRepeatTimes | null {
@@ -1202,6 +1169,10 @@ export class NakoParser extends NakoParserBase {
     return ast
   }
 
+  // ---------------------------------------------------------------------------
+  // 無名関数
+  // ---------------------------------------------------------------------------
+
   /** 無名関数
    * @returns {AstDefFunc|null}
   */
@@ -1262,6 +1233,10 @@ export class NakoParser extends NakoParserBase {
       end: this.peekSourceMap()
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // 代入文と増減
+  // ---------------------------------------------------------------------------
 
   /** 代入構文 */
   yDainyu(): AstBlocks | null {
@@ -1379,6 +1354,10 @@ export class NakoParser extends NakoParserBase {
       end: this.peekSourceMap()
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // 関数呼び出し
+  // ---------------------------------------------------------------------------
 
   yCall(): Ast | null {
     if (this.isEOF()) { return null }
@@ -1576,6 +1555,10 @@ export class NakoParser extends NakoParserBase {
     this.pushStack(funcNode)
     return null
   }
+
+  // ---------------------------------------------------------------------------
+  // 代入・変数定義と配列要素への代入
+  // ---------------------------------------------------------------------------
 
   /** @returns {Ast | null} */
   yLet(): AstBlocks | null {
@@ -2157,6 +2140,10 @@ export class NakoParser extends NakoParserBase {
     return null
   }
 
+  // ---------------------------------------------------------------------------
+  // 計算式と値
+  // ---------------------------------------------------------------------------
+
   /** @returns {Ast | null} */
   yCalc(): Ast|null {
     const map = this.peekSourceMap()
@@ -2573,6 +2560,10 @@ export class NakoParser extends NakoParserBase {
     return null
   }
 
+  // ---------------------------------------------------------------------------
+  // 変数名の解決と登録
+  // ---------------------------------------------------------------------------
+
   /** 変数を生成 */
   createVar(word: Token|Ast, isConst: boolean, isExport: boolean): Token|Ast {
     let gname: string = (word as AstStrValue).value
@@ -2629,6 +2620,10 @@ export class NakoParser extends NakoParserBase {
     }
     return words
   }
+
+  // ---------------------------------------------------------------------------
+  // JSON/配列リテラル
+  // ---------------------------------------------------------------------------
 
   yJSONObjectValue(): Ast[] {
     // 戻り値の形式
@@ -2804,6 +2799,10 @@ export class NakoParser extends NakoParserBase {
     return null
   }
 
+  // ---------------------------------------------------------------------------
+  // エラー監視
+  // ---------------------------------------------------------------------------
+
   /** エラー監視構文 */
   yTryExcept(): AstBlocks | null {
     const map = this.peekSourceMap()
@@ -2834,67 +2833,9 @@ export class NakoParser extends NakoParserBase {
     }
   }
 
-  /** 関数ごとにasyncFnが必要か確認する */
-  _checkAsyncFn(node: Ast): boolean {
-    if (!node) { return false }
-    // 関数定義があれば関数
-    if (node.type === 'def_func' || node.type === 'def_test' || node.type === 'func_obj') {
-      // 関数定義でasyncFnが指定されているならtrueを返す
-      const def: AstDefFunc = node as AstDefFunc
-      if (def.asyncFn) { return true } // 既にasyncFnが指定されている
-      // 関数定義の中身を調べてasyncFnであるならtrueに変更する
-      let isAsyncFn = false
-      for (const n of def.blocks) {
-        if (this._checkAsyncFn(n)) {
-          isAsyncFn = true
-          def.asyncFn = isAsyncFn
-          def.meta.asyncFn = isAsyncFn
-          this.isModifiedNodes = true
-          return true
-        }
-      }
-    }
-    // 関数呼び出しを調べて非同期処理が必要ならtrueを返す
-    if (node.type === 'func') {
-      // 関数呼び出し自体が非同期処理ならtrueを返す
-      const callNode: AstCallFunc = node as AstCallFunc
-      if (callNode.asyncFn) {
-        return true
-      }
-      // 続けて、以下の関数呼び出しの引数などに非同期処理があるかどうか調べる
-      // 関数の引数は、node.blocksに格納されている
-      if (callNode.blocks) {
-        for (const n of callNode.blocks) {
-          if (this._checkAsyncFn(n)) {
-            callNode.asyncFn = true
-            this.isModifiedNodes = true
-            return true
-          }
-        }
-      }
-      // さらに、関数のリンクを調べる
-      const func = this.funclist.get(callNode.name)
-      if (func && func.asyncFn) {
-        callNode.asyncFn = true
-        this.isModifiedNodes = true
-        return true
-      }
-      return false
-    }
-    // 連文 ... 現在、効率は悪いが非同期で実行することになっている
-    if (node.type === 'renbun') {
-      return true
-    }
-    // その他
-    if ((node as AstBlocks).blocks) {
-      for (const n of (node as AstBlocks).blocks) {
-        if (this._checkAsyncFn(n)) {
-          return true
-        }
-      }
-    }
-    return false
-  }
+  // ---------------------------------------------------------------------------
+  // TokenからAstへの変換
+  // ---------------------------------------------------------------------------
 
   /** TokenをそのままNodeに変換するメソッド(ただし簡単なものだけ対応)
    * @returns {Ast[]}
