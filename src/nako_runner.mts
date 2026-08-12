@@ -12,6 +12,13 @@ import { NakoLogger } from './nako_logger.mjs'
 import { NakoGlobal } from './nako_global.mjs'
 import { NakoGen, NakoGenResult } from './nako_gen.mjs'
 
+/** Promise互換のthenableか判定 */
+function isThenable (value: unknown): value is PromiseLike<unknown> {
+  if (value === null) { return false }
+  if (typeof value !== 'object' && typeof value !== 'function') { return false }
+  return typeof (value as { then?: unknown }).then === 'function'
+}
+
 /** コンパイラ実行オプションを生成 */
 export function newCompilerOptions (initObj: Partial<CompilerOptions> = {}): CompilerOptions {
   if (initObj === null || typeof initObj !== 'object') { initObj = {} }
@@ -68,23 +75,32 @@ export class NakoRunner {
    * 環境を指定してJavaScriptのコードを実行する
    * @param code JavaScriptのコード
    * @param nakoGlobal 実行環境
+   * @param waitForAsyncCompletion 非同期処理の完了後にfinishを発火するか
    */
-  evalJS (code: string, nakoGlobal: NakoGlobal): void {
+  evalJS (code: string, nakoGlobal: NakoGlobal, waitForAsyncCompletion = false): unknown {
     this.currentGlobal = nakoGlobal // 現在のnakoGlobalを記録
     this.currentGlobal.lastJSCode = code
     // 実行前に環境を初期化するイベントを実行(beforeRun)
     this.host.fireEvent('beforeRun', nakoGlobal)
+    let result: unknown
     try {
       const f = new Function(nakoGlobal.lastJSCode)
-      f.apply(nakoGlobal)
+      result = f.apply(nakoGlobal)
     } catch (err: any) {
       // なでしこコードのエラーは抑止してログにのみ記録
       nakoGlobal.numFailures++
       this.host.getLogger().error(err)
       throw err
     }
-    // 実行後に終了イベントを実行(finish)
+    // runAsyncからの呼び出しではthenableの成功・失敗を問わず完了後に発火する
+    if (waitForAsyncCompletion && isThenable(result)) {
+      return Promise.resolve(result).finally(() => {
+        this.host.fireEvent('finish', nakoGlobal)
+      })
+    }
+    // runSyncでは非同期プログラムでも従来通り、この場で発火する
     this.host.fireEvent('finish', nakoGlobal)
+    return result
   }
 
   /**
@@ -93,6 +109,7 @@ export class NakoRunner {
    * @param filename ファイル名
    * @param options オプション
    * @returns 実行に利用したグローバルオブジェクト
+   * @remarks 非同期プログラムでは完了を待たず、従来通り実行中のPromiseを破棄する。
    * @deprecated 代わりにrunAsyncメソッドを使ってください。(core #52)
    */
   runSync (code: string, filename: string, options: CompilerOptions|undefined = undefined): NakoGlobal {
@@ -120,7 +137,7 @@ export class NakoRunner {
     // 実行前に環境を生成
     const nakoGlobal = this.getNakoGlobal(options, compiledCode.gen, filename)
     // 実行
-    this.evalJS(compiledCode.runtimeEnv, nakoGlobal)
+    await this.evalJS(compiledCode.runtimeEnv, nakoGlobal, true)
     return nakoGlobal
   }
 

@@ -380,6 +380,23 @@ export class NakoGen {
     code += 'const __v0 = __self.__v0 = __self.__varslist[0];\n'
     code += 'const __v1 = __self.__v1 = __self.__varslist[1];\n'
     code += 'const __vars = __self.__vars = __self.__varslist[2];\n'
+    code += 'const __nako_scope_parents = new WeakMap();\n' +
+      'const __nako_active_scopes = new WeakSet();\n' +
+      'const __nako_scope_enter = () => {\n' +
+      '  const local = new Map();\n' +
+      '  __nako_scope_parents.set(local, __self.__vars);\n' +
+      '  __nako_active_scopes.add(local);\n' +
+      '  __self.__vars = local;\n' +
+      '  return local;\n' +
+      '};\n' +
+      'const __nako_scope_leave = (local) => {\n' +
+      '  __nako_active_scopes.delete(local);\n' +
+      '  let parent = __nako_scope_parents.get(local) || __vars;\n' +
+      '  while (parent !== __vars && !__nako_active_scopes.has(parent)) {\n' +
+      '    parent = __nako_scope_parents.get(parent) || __vars;\n' +
+      '  }\n' +
+      '  __self.__vars = parent;\n' +
+      '};\n'
     code += 'const __nako_make_closure = (local, parent) => ({\n' +
       '  has: (key) => local.has(key) || (parent !== null && parent.has(key)),\n' +
       '  get: (key) => local.has(key) ? local.get(key) : (parent !== null ? parent.get(key) : undefined),\n' +
@@ -393,8 +410,6 @@ export class NakoGen {
     // 定数を埋め込む
     code += '__self.constPools = ' + JSON.stringify(this.constPools) + ';\n'
     code += '__self.constPoolsTemplate = ' + JSON.stringify(this.constPoolsTemplate) + ';\n'
-    //
-    code += '__self.__propAccessor = [];\n'
     // なでしこの関数定義を行う
     let nakoFuncCode = ''
     this.nakoFuncList.forEach((value, key) => {
@@ -941,16 +956,16 @@ export class NakoGen {
     }
 
     // ローカル変数を生成 (再帰関数呼び出しで引数の値が壊れる問題があるので修正 #1663 / タイミングによって壊れるので修理 #1758)
-    // 暫定変数__localVarsに現在のローカル変数の値をPUSHし、変数を抜ける時にPOPする)
+    // 呼び出しごとのローカル変数を登録し、関数を抜ける時に有効な呼び出し元へ戻す。
+    // 非同期関数が開始順と異なる順番で終了しても、終了済みのスコープは復元しない。
     // 関数として宣言しているが、JS関数となでしこ関数では変数管理の方法が異なるため、完全なローカル変数としては使えない
     // 必ず、pushStack/popStack する必要がある
     pushStack += '\n// PUSH STACK\n'
-    pushStack += 'const __localvars = __self.__vars;\n'
-    pushStack += '__self.__vars = new Map();\n'
+    pushStack += 'const __localvars = __nako_scope_enter();\n'
     pushStack += 'try {\n'
     popStack += '} finally {\n'
     popStack += indent + '// POP STACK\n'
-    popStack += indent + 'self.__vars = __localvars;\n'
+    popStack += indent + '__nako_scope_leave(__localvars);\n'
     popStack += '}\n'
 
     // 宣言済みの名前を保存
@@ -1764,7 +1779,8 @@ export class NakoGen {
         { isExpr: true, isAsync, startVar: 'sf_start', timeVar: 'sl_time' })
     }
     // ...して
-    if (node.josi === 'して' || (node.josi === '' && !isExpression)) {
+    // (メモ) 式の中では文末の『;』を付けてはいけない。付けると不正なJSになる (#2064)
+    if (!isExpression && (node.josi === 'して' || node.josi === '')) {
       code = this.convLineno(node, false) + code
       code += ';\n'
     }
@@ -1922,44 +1938,36 @@ export class NakoGen {
 
     // 配列への代入か(core#86)
     let code = ''
+    let preCode = '' // 対象オブジェクトを一時変数に取り出すコード
     let varGetter = ''
     let varSetter = ''
     let varInitter = ''
     const nodeName = node.name as Ast
     if (nodeName.type === 'ref_array') {
-      varGetter = this.convRefArray(nodeName)
+      // 対象オブジェクトと添字を一時変数へ取り出して、取得と代入で式を二重に評価しないようにする (#2194)
+      const objVar = `$nako_o${id}`
+      const baseName = this._convGen(nodeName.name as Ast, true)
+      const indexList: Ast[] = nodeName.index || []
+      preCode = `const ${objVar} = ${baseName};\n`
+      let indexCode = ''
+      for (let i = 0; i < indexList.length; i++) {
+        const idxVar = `$nako_i${id}_${i}`
+        preCode += `const ${idxVar} = ${this._convGen(indexList[i], true)};\n`
+        indexCode += `[${idxVar}]`
+      }
+      varGetter = `${objVar}${indexCode}`
       varSetter = `${varGetter} = ${valueVar}`
       varInitter = `${varGetter} = 0`
     } else if (nodeName.type === 'ref_prop') {
       // プロパティアクセス(A$a)の場合 (#1793)
+      // 対象オブジェクトを一時変数へ取り出して、取得と代入で式を二重に評価しないようにする (#2194)
+      const objVar = `$nako_o${id}`
       const baseName = this._convGen(nodeName.name as Ast, true)
       const propList = nodeName.index as AstStrValue[]
-      // __getProp/__setPropを持つオブジェクトにも対応するgetter/setter生成
-      const buildPropGetter = (targetExpr: string, propKey: string): string =>
-        `(()=>{const __nako_obj=${targetExpr};` +
-        `return (__nako_obj!=null&&typeof __nako_obj.__getProp==='function')` +
-        `?__nako_obj.__getProp(${propKey}, __self)` +
-        `:__nako_obj[${propKey}]})()`
-      const buildPropSetter = (targetExpr: string, propKey: string, valueExpr: string): string =>
-        `(()=>{const __nako_obj=${targetExpr};` +
-        `return (__nako_obj!=null&&typeof __nako_obj.__setProp==='function')` +
-        `?__nako_obj.__setProp(${propKey}, ${valueExpr}, __self)` +
-        `:(__nako_obj[${propKey}]=${valueExpr})})()`
-      const propKeys = propList.map((prop) => JSON.stringify(prop.value))
-      // getter: 全プロパティを順にたどる
-      let currentExpr = baseName
-      for (const propKey of propKeys) {
-        currentExpr = buildPropGetter(currentExpr, propKey)
-      }
-      varGetter = currentExpr
-      // setter/initter: 最後のプロパティだけsetterで、残りはgetterでたどる
-      let parentExpr = baseName
-      for (const propKey of propKeys.slice(0, -1)) {
-        parentExpr = buildPropGetter(parentExpr, propKey)
-      }
-      const lastPropKey = propKeys[propKeys.length - 1]
-      varSetter = buildPropSetter(parentExpr, lastPropKey, valueVar)
-      varInitter = buildPropSetter(parentExpr, lastPropKey, '0')
+      preCode = `const ${objVar} = ${baseName};\n`
+      varGetter = this.convRefProp_genCode(objVar, propList)
+      varSetter = `${varGetter} = ${valueVar}`
+      varInitter = `${varGetter} = 0`
     } else {
       // 変数名
       const name: string = (nodeName as AstStrValue).value
@@ -1979,9 +1987,11 @@ export class NakoGen {
     // 自動初期化するか
     code += '\n/*[convInc]*/\n'
     code += this.convLineno(node, false) + '\n'
+    code += preCode
     code += `let ${valueVar} = ${varGetter}\n`
-    code += `if (typeof ${valueVar} === 'undefined') { ${varInitter}; }\n`
-    code += `${valueVar} = Number(${varGetter}) + Number(${incValue});\n`
+    // 値の再取得をせず、取り出した値をそのまま使う (#2194)
+    code += `if (typeof ${valueVar} === 'undefined') { ${varInitter}; ${valueVar} = 0; }\n`
+    code += `${valueVar} = Number(${valueVar}) + Number(${incValue});\n`
     code += `${varSetter}\n`
     code += '/*[/convInc]*/\n'
     return code
@@ -2063,19 +2073,15 @@ export class NakoGen {
     }
     if (propList.length > 0) {
       for (const prop of propList) {
-        if (typeof prop.value === 'string') {
-          nameJs += `['${prop.value}']`
-        } else {
+        if (typeof prop.value !== 'string') {
           throw NakoSyntaxError.fromNode(
             `変数『${nameJs}』以下のプロパティにアクセスできません。`, node)
         }
       }
+      nameJs = this.convRefProp_genCode(nameJs, propList)
     }
     // プロパティへの代入式を作る
-    code += `if (typeof ${nameJs}.__setProp === 'function') { ${nameJs}.__setProp('${propTop}', ${value}, __self); } else { `
-    code += `__self.__checkPropAccessor('set', ${nameJs});`
-    code += `if (typeof ${nameJs}.__setProp === 'function') { ${nameJs}.__setProp('${propTop}', ${value}, __self); } else { `
-    code += `${nameJs}['${propTop}'] = ${value} }};`
+    code += `${nameJs}[${JSON.stringify(propTop)}] = ${value};`
     return ';' + this.convLineno(node, false) + code + '\n'
   }
 
@@ -2091,35 +2097,7 @@ export class NakoGen {
 
   // プロパティへの参照のコード生成部分 (#1793)
   convRefProp_genCode(name: string, propList: AstStrValue[]): string {
-    let code
-    if (propList.length <= 1) {
-      const propKey = propList[0].value
-      const codeCall = `${name}.__getProp('${propKey}', __self)`
-      const codeProp = `${name}['${propKey}']`
-      const codeCheckAccessor = `__self.__checkPropAccessor('get', ${name});\n` +
-      `if (typeof ${name}.__getProp === 'function') { return ${codeCall} }\n` +
-      `return ${codeProp}\n`
-      const codeIf = `if (${name}.__getProp) { return ${codeCall} } else { ${codeCheckAccessor} }`
-      code = `( (()=>{ ${codeIf} })() )`
-    } else {
-      const arrs = []
-      const keys = []
-      for (let i = 0; i < propList.length; i++) {
-        const propKey = propList[i].value
-        keys.push(`['${propKey}']`)
-        arrs.push(`'${propKey}'`)
-      }
-      const keyStr = keys.join('')
-      const arrStr = '[' + arrs.join(',') + ']'
-      const codeCall = `${name}.__getProp(${arrStr}, __self)`
-      const codeProp = `${name}${keyStr}`
-      const codeCheckAccessor = `__self.__checkPropAccessor('get', ${name});\n` +
-      `if (${name}.__getProp) { return ${codeCall} }\n` +
-      `return ${codeProp}\n`
-      const codeIf = `if (${name}.__getProp) { return ${codeCall} } else { ${codeCheckAccessor} }`
-      code = `( (()=>{ ${codeIf} })() )`
-    }
-    return code
+    return name + propList.map((prop) => `[${JSON.stringify(prop.value)}]`).join('')
   }
 
   convDefLocalVar(node: AstDefVar): string {
@@ -2260,7 +2238,6 @@ self.__varslist = [self.newVariables(), self.newVariables(), self.newVariables()
 self.__v0 = self.__varslist[0]
 self.initFuncList = []
 self.clearFuncList = []
-self.__propAccessor = []
 // --- jsInit ---
 __jsInit__
 // --- Copy module functions ---
@@ -2344,6 +2321,7 @@ export function generateJS(com: NakoCompiler, ast: Ast, opt: NakoGenOptions): Na
 
   // ランダムな関数名を生成
   const funcID = String((new Date()).getTime()) + '_' + Math.floor(0xFFFFFFFF * Math.random()).toString()
+  let runtimeResult = ''
   // テストの実行
   if (js && opt.isTest) {
     js += '\n__self._runTests(__tests);\n'
@@ -2351,6 +2329,8 @@ export function generateJS(com: NakoCompiler, ast: Ast, opt: NakoGenOptions): Na
   // async method
   if (gen.numAsyncFn > 0 || gen.debugOption.useDebug) {
     const asyncMain = '__eval_nako3async_' + funcID + '__'
+    const asyncMainPromise = '__eval_nako3async_promise_' + funcID + '__'
+    runtimeResult = `return ${asyncMainPromise}`
     js = `
 // ------------------------------------------------------------------
 // <nadesiko3::gen::async id="${funcID}" times="${gen.numAsyncFn}">
@@ -2363,12 +2343,11 @@ async function ${asyncMain}(__self) {
 } // end of ${asyncMain}
 // ------------------------------------------------------------------
 // call ${asyncMain}
-(async () => {
+const ${asyncMainPromise} = (async () => {
   if (__self.__v0.get('__standalone')) {
     await ${asyncMain}(self);
   } else {
-    ${asyncMain}.call(self, self)
-    .then(() => { /* __async_ok__ */ })
+    await ${asyncMain}.call(self, self)
     .catch(err => {
       if (err.message === '__終わる__') { return }
       __self.numFailures++
@@ -2434,6 +2413,7 @@ ${syncMain}(__self)
   }
   // ---
   const initCode = gen.getPluginInitCode()
+  // runtimeEnvはnew Functionの関数本体として実行するコードで、非同期時はトップレベルのreturnを含む。
   const runtimeEnvCode = `
 // <runtimeEnvCode>
 const self = this
@@ -2441,6 +2421,7 @@ ${opt.codeEnv}
 ${jsInit}
 ${initCode}
 ${js}
+${runtimeResult}
 // </runtimeEnvCode>
 `
   com.getLogger().trace('--- generate::jsInit ---\n' + jsInit)
