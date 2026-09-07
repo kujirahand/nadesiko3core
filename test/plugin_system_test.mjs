@@ -173,6 +173,7 @@ describe('plugin_system_test', async () => {
     await cmp('10を3でゼロ埋め。表示。', '010')
     await cmp('123を5でゼロ埋め。表示。', '00123')
     await cmp('12345を3でゼロ埋め。表示。', '12345')
+    await cmp('「𩸽」を4でゼロ埋め。表示。', '000𩸽')
   })
   it('空白埋め', async () => {
     await cmp('10を3で空白埋め。表示。', ' 10')
@@ -180,10 +181,14 @@ describe('plugin_system_test', async () => {
     await cmp('「010」を4で空白埋め。表示。', ' 010')
     await cmp('「123」を5で空白埋め。表示。', '  123')
     await cmp('「12345」を3で空白埋め。表示。', '12345')
+    await cmp('「𩸽」を4で空白埋め。表示。', '   𩸽')
   })
   it('配列要素数', async () => {
     await cmp('A=[0,1,2,3];Aの配列要素数。表示。', '4')
     await cmp('A={"a":1,"b":2,"c":3};Aの配列要素数。表示。', '3')
+    await cmp('「𩸽あ」の配列要素数を表示。', '2')
+    await cmp('「𩸽あ」の要素数を表示。', '2')
+    await cmp('「𩸽あ」のLENを表示。', '2')
   })
   it('配列一括挿入', async () => {
     await cmp('A=[1,1,1];Aの1に[0,0]を配列一括挿入。JSONエンコード。表示。', '[1,0,0,1,1]')
@@ -452,6 +457,8 @@ describe('plugin_system_test', async () => {
     await cmp('「ｱｶﾞﾍﾟ#!123」を全角変換して表示', 'アガペ＃！１２３')
     await cmp('「チャイナマンゴー」をカタカナ半角変換して表示', 'ﾁｬｲﾅﾏﾝｺﾞｰ')
     await cmp('「ﾁｬｲﾅﾏﾝｺﾞｰ」をカタカナ全角変換して表示', 'チャイナマンゴー')
+    await cmp('「ｲﾛﾊﾆﾎﾍﾄ」をカタカナ全角変換して表示', 'イロハニホヘト') // #2457
+    await cmp('「ﾄ」をカタカナ全角変換して表示', 'ト') // #2457
   })
   it('JS関数実行', async () => {
     await cmp('"Math.floor"を[3.14]でJS関数実行して表示', '3')
@@ -752,8 +759,8 @@ describe('plugin_system_test', async () => {
     await cmp('A=[0,1,2,3];Aから5...9を参照してJSONエンコードして表示', '[]') // 範囲を超えて指定もエラーにならない
   })
   it('ASC/CHRの配列 #1853', async () => {
-    await cmp('["a","b","c"]のASCをJSON_Eして表示', '[97,98,99]') // 配列なら全ての文字のASC
-    await cmp('「abc」のASCをJSON_Eして表示', '97') // 文字列なら最初の文字のみ
+    await cmp('["a","b","c"]のASCをJSONエンコードして表示', '[97,98,99]') // 配列なら全ての文字のASC
+    await cmp('「abc」のASCをJSONエンコードして表示', '97') // 文字列なら最初の文字のみ
     await cmp('[97,98,99]のCHRを「」で配列結合して表示', 'abc') // 配列なら全てのCHR
     await cmp('97のCHRを表示', 'a') // 数値
   })
@@ -769,8 +776,8 @@ describe('plugin_system_test', async () => {
     await cmp('「表示」をハテナ関数設定; ?? (1+2)*3', '9')
   })
   it('「??」のカスタマイズ機能を追加 #1852', async () => {
-    await cmp('["JSON_E","表示"]をハテナ関数設定; ?? [1,2,3]', '[1,2,3]')
-    await cmp('["文字列分解", "ASC", "JSON_E","表示"]をハテナ関数設定; ?? "abc"', '[97,98,99]')
+    await cmp('["JSONエンコード","表示"]をハテナ関数設定; ?? [1,2,3]', '[1,2,3]')
+    await cmp('["文字列分解", "ASC", "JSONエンコード","表示"]をハテナ関数設定; ?? "abc"', '[97,98,99]')
     await cmp('["JS:Math.ceil","表示"]をハテナ関数設定; ?? 3.2', '4')
     await cmp('[『JS:(function(v,sys){return Math.ceil(v);})』,"表示"]をハテナ関数設定; ?? 3.2', '4')
   })
