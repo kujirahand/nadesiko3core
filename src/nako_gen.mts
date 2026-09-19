@@ -7,13 +7,18 @@
 
 import { NakoSyntaxError } from './nako_errors.mjs'
 import { FuncList, FuncArgs, FuncListItem, NakoDebugOption } from './nako_types.mjs'
-import { Ast, AstEol, AstStrValue, AstBlocks, AstOperator, AstConst, AstLet, AstLetArray, AstIf, AstWhile, AstAtohantei, AstFor, AstForeach, AstSwitch, AstRepeatTimes, AstDefFunc, AstCallFunc, AstDefVar, AstDefVarList } from './nako_ast.mjs'
+import { Ast, AstEol, AstStrValue, AstBlocks, AstOperator, AstConst, AstInc, AstLet, AstLetArray, AstIf, AstWhile, AstAtohantei, AstFor, AstForeach, AstSwitch, AstRepeatTimes, AstDefFunc, AstCallFunc, AstDefVar, AstDefVarList } from './nako_ast.mjs'
 import { NakoCompiler } from './nako3.mjs'
+import { incValue } from './nako_inc_value.mjs'
+import { dnclEnsureArray } from './nako_dncl_ensure_array.mjs'
 
 // なでしこで定義した関数の開始コードと終了コード
 const topOfFunction = '(function(){\n'
 const endOfFunction = '})'
 const topOfFunctionAsync = '(async function(){\n'
+// DNCLのための配列の自動初期化に使う配列のデフォルト値 (#1140)
+// (30要素までの添字に対応。これより大きい添字が必要な問題では明示的な初期化が必要)
+const DNCL_ARRAY_DEF_CODE = '[0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0]'
 
 interface VarsSet {
   isFunction: boolean;
@@ -83,6 +88,7 @@ interface CallCodeParts {
   funcEnd: string; // 呼び出しの後に必ず実行するコード
   isAsync: boolean; // 非同期関数の呼び出しか
   sysPerfKey: string | null; // システム関数の計測キー。計測しないときはnull
+  callDone: string | null; // ローカル変数同期の書き戻し条件となる呼出完了フラグの変数名。同期しないときはnull
 }
 /** コード生成オプション */
 export class NakoGenOptions {
@@ -593,9 +599,12 @@ export class NakoGen {
     case 'end':
       code += '__v0.get(\'終\')(__self);'
       break
-    case 'number':
-      code += (node as AstConst).value
+    case 'number': {
+      // 負のゼロ(-0)は符号を保つ (#2488)
+      const value = (node as AstConst).value
+      code += (typeof value === 'number' && Object.is(value, -0)) ? '-0' : String(value)
       break
+    }
     case 'bigint':
       code += (node as AstConst).value
       break
@@ -618,7 +627,7 @@ export class NakoGen {
       code += this.convRefProp(node as AstLet)
       break
     case 'inc':
-      code += this.convInc(node as AstBlocks)
+      code += this.convInc(node as AstInc)
       break
     case 'word':
     case 'variable':
@@ -1162,14 +1171,88 @@ export class NakoGen {
 
   convRefArray(node: Ast): string {
     let code = ''
-    code = this._convGen(node.name as Ast, true)
+    const nameNode = node.name as Ast
+    // DNCLでは初期化していない配列にアクセスする試験問題があるため
+    // 「厳しくチェック」の未定義警告を抑制する (#1140)
+    // (抑制は配列名が単語の場合のみ。「F(X)[1]」のように呼出内の
+    //  未定義変数警告まで抑制しないため)
+    code = this.withSuppressedWarn(
+      node.checkInit === true && nameNode && nameNode.type === 'word',
+      () => this._convGen(nameNode, true))
+    // DNCLのための初期化処理 ... 初期化していない配列へ読み取りアクセスした場合に配列を自動初期化する (#1140)
+    code = this.genCheckInitArrayCode(nameNode, code, node.checkInit === true)
     const list: Ast[] | undefined = node.index
     if (!list) { return code }
     for (let i = 0; i < list.length; i++) {
       const idx = this._convGen(list[i], true)
-      code += '[' + idx + ']'
+      // DNCLのための初期化処理 ... 多次元配列の途中の要素が未定義なら自動初期化する (#1140)
+      // 配列や添字の式を複数回評価しないようランタイムヘルパーに委譲する
+      // (既定配列は0埋めのため数値0は初期化対象に含め、
+      //  既存のオブジェクトは上書きしないようオブジェクト以外の場合のみ初期化する。
+      //  そのためユーザーが代入した数値・文字列も中間要素として配列に置き換わる点に注意)
+      if (node.checkInit === true && i < list.length - 1) {
+        // (bが文字列等のオブジェクトでない場合は添字への代入ができないため初期化しない。
+        //  配列・添字の式を一度だけ評価するようランタイムヘルパーに委譲する)
+        code = `__self.__dncl_ensure_array(${code},${idx})`
+      } else {
+        code += '[' + idx + ']'
+      }
     }
     return code
+  }
+
+  /**
+   * 「厳しくチェック」の未定義変数警告を一時的に抑制してfnを実行する (#1140)
+   * DNCLでは初期化していない配列にアクセスする試験問題があるため、
+   * 配列の自動初期化が有効な参照・代入・増減で警告を抑制するのに使う。
+   * @param suppress 抑制するかどうか
+   * @param fn 警告抑制中に実行する処理
+   */
+  private withSuppressedWarn<T>(suppress: boolean, fn: () => T): T {
+    const bk = this.warnUndefinedVar
+    try {
+      if (suppress) { this.warnUndefinedVar = false }
+      return fn()
+    } finally { this.warnUndefinedVar = bk }
+  }
+
+  /**
+   * DNCLの配列自動初期化のために変数を既定配列で検索する (#1140)
+   * 未定義なら登録してから再検索する。呼び出し側のgenVarで変数は登録済みのため
+   * 通常は登録に至らないが、登録経路が変わった場合に備える。
+   * @param name 変数名
+   * @returns 見つかった変数。登録しても見つからない場合はnull
+   */
+  private ensureVarForDNCL(name: string): FindVarResult | null {
+    let res = this.findVar(name, DNCL_ARRAY_DEF_CODE)
+    if (res === null) {
+      this.varsSet.names.add(name)
+      res = this.findVar(name, DNCL_ARRAY_DEF_CODE)
+    }
+    return res
+  }
+
+  /**
+   * DNCLモードのとき、初期化していない配列へのアクセスで配列を自動初期化するコードを生成する (#1140)
+   * @param nameNode 配列名のノード
+   * @param getter 配列の取得用JavaScriptコード
+   * @param checkInit 自動初期化を行うかどうか
+   * @param isWrite 書き込み(増減)の場合はtrue。配列でない値を既定配列で置き換える
+   */
+  genCheckInitArrayCode(nameNode: Ast, getter: string, checkInit: boolean, isWrite = false): string {
+    if (!checkInit || !nameNode || nameNode.type !== 'word') { return getter }
+    const varName = String((nameNode as AstStrValue).value)
+    const res = this.ensureVarForDNCL(varName)
+    if (res === null) { return getter }
+    // システム領域(__varslist[0])に解決された場合は初期化しない。
+    // 関数名と同名の変数への添字アクセスで関数エントリを配列で上書きしないため
+    if (res.i === 0) { return getter }
+    // 読み取り側は変数が未定義(null/undefined)の場合のみ初期化する。
+    // 文字列や辞書を保持する変数への A[n] アクセス(文字の取得等)を壊さないため、
+    // 書き込み側(convLetArray・増減)の instanceof Array 判定とは意図的に異なる。
+    // 取得式はIIFEで一度だけ評価する (初期化時のみset後に再取得する)
+    const cond = isWrite ? '!(__v instanceof Array)' : '__v == null'
+    return `((__v) => (${cond} ? (${res.js_set}, ${getter}) : __v))(${getter})`
   }
 
   convRefArrayValue(node: AstOperator): string {
@@ -1199,31 +1282,49 @@ export class NakoGen {
     const id = this.loopId++
     const valueNode: Ast = node.blocks[0]
     const indexNodes: Ast[] = node.blocks.slice(1)
-    const name = this.genVar(node.name, node)
+    // DNCLでは初期化していない配列にアクセスする試験問題があるため
+    // 「厳しくチェック」の未定義警告を抑制する (#1140)
+    const name = this.withSuppressedWarn(node.checkInit === true, () => this.genVar(node.name, node))
     let codeInit = ''
     let code = name
     let codeArray = ''
+    const indexVars: { [key: number]: string } = {} // 添字式を一度だけ評価するための一時変数
     // codeInit?
     if (node.checkInit) { // DNCLのための初期化処理 ... DNCLでは配列の初期化なしでいきなり配列を使う試験問題があるため
-      const arrayDefCode = '[0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0]'
+      const arrayDefCode = DNCL_ARRAY_DEF_CODE
       // [name]の内容は[__self.__varslist[2].get("a__A")]のようなものになっているはず
       if (node.name) {
         const word = node.name
         const tmpVar = `$nako_tmp_a${id}`
-        const initArrayCode = this.varname_set(word, arrayDefCode)
-        codeInit += `\n/*配列初期化*/if (!(${name} instanceof Array)) { ${initArrayCode} };\n`
-        codeInit += `${tmpVar} = ${name};\n`
+        // 関数内でグローバル変数に代入する場合も、代入先と同じスコープへ
+        // 初期化できるよう varname_set ではなく findVar の setter を使う
+        const res = this.ensureVarForDNCL(word)
+        // システム領域(__varslist[0])に解決された場合は初期化しない。
+        // PI等のシステム定数と同名の変数への添字代入で定数を配列で上書きしないため
+        if (res === null || res.i !== 0) {
+          const initArrayCode = res ? res.js_set : this.varname_set(word, arrayDefCode)
+          codeInit += `\n/*配列初期化*/if (!(${name} instanceof Array)) { ${initArrayCode} };\n`
+        }
+        // tmpVar は中間次元の初期化(添字2個以上)でのみ使う
+        if (indexNodes.length > 1) { codeInit += `let ${tmpVar} = ${name};\n` }
         for (let i = 0; i < indexNodes.length - 1; i++) {
-          const idx = this._convGen(indexNodes[i], true)
-          codeArray += `[${idx}]`
-          codeInit += `\n/*配列初期化${i}*/if (!(${tmpVar}${codeArray} instanceof Array)) { ${tmpVar}${codeArray} = ${arrayDefCode}; };`
+          // 添字式を複数回評価しないよう一時変数に取り出す (#2194 と同様)
+          const idxVar = `$nako_i${id}_${i}`
+          indexVars[i] = idxVar
+          codeInit += `const ${idxVar} = ${this._convGen(indexNodes[i], true)};\n`
+          const parentAccess = `${tmpVar}${codeArray}` // 現在の添字を含まない親要素の式
+          codeArray += `[${idxVar}]`
+          // 既定配列は0埋めのため数値0は初期化対象に含め、
+          // 既存のオブジェクトは上書きしないようオブジェクト以外の場合のみ初期化する
+          codeInit += `\n/*配列初期化${i}*/__self.__dncl_ensure_array(${parentAccess}, ${idxVar});`
         }
         codeInit += '\n'
       }
     }
     // array
     for (let i = 0; i < indexNodes.length; i++) {
-      const idx = this._convGen(indexNodes[i], true)
+      // 初期化処理で一時変数に取り出した添字はそれを使い回す
+      const idx = indexVars[i] !== undefined ? indexVars[i] : this._convGen(indexNodes[i], true)
       code += '[' + idx + ']'
     }
     // value
@@ -1389,7 +1490,7 @@ export class NakoGen {
       `  ${loopDataVar} = tmp;\n` +
       '}\n' +
       `for (let ${loopKeyVar} in ${loopDataVar}) {\n` +
-      `  if (!${loopDataVar}.hasOwnProperty(${loopKeyVar})) { continue }\n` +
+      `  if (!Object.prototype.hasOwnProperty.call(${loopDataVar}, ${loopKeyVar})) { continue }\n` +
       '  // 対象キーの設定\n' +
       `  ${keySetter}\n` +
       '  // 対象の設定\n' +
@@ -1675,42 +1776,61 @@ export class NakoGen {
   /**
    * 関数内からpureでないプラグイン関数を呼び出すとき、呼び出しの前後で
    * ローカル変数を __self.__locals と同期するコードを生成する。
-   * @returns 呼び出し前に実行するコード begin と、呼び出し後に実行するコード end
+   * @returns 呼び出し前に実行するコード begin、呼び出し後に実行するコード end、
+   *          呼び出しが正常完了したときに true となる完了フラグ変数名 doneVar
    */
-  private genLocalVarsSyncCode (): { begin: string, end: string } {
+  private genLocalVarsSyncCode (): { begin: string, end: string, doneVar: string } {
     let begin = ''
     let end = ''
-    // 展開されたローカル変数の列挙
+    // 宣言済みのローカル変数名の列挙。
+    // 名前はJSON文字列として生成コードに埋め込むだけなので、
+    // 《今日から明日》のような特殊名や絵文字変数もそのまま扱える
     const localVars = []
     for (const name of Array.from(this.varsSet.names.values())) {
-      if (NakoGen.isValidIdentifier(name)) {
-        localVars.push({ str: JSON.stringify(name), js: this.varname_get(name) })
-      }
+      localVars.push({ name, str: JSON.stringify(name) })
     }
 
     // --- 実行前 ---
-    // 全ての展開されていないローカル変数を __self.__locals にコピーする
-    begin += '__self.__locals = __vars;\n'
-    // 全ての展開されたローカル変数を __self.__locals に保存する
-    if (localVars.length > 0) {
-      begin += '/* 全ての展開されたローカル変数を __self.__locals に保存 */\n'
-      for (const v of localVars) {
-        begin += `__self.__locals.set(${v.str}, ${v.js});\n`
-      }
-    }
+    // __self.__locals を現在のスコープ(__self.__vars)に設定する。
+    // __vars は生成コード先頭で __varslist[2] に固定されたままなので使わない。
+    // __vars を設定するとローカル変数が __varslist[2] に書き込まれ、
+    // 関数終了後や他の関数から観測できてしまう (#2534)
+    const id = this.loopId
+    this.loopId++
+    const prevLocals = `__nako_prevlocals${id}`
+    const syncScope = `__nako_syncscope${id}`
+    const doneVar = `__nako_done${id}`
+    const wbVar = `__nako_wb${id}`
+    begin += `const ${prevLocals} = __self.__locals;\n`
+    begin += `const ${syncScope} = __self.__vars;\n`
+    begin += `let ${doneVar} = false;\n`
+    begin += `__self.__locals = ${syncScope};\n`
+    // __self.__locals が現在スコープと同じMapを指すため、
+    // ローカル変数の個別コピーは不要 (#2534)
 
     // --- 実行後 ---
-    // 全ての展開されたローカル変数を __self.__locals から受け取る
-    // 「それ」は関数の実行結果を受け取るために使うためスキップ。
-    if (localVars.length > 0) {
-      end += '/* 全ての展開されたローカル変数を __self.__locals から受け取る */\n'
-      for (const v of localVars) {
-        if (v.js !== 'それ') {
-          end += `__self.__varslist[2].set(${v.str}, __self.__locals.get(${v.str}));\n`
-        }
+    // __self.__locals を呼び出し前の値に戻したうえで、ローカル変数を
+    // 呼出時点のスコープへ書き戻す。
+    // 書き戻しは呼出が正常に完了した場合のみ行う (例外が発生している途中で
+    // 書き戻しの失敗が元の例外を置換しないため)。正常完了時に書き戻しが
+    // 失敗した場合は、そのエラーはそのまま呼出側へ伝播する。(#2534)
+    end += '/* __self.__locals を復元しローカル変数を呼出時点のスコープへ書き戻す */\n'
+    end += `const ${wbVar} = __self.__locals;\n`
+    // 差し替えの有無に関わらず __self.__locals を呼び出し前の値に戻す
+    end += `__self.__locals = ${prevLocals};\n`
+    // 「それ」は関数の実行結果の受け取り用なので書き戻し対象外。
+    // (「それ無効」モードでは localVars に「それ」自体が含まれない)
+    const syncTargets = localVars.filter((v) => v.name !== 'それ')
+    // 書き戻しはプラグインが __self.__locals を別のMapに差し替えた場合のみ必要
+    if (syncTargets.length > 0) {
+      end += `if (${doneVar} && ${wbVar} !== ${syncScope} && ${wbVar} instanceof Map) {\n`
+      for (const v of syncTargets) {
+        // 差し替え後のMapに存在するキーのみ書き戻す (存在しないキーを undefined で実体化しない)
+        end += `if (${wbVar}.has(${v.str})) { ${syncScope}.set(${v.str}, ${wbVar}.get(${v.str})); }\n`
       }
+      end += '}\n'
     }
-    return { begin, end }
+    return { begin, end, doneVar }
   }
 
   /**
@@ -1750,12 +1870,14 @@ export class NakoGen {
 
   /** 戻り値のない関数呼び出しのコードを組み立てる */
   private genVoidCallCode (node: AstCallFunc, parts: CallCodeParts): string {
-    const { funcCall, funcBegin, funcEnd } = parts
+    const { funcCall, funcBegin, funcEnd, callDone } = parts
     let code: string
     if (funcEnd === '') {
       code = `/*VOID関数呼出*/${funcBegin}${funcCall}\n`
     } else {
-      code = `/*VOID関数呼出(前後処理付)*/${funcBegin}try {\n${indentLines(funcCall, 1)};\n} finally {\n${indentLines(funcEnd, 1)}}\n`
+      // ローカル変数同期がある場合は、呼出が正常完了したときだけ書き戻すための完了フラグを立てる (#2534)
+      const doneLine = (callDone !== null) ? indentLines(`${callDone} = true;`, 1) + '\n' : ''
+      code = `/*VOID関数呼出(前後処理付)*/${funcBegin}try {\n${indentLines(funcCall, 1)};\n${doneLine}} finally {\n${indentLines(funcEnd, 1)}}\n`
     }
     // パフォーマンスモニタ:システム関数。ここでのcodeは式ではなく文なので、文として包む (#2333)
     if (parts.sysPerfKey) {
@@ -1782,10 +1904,13 @@ export class NakoGen {
     } else { // つまり、pure=falseの場合
       const varI = `$nako_i${this.loopId}`
       this.loopId++
+      // ローカル変数同期がある場合は、呼出が正常完了したときだけ書き戻すための完了フラグを立てる (#2534)
+      const doneLine = (parts.callDone !== null) ? indentLines(`${parts.callDone} = true;`, 2) + '\n' : ''
       code = `/* funcCallThis2 */(${funcDef}(){\n` +
         indentLines(funcBegin, 1) + '\n' +
         indentLines('try {', 1) + '\n' +
         indentLines(`let ${varI} = ${funcCall};`, 2) + '\n' +
+        doneLine +
         indentLines(`return ${varI};`, 2) + '\n' +
         indentLines('} finally {', 2) + '\n' +
         indentLines(funcEnd, 1) + '\n' +
@@ -1848,17 +1973,35 @@ export class NakoGen {
       funcEnd += ';__self.isSetter = false;\n'
     }
     // 関数内 (__varslist.length > 3) からプラグイン関数 (res.i === 0) を呼び出すとき、 そのプラグイン関数がpureでなければ
-    // 呼び出しの直前に全てのローカル変数をthis.__localsに入れる。
-    if (res.i === 0 && this.varslistSet.length > 3 && func.pure !== true && this.speedMode.forcePure === 0) { // undefinedはfalseとみなす
+    // 呼び出しの間 __self.__locals を呼出元スコープ (__self.__vars) にエイリアスする。
+    // なお asyncFn のプラグイン関数は登録時に pure=true に強制される (core#142) が、
+    // reset() では pure=true 化前のスナップショットから funclist が再構築されるため
+    // pure=false のまま残りうる。同期ウィンドウが await を跨がないようここでも除外する。(#2534)
+    let callDone: string | null = null
+    let hoistedArgs: string|null = null
+    if (res.i === 0 && this.varslistSet.length > 3 && func.pure !== true && !func.asyncFn && this.speedMode.forcePure === 0) { // undefinedはfalseとみなす
       const sync = this.genLocalVarsSyncCode()
+      // 引数式は __self.__locals を差し替える前に評価する。
+      // 文レベル呼出では引数式に await を含みうるため、評価を同期ウィンドウに含めない (#2534)
+      const argArr = `$nako_args${this.loopId}`
+      this.loopId++
+      if (node.setter) {
+        // setter呼出では引数評価の例外時にも isSetter を戻す必要がある (#2534)
+        // (現状 node.setter を立てるコードは無く dead code だが防御的に生成する)
+        funcBegin += `let ${argArr};\ntry { ${argArr} = [${this.genCallArgsCode(funcName, res, args, node)}]; } catch (e) { __self.isSetter = false; throw e; }\n`
+      } else {
+        funcBegin += `const ${argArr} = [${this.genCallArgsCode(funcName, res, args, node)}];\n`
+      }
       funcBegin += sync.begin
       funcEnd += sync.end
+      callDone = sync.doneVar
+      hoistedArgs = `...${argArr}`
     }
     // 変数「それ」が補完されていることをヒントとして出力
     if (argsOpts.sore) { funcBegin += '/*[sore]*/' }
 
     // 関数呼び出しコードの構築
-    const argsCode = this.genCallArgsCode(funcName, res, args, node)
+    const argsCode = hoistedArgs ?? this.genCallArgsCode(funcName, res, args, node)
     let funcCall = `${res.js}(${argsCode})`
     if (func.asyncFn) {
       funcDef = `async ${funcDef}`
@@ -1881,7 +2024,7 @@ export class NakoGen {
       ? this.getPerfMonitorKey(funcName, '_sys')
       : null
 
-    const parts: CallCodeParts = { funcDef, funcCall, funcBegin, funcEnd, isAsync: !!func.asyncFn, sysPerfKey }
+    const parts: CallCodeParts = { funcDef, funcCall, funcBegin, funcEnd, isAsync: !!func.asyncFn, sysPerfKey, callDone }
     return (func.return_none)
       ? this.genVoidCallCode(node, parts)
       : this.genValueCallCode(node, isExpression, parts)
@@ -1927,6 +2070,11 @@ export class NakoGen {
       '÷': '/'
     }
     let op: string = node.operator || '' // 演算子
+    // 単項演算子(例: -A)。JSの単項マイナスはNumberでもBigIntでも正しく動作する (#2488)
+    // オペランドを必ず括弧で囲み、負のリテラルが来ても『--2』のような不正なJSを生成しないようにする
+    if (op === '-' && node.blocks.length === 1) {
+      return `(-(${this._convGen(node.blocks[0], true)}))`
+    }
     let right = this._convGen(node.blocks[1], true)
     let left = this._convGen(node.blocks[0], true)
     if (op === '+' && this.speedMode.implicitTypeCasting === 0) {
@@ -1948,7 +2096,7 @@ export class NakoGen {
     return `(${left} ${op} ${right})`
   }
 
-  convInc(node: AstBlocks): string {
+  convInc(node: AstInc): string {
     // idを得る
     const id = this.loopId++
     const valueVar = `$nako_v${id}`
@@ -1969,14 +2117,31 @@ export class NakoGen {
     if (nodeName.type === 'ref_array') {
       // 対象オブジェクトと添字を一時変数へ取り出して、取得と代入で式を二重に評価しないようにする (#2194)
       const objVar = `$nako_o${id}`
-      const baseName = this._convGen(nodeName.name as Ast, true)
+      // DNCLでは初期化していない配列にアクセスする試験問題があるため
+      // 「厳しくチェック」の未定義警告を抑制する (#1140)
+      const nn = nodeName.name as Ast
+      const baseNameRaw = this.withSuppressedWarn(
+        nodeName.checkInit === true && nn && nn.type === 'word',
+        () => this._convGen(nn, true))
+      // DNCLのための初期化処理 ... 初期化していない配列の要素を増減する場合に配列を自動初期化する (#1140)
+      // (増減は書き込みなので代入と同じく配列でない値を既定配列で置き換える)
+      const baseName = this.genCheckInitArrayCode(nodeName.name as Ast, baseNameRaw, nodeName.checkInit === true, true)
       const indexList: Ast[] = nodeName.index || []
       preCode = `const ${objVar} = ${baseName};\n`
       let indexCode = ''
+      let parentCode = objVar
       for (let i = 0; i < indexList.length; i++) {
         const idxVar = `$nako_i${id}_${i}`
         preCode += `const ${idxVar} = ${this._convGen(indexList[i], true)};\n`
         indexCode += `[${idxVar}]`
+        // DNCLのための初期化処理 ... 多次元配列の途中の要素が未定義なら自動初期化する (#1140)
+        // (既定配列は0埋めのため数値0は初期化対象に含め、
+        //  既存のオブジェクトは上書きしないようオブジェクト以外の場合のみ初期化する。
+        //  親が文字列等のオブジェクトでない場合は添字への代入ができないため初期化しない)
+        if (nodeName.checkInit === true && i < indexList.length - 1) {
+          preCode += `/*配列初期化${i}*/__self.__dncl_ensure_array(${parentCode}, ${idxVar});\n`
+        }
+        parentCode = `${objVar}${indexCode}`
       }
       varGetter = `${objVar}${indexCode}`
       varSetter = `${varGetter} = ${valueVar}`
@@ -2016,7 +2181,9 @@ export class NakoGen {
     code += `let ${valueVar} = ${varGetter}\n`
     // 値の再取得をせず、取り出した値をそのまま使う (#2194)
     code += `if (typeof ${valueVar} === 'undefined') { ${varInitter}; ${valueVar} = 0; }\n`
-    code += `${valueVar} = Number(${valueVar}) + Number(${incValue});\n`
+    // 増減の方向は減算フラグ(isDec)で渡す (#2488)
+    const isDec = node.isDec ? 'true' : 'false'
+    code += `${valueVar} = self.__incValue(${valueVar}, ${incValue}, ${isDec});\n`
     code += `${varSetter}\n`
     code += '/*[/convInc]*/\n'
     return code
@@ -2252,6 +2419,10 @@ const self = {
 }
 self.coreVersion = '__coreVersion__'
 self.version = '__version__'
+// 増減文の加算/減算。コア実行環境(NakoGlobal)と同じ実装を埋め込む (#2488)
+self.__incValue = __incValueCode__
+// DNCLモードの多次元配列の中間要素の自動初期化。コア実行環境(NakoGlobal)と同じ実装を埋め込む (#1140)
+self.__dncl_ensure_array = __dnclEnsureArrayCode__
 self.logger = {
   error: (message) => { console.error(message) },
   warn: (message) => { console.warn(message) },
@@ -2461,7 +2632,9 @@ ${runtimeResult}
       'importNames': ('[' + importNames.join(', ') + ']'),
       'codeStandalone': opt.codeStandalone,
       'codeJS': js,
-      jsInit
+      jsInit,
+      incValueCode: String(incValue),
+      dnclEnsureArrayCode: String(dnclEnsureArray)
     }),
     // コード生成に使ったNakoGenのインスタンス
     gen

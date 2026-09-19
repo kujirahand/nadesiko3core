@@ -174,6 +174,9 @@ describe('plugin_system_test', async () => {
     await cmp('123を5でゼロ埋め。表示。', '00123')
     await cmp('12345を3でゼロ埋め。表示。', '12345')
     await cmp('「𩸽」を4でゼロ埋め。表示。', '000𩸽')
+    await cmpex('「5」を(0/0)でゼロ埋して表示。', { name: 'NakoError', message: '有限の整数' }) // #2480
+    await cmpex('「5」を1000001でゼロ埋して表示。', { name: 'NakoError', message: '大きすぎます' }) // #2480
+    await cmpex('「5」を(10の21のべき乗)でゼロ埋して表示。', { name: 'NakoError', message: '大きすぎます' }) // #2480 parseIntでは検出できない指数表記
   })
   it('空白埋め', async () => {
     await cmp('10を3で空白埋め。表示。', ' 10')
@@ -182,6 +185,23 @@ describe('plugin_system_test', async () => {
     await cmp('「123」を5で空白埋め。表示。', '  123')
     await cmp('「12345」を3で空白埋め。表示。', '12345')
     await cmp('「𩸽」を4で空白埋め。表示。', '   𩸽')
+    await cmpex('「5」を(0/0)で空白埋して表示。', { name: 'NakoError', message: '有限の整数' }) // #2480
+    await cmpex('「5」を1000001で空白埋して表示。', { name: 'NakoError', message: '大きすぎます' }) // #2480
+    await cmpex('「5」を(10の21のべき乗)で空白埋して表示。', { name: 'NakoError', message: '大きすぎます' }) // #2480
+  })
+  it('リフレイン', async () => {
+    await cmp('「ab」を3でリフレインして表示。', 'ababab')
+    await cmp('「x」を0でリフレインして表示。', '')
+    await cmp('「5」を2でリフレインして表示。', '55')
+    await cmp('「x」を0.5でリフレインして表示。', '') // #2481 端数は切り捨て
+    await cmp('「x」を2.5でリフレインして表示。', 'xx') // #2481 端数は切り捨て
+    await cmp('「」を1000000でリフレインして表示。', '') // #2481 上限ちょうどは許可
+    await cmpex('「x」を(0/0)でリフレインして表示。', { name: 'NakoError', message: '有限の整数' }) // #2481
+    await cmpex('「x」を-1でリフレインして表示。', { name: 'NakoError', message: '0以上の整数' }) // #2481
+    await cmpex('「x」を-0.5でリフレインして表示。', { name: 'NakoError', message: '0以上の整数' }) // #2481
+    await cmpex('「x」を1000001でリフレインして表示。', { name: 'NakoError', message: '大きすぎます' }) // #2481
+    await cmpex('「x」を(10の21のべき乗)でリフレインして表示。', { name: 'NakoError', message: '大きすぎます' }) // #2481
+    await cmpex('A=「x」を700でリフレイン。Aを1000000でリフレインして表示。', { name: 'NakoError', message: '結果が大きすぎます' }) // #2481 String.repeatのRangeErrorを実行時エラーに変換
   })
   it('配列要素数', async () => {
     await cmp('A=[0,1,2,3];Aの配列要素数。表示。', '4')
@@ -210,6 +230,7 @@ describe('plugin_system_test', async () => {
   })
   it('配列逆順', async () => {
     await cmp('A=[1,2,3];Aを配列逆順。Aを「:」で配列結合。表示。', '3:2:1')
+    await cmpex('A=1;Aを配列逆順。', { name: 'NakoError', message: '『配列逆順』で配列以外が指定されました。' }) // #2473
   })
   it('配列切取/配列削除', async () => {
     await cmp('A=[0,1,2,3];Aの2を配列切り取る。C=それ。Aを「:」で配列結合。表示。Cを表示', '0:1:3\n2')
@@ -225,6 +246,26 @@ describe('plugin_system_test', async () => {
     await cmp('A={"aaa":1,"bbb":2};' +
       'Aから"aaa"を配列削除;' +
       'AをJSONエンコードして表示。', '{"bbb":2}')
+  })
+  it('配列切取で辞書型のfalsy値も削除する #2471', async () => {
+    await cmp('A={"key":0};Aから「key」を配列切取。AをJSONエンコードして表示。', '{}')
+    await cmp('A={"key":0};B=Aから「key」を配列切取。Bを表示。', '0')
+    await cmp('A={"key":false};Aから「key」を配列切取。AをJSONエンコードして表示。', '{}')
+    await cmp('A={"key":false};B=Aから「key」を配列切取。Bを表示。', 'false')
+    await cmp('A={"key":""};Aから「key」を配列切取。AをJSONエンコードして表示。', '{}')
+    await cmp('A={"key":""};B=Aから「key」を配列切取。Bを表示。', '')
+    await cmp('A={"key":NULL};Aから「key」を配列切取。AをJSONエンコードして表示。', '{}')
+    await cmp('A={"key":NULL};B=Aから「key」を配列切取。Bを表示。', 'null')
+    await cmp('A={"key":未定義};Aから「key」を配列切取。Aの要素数を表示。', '0')
+    await cmp('A={"key":未定義};B=Aから「key」を配列切取。Bを表示。', 'undefined')
+    await cmp('A={"key":非数};Aから「key」を配列切取。AをJSONエンコードして表示。', '{}')
+    await cmp('A={"key":非数};B=Aから「key」を配列切取。Bを表示。', 'NaN')
+    await cmp('A={"key":1};Aから「key」を配列切取。AをJSONエンコードして表示。', '{}')
+    await cmp('A={"key":0};Aから「key」を配列削除。AをJSONエンコードして表示。', '{}')
+    await cmp('A={"ok":1};Aから「toString」を配列切取。AをJSONエンコードして表示。', '{"ok":1}')
+    await cmp('A={"ok":1};B=Aから「toString」を配列切取。Bを表示。', 'undefined')
+    await cmp('A={"ok":1};B=Aから「missing」を配列切取。Bを表示。AをJSONエンコードして表示。', 'undefined\n{"ok":1}')
+    await cmp('A={"toString":"x","ok":1};B=Aから「toString」を配列切取。Bを表示。AをJSONエンコードして表示。', 'x\n{"ok":1}')
   })
   it('配列切り取りで範囲を指定 #1704', async () => {
     await cmp('A=[0,1,2,3,4,5]; B=Aの1…3を配列切り取り;' +
@@ -290,6 +331,15 @@ describe('plugin_system_test', async () => {
   })
   it('表重複削除', async () => {
     await cmp('A=[[1,2,3],[1,1,1],[4,5,6]];Aの0を表重複削除してJSONエンコードして表示。', '[[1,2,3],[4,5,6]]')
+    // #2474: Object.prototypeのプロパティ名と一致するキーが最初から消えないこと
+    await cmp('A=[["toString"],["constructor"],["ok"]];Aの0を表重複削除してJSONエンコードして表示。', '[["toString"],["constructor"],["ok"]]')
+    await cmp('A=[["__proto__"],["hasOwnProperty"],["valueOf"],["__proto__"]];Aの0を表重複削除してJSONエンコードして表示。', '[["__proto__"],["hasOwnProperty"],["valueOf"]]')
+    // 継承プロパティ名のキーでも重複は正しく除去される
+    await cmp('A=[["toString"],["toString"],["ok"]];Aの0を表重複削除してJSONエンコードして表示。', '[["toString"],["ok"]]')
+    // 従来通りキーは文字列化して比較する(数値の1と文字列の"1"は同一視)
+    await cmp('A=[[1],["1"],[2]];Aの0を表重複削除してJSONエンコードして表示。', '[[1],[2]]')
+    // キー列が存在しない行は"undefined"キーとして扱われる(従来契約の固定)
+    await cmp('A=[["a"],["b"]];Aの1を表重複削除してJSONエンコードして表示。', '[["a"]]')
   })
   it('表列取得', async () => {
     await cmp('A=[[1,2,3],[4,5,6]];Aの1を表列取得してJSONエンコードして表示。', '[2,5]')
@@ -361,6 +411,12 @@ describe('plugin_system_test', async () => {
     await cmp('「1.234E-5」が数列か判定して表示。', 'true')
     // #2143 数列判定で空文字列を指定した時の問題
     await cmp('「」を数列判定して表示。', 'false')
+    // #2483 符号だけを受理し、整数仮数の指数表記を拒否する問題の修正
+    await cmp('「+」を数列判定して表示。', 'false')
+    await cmp('「-」を数列判定して表示。', 'false')
+    await cmp('「1e3」を数列判定して表示。', 'true')
+    await cmp('「1.0e3」を数列判定して表示。', 'true')
+    await cmp('「123.e1」を数列判定して表示。', 'true')
   })
   it('XOR', async () => {
     await cmp('XOR(0xFF, 0xF)を表示。', '240')
@@ -449,6 +505,13 @@ describe('plugin_system_test', async () => {
     await cmp('「ａｂｃ１２３＃」を英数記号半角変換して表示', 'abc123#')
     await cmp('「abc123」を英数全角変換して表示', 'ａｂｃ１２３')
     await cmp('「ａｂｃ１２３」を英数半角変換して表示', 'abc123')
+    // #2479 対応範囲(FF01-FF5E)の外は変換しない
+    await cmp('S=「｟」を英数記号半角変換。SのASCを表示', '65375') // U+FF5F は保持
+    await cmp('S=「｠」を英数記号半角変換。SのASCを表示', '65376') // U+FF60 は保持
+    await cmp('S=CHR(0xFF00)を英数記号半角変換。SのASCを表示', '65280') // U+FF00 は保持
+    await cmp('S=「～」を英数記号半角変換。SのASCを表示', '126') // U+FF5E は ~ へ
+    await cmp('「｟｠～」を英数記号半角変換して表示', '｟｠~') // #2479 境界
+    await cmp('S=「｟」を半角変換。SのASCを表示', '65375') // #2479 半角変換経由
   })
   it('カタカナ全角半角変換', async () => {
     await cmp('「アガペ123」をカタカナ半角変換して表示', 'ｱｶﾞﾍﾟ123')
@@ -459,6 +522,20 @@ describe('plugin_system_test', async () => {
     await cmp('「ﾁｬｲﾅﾏﾝｺﾞｰ」をカタカナ全角変換して表示', 'チャイナマンゴー')
     await cmp('「ｲﾛﾊﾆﾎﾍﾄ」をカタカナ全角変換して表示', 'イロハニホヘト') // #2457
     await cmp('「ﾄ」をカタカナ全角変換して表示', 'ト') // #2457
+    await cmp('「ｳﾞ」をカタカナ全角変換して表示', 'ヴ') // #2478
+    await cmp('「ﾞｷ」をカタカナ全角変換して表示', 'ﾞキ') // #2478 濁点ペアの境界を誤結合しない
+    await cmp('「ﾟﾋ」をカタカナ全角変換して表示', 'ﾟヒ') // #2478 半濁点ペアの境界を誤結合しない
+    await cmp('「ﾞ」をカタカナ全角変換して表示', 'ﾞ') // #2478 単独濁点を黙って消さない
+    await cmp('「ﾟ」をカタカナ全角変換して表示', 'ﾟ') // #2478 単独半濁点を黙って消さない
+    await cmp('「ｶﾞ」をカタカナ全角変換して表示', 'ガ') // #2478
+    await cmp('「ﾜﾞ」をカタカナ全角変換して表示', 'ワﾞ') // #2478 変換表にないペアは結合しない
+    await cmp('「ｦﾞ」をカタカナ全角変換して表示', 'ヲﾞ') // #2478 変換表にないペアは結合しない
+    await cmp('「ｶﾟ」をカタカナ全角変換して表示', 'カﾟ') // #2478 無効な半濁点ペアは結合しない
+    await cmp('「ヴ」をカタカナ半角変換して表示', 'ｳﾞ') // #2478 逆変換も対応
+    await cmp('「ｳﾞ」を全角変換して表示', 'ヴ') // #2478 全角変換経由
+    await cmp('「ヴ」を半角変換して表示', 'ｳﾞ') // #2478 半角変換経由
+    await cmp('「ｱｶﾞｳﾞ」をカタカナ全角変換して表示', 'アガヴ') // #2478 混在
+    await cmp('「ｳﾞｳﾞ」をカタカナ全角変換して表示', 'ヴヴ') // #2478 連続
   })
   it('JS関数実行', async () => {
     await cmp('"Math.floor"を[3.14]でJS関数実行して表示', '3')
@@ -486,6 +563,28 @@ describe('plugin_system_test', async () => {
     await cmp('「https://nadesi.com/?a=3&b=5」のURLパラメータ解析;それ["a"]を表示;それ["b"]を表示。', '3\n5')
     await cmp('「https://nadesi.com/?a=3=3&b=5」のURLパラメータ解析;それ["a"]を表示;それ["b"]を表示。', '3=3\n5')
     await cmp('「https://nadesi.com/?a&b=5」のURLパラメータ解析;それ["a"]を表示;それ["b"]を表示。', '\n5')
+    await cmp('「https://nadesi.com/?next=a?b」のURLパラメータ解析;それ["next"]を表示。', 'a?b')
+    await cmp('「https://nadesi.com/?token=a=b」のURLパラメータ解析;それ["token"]を表示。', 'a=b')
+    await cmp('「https://nadesi.com/?a=1#frag」のURLパラメータ解析;それ["a"]を表示。', '1')
+    await cmp('「https://nadesi.com/?a=1&a=2」のURLパラメータ解析;それ["a"]を表示。', '2')
+    await cmp('「https://nadesi.com/?a=hello+world」のURLパラメータ解析;それ["a"]を表示。', 'hello world')
+    await cmp('「https://nadesi.com/?a=%ZZ」のURLパラメータ解析;それ["a"]を表示。', '%ZZ')
+    await cmp('「https://nadesi.com/?__proto__=x」のURLパラメータ解析;それ["__proto__"]を表示。', 'x')
+    await cmp('「https://nadesi.com/?a=」のURLパラメータ解析;それ["a"]を表示。', '')
+    await cmp('「https://nadesi.com/?a」のURLパラメータ解析;それ["a"]を表示。', '')
+    await cmp('「https://nadesi.com/?」のURLパラメータ解析してJSONエンコードして表示', '{}')
+    await cmp('「https://nadesi.com/?a=%2B」のURLパラメータ解析;それ["a"]を表示。', '+')
+    await cmp('「https://nadesi.com/p#frag?a=1」のURLパラメータ解析してJSONエンコードして表示', '{}')
+    await cmp('「https://nadesi.com/?=x」のURLパラメータ解析;それ[""]を表示。', 'x')
+    await cmp('「https://nadesi.com/?&」のURLパラメータ解析してJSONエンコードして表示', '{}')
+    // URLパラメータ解析はクエリ解析のため+を空白に変換する(URLデコードは変換しない)
+    await cmp('「+」をURLデコードして表示', '+')
+    await cmp('「?x=+」のURLパラメータ解析;それ["x"]をVに代入;「A{V}B」を表示。', 'A B')
+    await cmp('「https://nadesi.com/?__proto__=x」のURLパラメータ解析してJSONエンコードして表示', '{"__proto__":"x"}')
+    await cmp('「https://nadesi.com/?hasOwnProperty=x」のURLパラメータ解析;それ["hasOwnProperty"]を表示。', 'x')
+    await cmp('「https://nadesi.com/?constructor=x」のURLパラメータ解析;それ["constructor"]を表示。', 'x')
+    // hasOwnPropertyキーを含む辞書でも反復処理が動作する
+    await cmp('「https://nadesi.com/?hasOwnProperty=x&a=1」のURLパラメータ解析してAに代入。Aを反復\n対象キーを表示\nここまで', 'hasOwnProperty\na')
   })
   it('助詞省略形のコマンド', async () => {
     await cmp('3が1以上。もし、そうなら「OK」と表示。', 'OK')
@@ -520,6 +619,10 @@ describe('plugin_system_test', async () => {
     await cmp('[1,2,3]と[1,2,3]が一致。もしそうなら"1"を表示。違えば"0"を表示。', '1')
     await cmp('[1,2,3]と[2,3]が一致。もしそうなら"NG"を表示。違えば"OK"を表示。', 'OK')
     await cmp('["a",2,3]と["a",2,3]が一致。もしそうなら"OK"を表示。違えば"NG"を表示。', 'OK')
+  })
+  it('一致と不一致の比較は左右対称 #2487', async () => {
+    await cmp('NULLと非数が一致を表示。非数とNULLが一致を表示。', 'false\nfalse')
+    await cmp('NULLと非数が不一致を表示。非数とNULLが不一致を表示。', 'true\ntrue')
   })
   it('「ナデシコ」が空白行を出力してしまう問題の修正', async () => {
     let lineCount = 0
@@ -565,6 +668,14 @@ describe('plugin_system_test', async () => {
     await cmp('「あい▲▲うえ▲▲お」で「▲▲」の出現回数を表示。', '2')
     await cmp('「番号0000」で「00」の出現回数を表示。', '2')
     await cmp('「番号0001」で「0」の出現回数を表示。', '3')
+  })
+  it('出現回数 #2482', async () => {
+    // 空の検索語は0回と定義する。負の回数や文字数-1を返さない
+    await cmp('「」で「」の出現回数を表示。', '0')
+    await cmp('「あいう」で「」の出現回数を表示。', '0')
+    await cmp('「」で「あ」の出現回数を表示。', '0')
+    await cmp('「あいう」で「あ」の出現回数を表示。', '1')
+    await cmp('「000」で0の出現回数を表示。', '3') // 数値は文字列化して数える
   })
   it('日時処理(簡易) #1117', async () => {
     await cmp('「2021/12/25」の曜日を表示。', '土')
@@ -720,6 +831,26 @@ describe('plugin_system_test', async () => {
   it('『偶数』『奇数』 #1146', async () => {
     await cmp('もし4が偶数ならば「OK」と表示。', 'OK')
     await cmp('もし3が奇数ならば「OK」と表示。', 'OK')
+  })
+  it('『偶数』『奇数』負の数 #2484', async () => {
+    await cmp('-3が奇数を表示。', 'true')
+    await cmp('-1が奇数を表示。', 'true')
+    await cmp('0が奇数を表示。', 'false')
+    await cmp('1が奇数を表示。', 'true')
+    await cmp('3が奇数を表示。', 'true')
+    await cmp('-4が偶数を表示。', 'true')
+    await cmp('-3が偶数を表示。', 'false')
+    await cmp('0が偶数を表示。', 'true')
+    await cmp('「abc」が奇数を表示。', 'false')
+    await cmp('「abc」が偶数を表示。', 'false')
+    await cmp('-9007199254740993nが奇数を表示。', 'true')
+    await cmp('9007199254740993nが奇数を表示。', 'true')
+    await cmp('-9007199254740992nが奇数を表示。', 'false')
+    await cmp('9007199254740992nが奇数を表示。', 'false')
+    await cmp('-9007199254740993nが偶数を表示。', 'false')
+    await cmp('9007199254740993nが偶数を表示。', 'false')
+    await cmp('-9007199254740992nが偶数を表示。', 'true')
+    await cmp('9007199254740992nが偶数を表示。', 'true')
   })
   it('範囲切り取る(core#164)', async () => {
     await cmp('S=「aaa[bbb]ccc」。Sの「[」から「]」まで範囲切り取って表示', 'bbb')
@@ -925,5 +1056,580 @@ describe('plugin_system_test', async () => {
     await cmp('「abc.txt」からパス抽出して表示。', '')
     await cmp('「/a/b/c」からパス抽出して表示。', '/a/b')
     await cmp('「c:/a/b/c」からパス抽出して表示。', 'c:/a/b')
+  })
+  it('__formatTime #2489', async () => {
+    const nako = new NakoCompiler()
+    const g = await nako.runAsync('')
+    const t = new Date(2026, 8, 10, 12, 34, 56)
+    assert.strictEqual(g.__formatTime(t), '12:34:56')
+  })
+  it('今 #2489', async () => {
+    const nako = new NakoCompiler()
+    const g = await nako.runAsync('')
+    // sys.__formatTime に委譲されていることを検証するため固定値に差し替える
+    g.__formatTime = () => '11:22:33'
+    const res = await g.runAsync('今を表示', 'main.nako3', {})
+    assert.strictEqual(res.log, '11:22:33')
+
+    // 実環境での出力形式も確認
+    const nako2 = new NakoCompiler()
+    const g2 = await nako2.runAsync('今を表示', 'main.nako3')
+    assert.match(g2.log, /^\d{2}:\d{2}:\d{2}$/)
+  })
+  it('JSオブジェクト取得がfalsyなローカル変数を見失わない #2500', async () => {
+    // ローカル変数が falsy でもグローバル変数へフォールバックせずローカルの値を返す
+    await cmp('●テスト\n　A=0\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテスト()を表示', '0')
+    await cmp('●テスト\n　A=偽\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテスト()を表示', 'false')
+    await cmp('●テスト\n　A=「」\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテスト()を表示', '')
+    await cmp('●テスト\n　A=NULL\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテスト()を表示', 'null')
+    await cmp('●テスト\n　A=非数\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテスト()を表示', 'NaN')
+    // truthyなローカル変数は従来どおり返す
+    await cmp('●テスト\n　A=5\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテスト()を表示', '5')
+    // ローカル変数が無ければ従来どおりグローバル変数へフォールバックする
+    await cmp('●テスト\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=7\nテスト()を表示', '7')
+    // ローカル変数が undefined(未定義) の場合は「未設定」とみなしグローバル変数へフォールバックする
+    await cmp('●テスト\n　A=未定義\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテスト()を表示', '99')
+    // どこにも存在しなければ null (JSオブジェクト取得のデフォルト値) を返す
+    await cmp('●テスト\n　「A」のJSオブジェクト取得を戻す\nここまで\nテスト()を表示', 'null')
+  })
+  it('JSオブジェクト取得がfalsyな名前空間変数を見失わない #2500', async () => {
+    // 名前空間付き変数が falsy でもその値を返す
+    await cmp('A=0\n「main__A」のJSオブジェクト取得を表示', '0')
+    await cmp('A=偽\n「main__A」のJSオブジェクト取得を表示', 'false')
+    await cmp('A=「」\n「main__A」のJSオブジェクト取得を表示', '')
+    await cmp('A=NULL\n「main__A」のJSオブジェクト取得を表示', 'null')
+    // 存在しない名前空間変数は従来どおり null を返す
+    await cmp('「nosuchmod__A」のJSオブジェクト取得を表示', 'null')
+  })
+  it('__findVarはfalsyな値を見失わない #2500', async () => {
+    const nako = new NakoCompiler()
+    const g = await nako.runAsync('', 'main.nako3')
+    // __locals の falsy な値が最も内側の変数として返る
+    g.__varslist[1].set('main__A', 99)
+    g.__locals.set('A', 0)
+    assert.strictEqual(g.__findVar('A', 'def'), 0)
+    g.__locals.set('A', false)
+    assert.strictEqual(g.__findVar('A', 'def'), false)
+    g.__locals.set('A', '')
+    assert.strictEqual(g.__findVar('A', 'def'), '')
+    g.__locals.set('A', null)
+    assert.strictEqual(g.__findVar('A', 'def'), null)
+    // undefined は「未設定」として扱い、外側のスコープへフォールバックする
+    g.__locals.set('A', undefined)
+    assert.strictEqual(g.__findVar('A', 'def'), 99)
+    // 名前空間指定では __varslist[2]→[1]→[0] の順に探し、内側の falsy な値を返す
+    g.__varslist[2].set('mod__B', 0)
+    assert.strictEqual(g.__findVar('mod__B', 'def'), 0)
+    g.__varslist[1].set('mod__C', 'outer')
+    g.__varslist[2].set('mod__C', false)
+    assert.strictEqual(g.__findVar('mod__C', 'def'), false)
+    // 内側が undefined の場合は外側の値を返す
+    g.__varslist[2].set('mod__C', undefined)
+    assert.strictEqual(g.__findVar('mod__C', 'def'), 'outer')
+    // モジュール名を補完する探索でも falsy な値を返す (__varslist[0] のシステム領域も対象)
+    g.__varslist[0].set('main__D', '')
+    assert.strictEqual(g.__findVar('D', 'def'), '')
+    // 見つからなければデフォルト値を返す
+    assert.strictEqual(g.__findVar('main__E', 'def'), 'def')
+    assert.strictEqual(g.__findVar('E', 'def'), 'def')
+    assert.strictEqual(g.__findVar('E'), undefined)
+  })
+  it('__findFuncはfalsyなローカル変数が同名のグローバル関数を遮蔽する #2500', async () => {
+    const nako = new NakoCompiler()
+    const g = await nako.runAsync('', 'main.nako3')
+    // ローカルに falsy な値があると「最も内側で存在する変数を返す」仕様上、同名のグローバル関数を遮蔽する
+    g.__varslist[1].set('main__F', () => 'global fn')
+    g.__locals.set('F', 0)
+    assert.throws(() => g.__findFunc('F', '実行'), /『実行』に実行できない関数が指定されました/)
+    // ローカルが関数であれば従来どおりその関数を返す
+    const localFn = () => 'local fn'
+    g.__locals.set('F', localFn)
+    assert.strictEqual(g.__findFunc('F', '実行'), localFn)
+    // ローカルが undefined なら遮蔽せずグローバル関数を返す
+    g.__locals.set('F', undefined)
+    assert.strictEqual(typeof g.__findFunc('F', '実行'), 'function')
+  })
+  it('__findFuncは非文字列・非関数の値を受けても命令名入りのエラーになる #2500', async () => {
+    const nako = new NakoCompiler()
+    const g = await nako.runAsync('', 'main.nako3')
+    // コールバック引数に数値などが直接渡された場合も TypeError ではなく命令名入りのエラーにする
+    assert.throws(() => g.__findFunc(0, 'ワーカーメッセージ受信時'), /『ワーカーメッセージ受信時』に実行できない関数が指定されました/)
+    assert.throws(() => g.__findFunc(null, 'ワーカーメッセージ受信時'), /『ワーカーメッセージ受信時』に実行できない関数が指定されました/)
+    // 関数はそのまま返す
+    const fn = () => 'ok'
+    assert.strictEqual(g.__findFunc(fn, 'ワーカーメッセージ受信時'), fn)
+  })
+  it('コールバック名の文字列がfalsyなローカルに解決される場合は登録時にエラーになる #2500', async () => {
+    // src/plugin_worker.mjs の NAKOワーカーデータ受信時 と同じ __findFunc 変換を使う
+    // カスタムプラグインで、登録時に非関数へ解決されても遅延クラッシュせずエラーになることを確認する
+    // (なでしこ文法では関数名と同名のローカルに代入できないため、プラグインが __locals.set で
+    //  falsy 値を書き込んだ場合が実際の遮蔽経路となる)
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2500cb', nakoVersion: '3.6.0' } },
+      汚染実行: {
+        type: 'func', josi: [], pure: false,
+        fn: function (sys) { sys.__locals.set('F', 0) },
+        return_none: true
+      },
+      受信時: {
+        type: 'func', josi: [['で']], pure: false,
+        fn: function (func, sys) {
+          const cb = sys.__findFunc(func, '受信時') // 文字列指定なら関数に変換
+          sys.__setSysVar('TestPlugin2500cb:ondata', cb)
+        },
+        return_none: true
+      }
+    })
+    await assert.rejects(
+      nako.runAsync(
+        '●Fとは\n「グローバルF」を戻す\nここまで\n' +
+        '●テストとは\n' +
+        '　汚染実行。\n' +
+        '　「F」で受信時。\n' +
+        'ここまで\n' +
+        'テスト()。', 'main.nako3'),
+      /『受信時』に実行できない関数が指定されました/)
+  })
+  it('コールバックを取る命令に非関数を渡すと登録時に命令名入りのエラーになる #2500', async () => {
+    const nako = new NakoCompiler()
+    // 非関数値(0)の直接指定・解決できない関数名の文字列指定の双方で登録時エラーになる
+    await assert.rejects(nako.runAsync('0で[1,2]を配列カスタムソート。', 'main.nako3'), /『配列カスタムソート』に実行できない関数が指定されました/)
+    await assert.rejects(nako.runAsync('「存在しない関数XYZ」で[1,2]を配列カスタムソート。', 'main.nako3'), /『配列カスタムソート』に実行できない関数が指定されました/)
+    await assert.rejects(nako.runAsync('0を動時。', 'main.nako3'), /『動時』に実行できない関数が指定されました/)
+    await assert.rejects(nako.runAsync('0を({})の失敗時。', 'main.nako3'), /『失敗時』に実行できない関数が指定されました/)
+    await assert.rejects(nako.runAsync('0を1秒後。', 'main.nako3'), /『秒後』に実行できない関数が指定されました/)
+    await assert.rejects(nako.runAsync('0を1秒毎。', 'main.nako3'), /『秒毎』に実行できない関数が指定されました/)
+    await assert.rejects(nako.runAsync('0を[1]へ配列関数適用。', 'main.nako3'), /『配列関数適用』に実行できない関数が指定されました/)
+  })
+  it('__execはfalsyなローカル変数が同名のグローバル関数を遮蔽するとエラーになる #2500', async () => {
+    const nako = new NakoCompiler()
+    const g = await nako.runAsync('', 'main.nako3')
+    // falsy なローカルがグローバル関数を遮蔽する場合、__exec は関数でないためエラーになる(意図的挙動変更の固定)
+    g.__varslist[1].set('main__F', () => 'global fn')
+    g.__locals.set('F', 0)
+    assert.throws(() => g.__exec('F', []), /システム関数でエイリアスの指定ミス:F/)
+    // 関数以外の truthy な値が見つかった場合も同じエラーになる
+    g.__locals.set('F', 'not a function')
+    assert.throws(() => g.__exec('F', []), /システム関数でエイリアスの指定ミス:F/)
+    // ローカルが undefined なら遮蔽せずグローバル関数を実行する
+    g.__locals.set('F', undefined)
+    assert.strictEqual(g.__exec('F', []), 'global fn')
+  })
+  it('関数内のローカル変数が他の関数やトップレベルに漏洩しない #2534', async () => {
+    // pureでない命令(ここではJSオブジェクト取得)を呼んだ関数のローカル変数が
+    // __varslist[2] / __self.__locals に残留せず、後続の関数の参照を遮蔽しない
+    // 先の関数が設定した falsy な値でも遮蔽しない
+    await cmp('●テストA\n　A=0\n　「A」のJSオブジェクト取得を戻す\nここまで\n●テストB\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテストA()。\nテストB()を表示', '99')
+    await cmp('●テストA\n　A=偽\n　「A」のJSオブジェクト取得を戻す\nここまで\n●テストB\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテストA()。\nテストB()を表示', '99')
+    await cmp('●テストA\n　A=「」\n　「A」のJSオブジェクト取得を戻す\nここまで\n●テストB\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテストA()。\nテストB()を表示', '99')
+    await cmp('●テストA\n　A=NULL\n　「A」のJSオブジェクト取得を戻す\nここまで\n●テストB\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテストA()。\nテストB()を表示', '99')
+    // トップレベルからも残留したローカル変数は見えない
+    await cmp('●テストA\n　A=0\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテストA()。\n「A」のJSオブジェクト取得を表示', '99')
+    // グローバル変数も無ければ null (JSオブジェクト取得のデフォルト値) を返す
+    await cmp('●テストA\n　A=0\n　「A」のJSオブジェクト取得を戻す\nここまで\nテストA()。\n「A」のJSオブジェクト取得を表示', 'null')
+    // 関数内では従来どおり自身のローカル変数が見える(回帰確認)
+    await cmp('●テストA\n　A=0\n　「A」のJSオブジェクト取得を戻す\nここまで\nA=99\nテストA()を表示', '0')
+  })
+  it('入れ子の関数呼び出しで内側のローカル変数が外側に漏洩しない #2534', async () => {
+    // 内側の関数でpureでない命令を呼んでも、外側の関数のその後の探索に内側のローカル変数は見えない
+    await cmp('●内側\n　B=0\n　「B」のJSオブジェクト取得を戻す\nここまで\n●外側\n　内側()。\n　「B」のJSオブジェクト取得を戻す\nここまで\nB=99\n外側()を表示', '99')
+  })
+  it('ローカル変数の同期後に__varslist[2]と__localsへ残留しない #2534', async () => {
+    // falsyな値でもプレフィックス無しキーが __varslist[2] へ書き込まれないことを
+    // Map.has で構造的に検証する (falsy値の__findVar経由の遮蔽確認は #2500 の修正後に実効性を持つ)
+    const nako = new NakoCompiler()
+    const g = await nako.runAsync('●テストA\n　A=0\n　「A」のJSオブジェクト取得を戻す\nここまで\nテストA()。', 'main.nako3')
+    // 関数のローカル変数がトップレベルのスコープ __varslist[2] に書き込まれない
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    // __self.__locals も呼び出し前の値に復元され、関数のスコープを指したまま残らない
+    assert.strictEqual(g.__locals.has('A'), false)
+    assert.strictEqual(g.__findVar('A', 'def'), 'def')
+  })
+  it('VOID型(return_none)のpureでない命令でもローカル変数が漏洩しない #2534', async () => {
+    // 値を返さない命令は genVoidCallCode(文レベルのtry/finally)を通るため、そちらの経路も固定する
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      ローカル書込: {
+        type: 'func', josi: [['を']], pure: false, return_none: true,
+        fn: (v, sys) => { sys.__locals.set('W', v) }
+      }
+    })
+    const g = await nako.runAsync('●テストA\n　A=0\n　42をローカル書込。\nここまで\n●テストB\n　「W」のJSオブジェクト取得を戻す\nここまで\nテストA()。\nテストB()を表示。', 'main.nako3')
+    // テストBからはテストAのローカル変数もプラグインが書き込んだ値も見えない
+    assert.strictEqual(g.log, 'null')
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.strictEqual(g.__varslist[2].has('W'), false)
+    assert.strictEqual(g.__locals.has('A'), false)
+    assert.strictEqual(g.__locals.has('W'), false)
+  })
+  it('pureでない命令が__localsへ書き込んだ値が呼出元のローカル変数に反映される #2534', async () => {
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      ローカル書込: {
+        type: 'func', josi: [['を']], pure: false, return_none: true,
+        fn: (v, sys) => { sys.__locals.set('W', v) }
+      }
+    })
+    const g = await nako.runAsync('●テストA\n　42をローカル書込。\n　Wを戻す\nここまで\nテストA()を表示。', 'main.nako3')
+    assert.strictEqual(g.log, '42')
+  })
+  it('pureでない命令による__localsへのdeleteが呼出元のローカル変数に直接作用する #2534', async () => {
+    // エイリアス経路では sys.__locals の破壊的操作が呼出元スコープへ直接作用する(仕様)
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      ローカル削除: {
+        type: 'func', josi: [['の']], pure: false, return_none: true,
+        fn: (v, sys) => { sys.__locals.delete(v) }
+      }
+    })
+    const g = await nako.runAsync('●テストA\n　A=5\n　「A」のローカル削除。\n　「A」のJSオブジェクト取得を戻す\nここまで\nテストA()を表示。', 'main.nako3')
+    // delete後はローカル変数Aが消える(JSオブジェクト取得はデフォルト値nullを返す)
+    assert.strictEqual(g.log, 'null')
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.strictEqual(g.__locals.has('A'), false)
+  })
+  it('pureでない命令が例外を投げても__localsが復元され変数が残留しない #2534', async () => {
+    const nako = new NakoCompiler()
+    try {
+      await nako.runAsync('●テストA\n　A=0\n　「XXX」を[]でJS関数実行\nここまで\nテストA()。', 'main.nako3')
+      assert.fail('実行時エラーになるはずです')
+    } catch (err) {
+      // JS関数実行が投げる実行時エラー(想定内のエラーであることを固定)
+      assert.ok(err instanceof Error)
+    }
+    const g = nako.__globalObj
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.strictEqual(g.__locals.has('A'), false)
+    assert.strictEqual(g.__findVar('A', 'def'), 'def')
+  })
+  it('pureでない命令を同一関数内で複数回呼んでも各呼出のローカル同期が独立して機能する #2534', async () => {
+    // loopId による一意採番で const の重複宣言(SyntaxError)が起きないことの回帰保護
+    // VOID型と値返し型の呼出を混在させる
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      ローカル書込: {
+        type: 'func', josi: [['を']], pure: false, return_none: true,
+        fn: (v, sys) => { sys.__locals.set('W', v) }
+      }
+    })
+    const g = await nako.runAsync('●テストA\n　A=0\n　42をローカル書込。\n　B=「A」のJSオブジェクト取得\n　1をローカル書込。\n　Wを戻す\nここまで\nテストA()を表示。', 'main.nako3')
+    // 3箇所の呼出それぞれで同期が機能し、W=1・B=0 が正しく読める
+    assert.strictEqual(g.log, '1')
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.strictEqual(g.__varslist[2].has('B'), false)
+    assert.strictEqual(g.__varslist[2].has('W'), false)
+    assert.strictEqual(g.__locals.has('W'), false)
+  })
+  it('プラグインが__locals自体を差し替えても書き戻しと「それ」のスキップが機能する #2534', async () => {
+    // プラグインが sys.__locals オブジェクトを差し替えた場合、
+    // 読み戻しは差し替え後の __locals から呼出時点のスコープへ行われる。
+    // ただし「それ」は関数の実行結果を受け取るため書き戻し対象外。
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      ローカル差替: {
+        type: 'func', josi: [], pure: false, return_none: true,
+        fn: (sys) => { sys.__locals = new Map([['A', 42], ['それ', 'X']]) }
+      }
+    })
+    const g = await nako.runAsync('●テストA\n　A=0\n　それ=「元」\n　ローカル差替。\n　「{A}/{それ}」を戻す\nここまで\nテストA()を表示。', 'main.nako3')
+    // 差し替えた __locals の A=42 が呼出元スコープへ書き戻され、それ=「元」は「X」で上書きされない
+    assert.strictEqual(g.log, '42/元')
+  })
+  it('プラグインが__localsを宣言済みキーを持たないMapに差し替えても既存変数が維持される #2534', async () => {
+    // 差し替え後のMapに宣言済みキーが無い場合、hasガードにより書き戻しは行われず、
+    // 既存のローカル変数が undefined で実体化されず維持されることを固定する
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      ローカル空差替: {
+        type: 'func', josi: [], pure: false, return_none: true,
+        fn: (sys) => { sys.__locals = new Map() }
+      }
+    })
+    const g = await nako.runAsync('●テストA\n　A=5\n　ローカル空差替。\n　Aを戻す\nここまで\nテストA()を表示。', 'main.nako3')
+    assert.strictEqual(g.log, '5')
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.ok(g.__locals instanceof Map)
+  })
+  it('プラグインが__localsをMap以外に差し替えてもエラーにならず復元される #2534', async () => {
+    // Map でない値への差し替えでは書き戻し自体をスキップし、__locals は復元される
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      ローカル破壊: {
+        type: 'func', josi: [], pure: false, return_none: true,
+        fn: (sys) => { sys.__locals = 'not a map' }
+      }
+    })
+    const g = await nako.runAsync('●テストA\n　A=0\n　ローカル破壊。\n　Aを戻す\nここまで\nテストA()を表示。', 'main.nako3')
+    assert.strictEqual(g.log, '0')
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.ok(g.__locals instanceof Map)
+    assert.strictEqual(g.__locals.has('A'), false)
+  })
+  it('プラグインが__localsをMap以外に差し替えて例外を投げても元の例外が伝播する #2534', async () => {
+    // 書き戻しが TypeError になって元の例外を置換しないことの回帰保護
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      破壊例外: {
+        type: 'func', josi: [], pure: false, return_none: true,
+        fn: (sys) => { sys.__locals = 'not a map'; throw new Error('plugin error') }
+      }
+    })
+    try {
+      await nako.runAsync('●テストA\n　破壊例外。\nここまで\nテストA()。', 'main.nako3')
+      assert.fail('実行時エラーになるはずです')
+    } catch (err) {
+      // プラグインが投げた元のエラーメッセージが保全される(書き戻しのTypeErrorで置換されない)
+      assert.ok(err instanceof Error)
+      assert.match(err.message, /plugin error/)
+    }
+    const g = nako.__globalObj
+    assert.ok(g.__locals instanceof Map)
+    assert.strictEqual(g.__findVar('A', 'def'), 'def')
+  })
+  it('プラグインが__localsを例外を投げるMapに差し替えて例外を投げても元の例外が伝播する #2534', async () => {
+    // 例外発生中は書き戻し自体を行わない(呼出完了フラグ)ため、
+    // 書き戻しの失敗が呼出元の例外を置換しないことを確認
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      破壊例外2: {
+        type: 'func', josi: [], pure: false, return_none: true,
+        fn: (sys) => {
+          const m = new Map()
+          m.has = () => { throw new Error('has fail') }
+          sys.__locals = m
+          throw new Error('plugin error')
+        }
+      }
+    })
+    try {
+      await nako.runAsync('●テストA\n　A=0\n　破壊例外2。\nここまで\nテストA()。', 'main.nako3')
+      assert.fail('実行時エラーになるはずです')
+    } catch (err) {
+      // 書き戻しの失敗('has fail')ではなく、プラグインが投げた元の例外が伝播すること
+      assert.ok(err instanceof Error)
+      assert.match(err.message, /plugin error/)
+      assert.doesNotMatch(err.message, /has fail/)
+    }
+    const g = nako.__globalObj
+    assert.ok(g.__locals instanceof Map)
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.strictEqual(g.__findVar('A', 'def'), 'def')
+  })
+  it('プラグインが__localsを差し替えて例外を投げた場合は書き戻し自体が行われない #2534', async () => {
+    // 呼出が例外終了した場合は書き戻しをスキップする(完了フラグ)。
+    // 差し替えたMapへの書き込みが呼出元スコープへ反映されないことを固定する
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      差替例外: {
+        type: 'func', josi: [], pure: false, return_none: true,
+        fn: (sys) => { sys.__locals = new Map([['A', 42]]); throw new Error('plugin error') }
+      }
+    })
+    try {
+      await nako.runAsync('●テストA\n　A=0\n　差替例外。\nここまで\nテストA()。', 'main.nako3')
+      assert.fail('実行時エラーになるはずです')
+    } catch (err) {
+      assert.ok(err instanceof Error)
+      assert.match(err.message, /plugin error/)
+    }
+    const g = nako.__globalObj
+    // 差し替えMapの A=42 は呼出元スコープへ書き戻されない
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.ok(g.__locals instanceof Map)
+    assert.strictEqual(g.__locals.has('A'), false)
+    assert.strictEqual(g.__findVar('A', 'def'), 'def')
+  })
+  it('プラグインが__localsを例外を投げるMapに差し替えて正常終了した場合は書き戻しの失敗が伝播する #2534', async () => {
+    // 呼出が正常終了した経路では書き戻しを実行するため、差し替えMapの
+    // has/get が失敗した場合はそのエラーが呼出側へ伝播する(黙殺しない)
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      破壊正常: {
+        type: 'func', josi: [], pure: false, return_none: true,
+        fn: (sys) => {
+          const m = new Map()
+          m.has = () => { throw new Error('has fail') }
+          sys.__locals = m
+        }
+      }
+    })
+    try {
+      await nako.runAsync('●テストA\n　A=0\n　破壊正常。\nここまで\nテストA()。', 'main.nako3')
+      assert.fail('実行時エラーになるはずです')
+    } catch (err) {
+      // 書き戻しの失敗がエラーとして検出できること
+      assert.ok(err instanceof Error)
+      assert.match(err.message, /has fail/)
+    }
+    const g = nako.__globalObj
+    assert.ok(g.__locals instanceof Map)
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+  })
+  it('pureでない命令の実行中に呼ばれた関数内でもローカル変数の同期が独立して機能する #2534', async () => {
+    // 「実行」(pure:false)の呼出ウィンドウ内で呼ばれる関数の中で、
+    // さらにpureでない命令を呼ぶ入れ子ケース。内側の同期が外側の __locals を
+    // 正しく保存・復元し、どちらのローカル変数も漏洩しないことを確認する。
+    const nako = new NakoCompiler()
+    const g = await nako.runAsync(
+      '●内側\n' +
+      '　B=0\n' +
+      '　「B」のJSオブジェクト取得を戻す\n' +
+      'ここまで\n' +
+      '●外側\n' +
+      '　A=1\n' +
+      '　R=「内側」を実行。\n' +
+      '　「{R}/{A}」を戻す\n' +
+      'ここまで\n' +
+      '外側()を表示。', 'main.nako3')
+    // 内側は自身の B=0 を返し、外側は自身の A=1 と R=0 を返す
+    assert.strictEqual(g.log, '0/1')
+    // 外側・内側どちらのローカル変数もトップレベル・__locals に残留しない
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.strictEqual(g.__varslist[2].has('B'), false)
+    assert.strictEqual(g.__locals.has('A'), false)
+    assert.strictEqual(g.__locals.has('B'), false)
+  })
+  it('クロージャを持つ無名関数内からpureでない命令を呼んでもローカル変数が漏洩しない #2534', async () => {
+    // 外側のローカル変数を参照する無名関数(varslistSet.length > 4 でusesClosure)の中で
+    // pureでない命令を呼んでも、無名関数のローカル変数は __varslist[2] / __locals に残留しない
+    const nako = new NakoCompiler()
+    const g = await nako.runAsync(
+      '●外側\n' +
+      '　X=1\n' +
+      '　inner = 関数()\n' +
+      '　　B=5\n' +
+      '　　「B」のJSオブジェクト取得 + X を戻す\n' +
+      '　ここまで\n' +
+      '　innerを戻す\n' +
+      'ここまで\n' +
+      'F=外側()\n' +
+      'F()を表示。', 'main.nako3')
+    // inner内のローカル変数B=5が__locals経由で見え、外側のX=1はクロージャ経由で見える
+    assert.strictEqual(g.log, '6')
+    assert.strictEqual(g.__varslist[2].has('B'), false)
+    assert.strictEqual(g.__locals.has('B'), false)
+    assert.strictEqual(g.__findVar('B', 'def'), 'def')
+  })
+  it('文レベルのpureでない命令の引数式にawaitがあっても同期ウィンドウを跨がない #2534', async () => {
+    // VOID型のpureでない命令の引数位置に非同期呼出があると、引数評価が
+    // __locals の差し替え期間(同期ウィンドウ)に入ってしまう経路があった。
+    // 引数は差し替え前に評価されるため、引数内の非同期命令から呼出元のローカル変数は見えない
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      非同期取得: {
+        type: 'func', josi: [], pure: false, asyncFn: true,
+        fn: async (sys) => { return sys.__findVar('A', 'none') }
+      },
+      ローカル書込: {
+        type: 'func', josi: [['を']], pure: false, return_none: true,
+        fn: (v, sys) => { sys.__locals.set('W', v) }
+      }
+    })
+    const g = await nako.runAsync(
+      '●テストA\n' +
+      '　A=5\n' +
+      '　非同期取得()をローカル書込。\n' +
+      '　Wを戻す\n' +
+      'ここまで\n' +
+      'テストA()を表示。', 'main.nako3')
+    // 引数の非同期取得からは呼出元のローカル変数Aは見えず 'none' が書き込まれる
+    assert.strictEqual(g.log, 'none')
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.strictEqual(g.__varslist[2].has('W'), false)
+    assert.strictEqual(g.__locals.has('A'), false)
+    assert.strictEqual(g.__locals.has('W'), false)
+  })
+  it('文レベルのpureでない命令の引数位置のpureでない命令も正しく同期される #2534', async () => {
+    // 引数式内の pure でない命令は自身の同期ウィンドウを持つ。
+    // 引数ホイスト後もネストした呼出から見えるスコープが変わらないことを固定する
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      ローカル書込: {
+        type: 'func', josi: [['を']], pure: false, return_none: true,
+        fn: (v, sys) => { sys.__locals.set('W', v) }
+      }
+    })
+    const g = await nako.runAsync(
+      '●テストA\n' +
+      '　A=5\n' +
+      '　(「A」のJSオブジェクト取得)をローカル書込。\n' +
+      '　Wを戻す\n' +
+      'ここまで\n' +
+      'テストA()を表示。', 'main.nako3')
+    // 引数位置の JSオブジェクト取得 は自身の同期ウィンドウで A=5 を観測する
+    assert.strictEqual(g.log, '5')
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.strictEqual(g.__varslist[2].has('W'), false)
+    assert.strictEqual(g.__locals.has('A'), false)
+    assert.strictEqual(g.__locals.has('W'), false)
+  })
+  it('特殊名のローカル変数も差し替えMapから書き戻される #2534', async () => {
+    // 《今日から明日》のような特殊名変数も varsSet.names に含まれるため、
+    // プラグインが __locals を別 Map に差し替えた場合の書き戻し対象になる
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      差替: {
+        type: 'func', josi: [], pure: false, return_none: true,
+        fn: (sys) => { sys.__locals = new Map([['《今日から明日》', 99], ['A', 88]]) }
+      }
+    })
+    const g = await nako.runAsync(
+      '●テストA\n' +
+      '　《今日から明日》=1\n' +
+      '　A=2\n' +
+      '　差替。\n' +
+      '　《今日から明日》を表示。\n' +
+      '　Aを表示。\n' +
+      'ここまで\n' +
+      'テストA()。', 'main.nako3')
+    assert.strictEqual(g.log, '99\n88')
+    assert.strictEqual(g.__varslist[2].has('《今日から明日》'), false)
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.strictEqual(g.__locals.has('《今日から明日》'), false)
+    assert.strictEqual(g.__locals.has('A'), false)
+  })
+  it('reset後もasyncFn命令にはローカル変数同期が生成されず外側スコープが観測されない #2534', async () => {
+    // asyncFn のプラグイン命令は登録時に pure=true に強制されるが、スナップショットは
+    // pure=true 化前に取られるため reset() で pure=false に戻る (既存の順序バグ)。
+    // このとき関数内からの呼出にローカル変数同期コードが生成されると、同期ウィンドウが
+    // await を跨ぎ、待機中に __locals が外側関数のローカルMapを指したままになる。
+    // コード生成側でも asyncFn を同期対象から除外して防御する。
+    const nako = new NakoCompiler()
+    nako.addPlugin({
+      meta: { type: 'const', value: { pluginName: 'TestPlugin2534', nakoVersion: '3.6.0' } },
+      非同期取得: {
+        type: 'func', josi: [], pure: false, asyncFn: true,
+        fn: async (sys) => { return sys.__findVar('A', 'none') }
+      }
+    })
+    nako.reset()
+    // 既存バグがある場合 reset() で pure=false に戻るが、プラグインマネージャ側が
+    // 根本修正され pure=true のままになっても、!asyncFn 条件により同期は生成されない。
+    const g = await nako.runAsync(
+      '●外側\n' +
+      '　A=777\n' +
+      '　非同期取得。\n' +
+      '　それを戻す\n' +
+      'ここまで\n' +
+      '外側()を表示。', 'main.nako3')
+    // 同期ウィンドウが生成されないため、非同期取得から外側のローカルAは見えない
+    assert.strictEqual(g.log, 'none')
+    assert.strictEqual(g.__varslist[2].has('A'), false)
+    assert.strictEqual(g.__locals.has('A'), false)
   })
 })

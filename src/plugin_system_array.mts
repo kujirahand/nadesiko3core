@@ -4,6 +4,9 @@
  * 配列操作・二次元配列処理の命令を定義する。
  * このファイルは単独のプラグインではなく、plugin_system.mts へマージされる。(#2351)
  */
+// 配列連番作成で生成できる要素数の上限(意図しない巨大配列によるメモリ枯渇を防ぐ)
+const MAX_RANGE_LENGTH = 1000000
+
 export default {
   // @配列操作
   '配列結合': { // @配列Aを文字列Sでつなげて文字列で返す // @はいれつけつごう
@@ -79,13 +82,21 @@ export default {
     type: 'func',
     josi: [['の'], ['に', 'へ'], ['を']],
     pure: true,
-    fn: function(a: any, i: number, b: any) {
+    fn: function(a: any, i: any, b: any) {
       if (a instanceof Array && b instanceof Array) { // 配列ならOK
-        for (let j = 0; j < b.length; j++) { a.splice(i + j, 0, b[j]) }
+        let pos = Number(i) // i が数値文字列でも i + j が文字列連結にならないようにする
+        if (Number.isNaN(pos)) { pos = 0 } // 数値に変換できない場合(「abc」等)は先頭に挿入する
+        // 自己挿入・別名参照でも無限ループしないよう、挿入元の要素列を先に固定する (#2470)
+        const n = b.length
+        const src = Array.from({ length: n })
+        for (let k = 0; k < n; k++) { src[k] = b[k] }
+        // i+j を splice ごとに再評価する既存仕様(負インデックスで結果が変わる)と
+        // 引数個数制限回避のため、要素ごとの splice を維持する
+        for (let j = 0; j < src.length; j++) { a.splice(pos + j, 0, src[j]) }
 
         return a
       }
-      throw new Error('『配列一括挿入』で配列以外の要素への挿入。')
+      throw new Error('『配列一括挿入』の引数が配列ではありません。')
     }
   },
   '配列ソート': { // @配列Aをソートして返す(A自体を変更) // @はいれつそーと
@@ -133,10 +144,7 @@ export default {
     josi: [['で'], ['の', 'を']],
     pure: false,
     fn: function(f: any, a: any, sys: any) {
-      let ufunc = f
-      if (typeof f === 'string') {
-        ufunc = sys.__findFunc(f, '配列カスタムソート')
-      }
+      const ufunc = sys.__findFunc(f, '配列カスタムソート') // 文字列指定なら関数に変換
       if (a instanceof Array) {
         return a.sort(ufunc)
       }
@@ -149,7 +157,7 @@ export default {
     pure: true,
     fn: function(a: any) {
       if (a instanceof Array) { return a.reverse() } // 配列ならOK
-      throw new Error('『配列ソート』で配列以外が指定されました。')
+      throw new Error('『配列逆順』で配列以外が指定されました。')
     }
   },
   '配列シャッフル': { // @配列Aをシャッフルして返す。Aを書き換える // @はいれつしゃっふる
@@ -197,7 +205,9 @@ export default {
       }
       // 辞書型変数のとき
       if (a instanceof Object && typeof (i) === 'string') { // 辞書型変数も許容
-        if (a[i]) {
+        // 値が falsy でもキーが存在すれば削除する。継承プロパティは対象外。(#2471)
+        // Object.hasOwn は既定 lib が es2021 系のため型定義がなく、hasOwnProperty を使う
+        if (Object.prototype.hasOwnProperty.call(a, i)) {
           const old = a[i]
           delete a[i]
           return old
@@ -383,9 +393,28 @@ export default {
     type: 'func',
     josi: [['から'], ['までの', 'まで', 'の']],
     pure: true,
-    fn: function(a: number, b: number) {
+    fn: function(a: any, b: any) {
+      // なでしこは動的型付けのため、DOM値やCSV由来の数値文字列が渡ることがある。
+      // 数値へ変換してから検証することで、従来「先頭要素だけ文字列で残りが数値」に
+      // なっていた不揃いな挙動も解消し、[1,2,3]のように揃った配列を返す
+      a = (typeof a === 'number') ? a : (typeof a === 'string' && a.trim() !== '' ? Number(a) : NaN)
+      b = (typeof b === 'number') ? b : (typeof b === 'string' && b.trim() !== '' ? Number(b) : NaN)
+      // 非有限値や、2の53乗-1(安全整数の最大値)を超える値は、i++でループが
+      // 進展しなくなり終了しなくなるため先に弾く。小数の範囲(1.5から3.5までなど)は
+      // 従来どおり許可するため、整数かどうかではなく絶対値の大きさだけを見る。
+      if (!Number.isFinite(a) || !Number.isFinite(b)) {
+        throw new Error('『配列連番作成』には有限の数値を指定してください。')
+      }
+      if (Math.abs(a) > Number.MAX_SAFE_INTEGER || Math.abs(b) > Number.MAX_SAFE_INTEGER) {
+        throw new Error('『配列連番作成』には絶対値が2の53乗-1(9007199254740991)以下の数値を指定してください。')
+      }
+      // 要素数は式で事前算出せず、生成しながら数える。2の52乗付近ではi++の刻み幅が
+      // 1にならないことがあり、b-aから求める式では実際の反復回数と食い違うため
       const result: number[] = []
       for (let i = a; i <= b; i++) {
+        if (result.length >= MAX_RANGE_LENGTH) {
+          throw new Error('『配列連番作成』で生成される配列の要素数が多すぎます。')
+        }
         result.push(i)
       }
       return result
@@ -434,8 +463,7 @@ export default {
     josi: [['を'], ['へ', 'に']],
     pure: true,
     fn: function(f: any, a: any, sys: any) {
-      let ufunc: any = f
-      if (typeof f === 'string') { ufunc = sys.__findFunc(f, '配列関数適用') }
+      const ufunc: any = sys.__findFunc(f, '配列関数適用') // 文字列指定なら関数に変換
       const result: any = []
       for (const e of a) {
         result.push(ufunc(e))
@@ -456,8 +484,7 @@ export default {
     josi: [['で', 'の'], ['を', 'について']],
     pure: true,
     fn: function(f: any, a: any, sys: any) {
-      let ufunc: any = f
-      if (typeof f === 'string') { ufunc = sys.__findFunc(f, '配列フィルタ') }
+      const ufunc: any = sys.__findFunc(f, '配列フィルタ') // 文字列指定なら関数に変換
       const result: any = []
       for (const e of a) {
         if (ufunc(e)) { result.push(e) }
@@ -603,7 +630,9 @@ export default {
     fn: function(a: any, i: any) {
       if (!(a instanceof Array)) { throw new Error('『表重複削除』には配列を指定する必要があります。') }
       const res: any[] = []
-      const keys:{[key: string]: boolean} = {}
+      // #2474: toStringや__proto__等の継承プロパティを既出と誤判定しないようnullプロトタイプの辞書を使う。
+      // この辞書は関数内だけで使い、なでしこの内部処理へは渡さない。
+      const keys:{[key: string]: boolean} = Object.create(null)
       for (let n = 0; n < a.length; n++) {
         const k = a[n][i]
         if (undefined === keys[k]) {

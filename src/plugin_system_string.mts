@@ -6,6 +6,33 @@
  */
 import { NakoSystem } from './plugin_api.mjs'
 
+const MAX_COUNT = 1000000
+
+// 有限な値を検証して整数に丸める(Math.trunc)。非有限・上限超過はエラーにする。
+function normalizeBoundedCount(v: any, cmd: string, unit: string): number {
+  const raw = Number(v)
+  const n = Math.trunc(raw)
+  if (!Number.isFinite(raw)) {
+    throw new Error(`『${cmd}』の${unit}には有限の整数を指定してください。`)
+  }
+  if (n > MAX_COUNT) {
+    throw new Error(`『${cmd}』の${unit}が大きすぎます。`)
+  }
+  return n
+}
+
+function normalizePadWidth(a: any, cmd: string): number {
+  return normalizeBoundedCount(a, cmd, '桁数')
+}
+
+// 繰り返し回数を検証して整数に丸める。負数はエラーにする。
+function normalizeRepeatCount(cnt: any, cmd: string): number {
+  if (Number(cnt) < 0) {
+    throw new Error(`『${cmd}』の回数には0以上の整数を指定してください。`)
+  }
+  return normalizeBoundedCount(cnt, cmd, '回数')
+}
+
 export default {
   // @文字列処理
   '文字数': { // @文字列Vの文字数を返す // @もじすう
@@ -167,9 +194,15 @@ export default {
     josi: [['を', 'の'], ['で']],
     pure: true,
     fn: function(v: any, cnt: number): string {
-      let s = ''
-      for (let i = 0; i < cnt; i++) { s += String(v) }
-      return s
+      cnt = normalizeRepeatCount(cnt, 'リフレイン')
+      try {
+        return String(v).repeat(cnt)
+      } catch (e) {
+        if (e instanceof RangeError) {
+          throw new Error('『リフレイン』の結果が大きすぎます。')
+        }
+        throw e
+      }
     }
   },
   '出現回数': { // @文字列SにAが何回出現するか数える // @しゅつげんかいすう
@@ -179,6 +212,8 @@ export default {
     fn: function(s: string, a: string) {
       s = '' + s
       a = '' + a
+      // 検索語が空文字列のときは0回とする(split(a).length - 1では-1や文字数-1を返すため) #2482
+      if (a === '') { return 0 }
       return s.split(a).length - 1
     }
   },
@@ -491,12 +526,12 @@ export default {
       })
     }
   },
-  '英数記号半角変換': { // @文字列Sの記号文字を半角に変換 // @えいすうきごうはんかくへんかん
+  '英数記号半角変換': { // @文字列Sの全角英数記号文字を半角に変換 // @えいすうきごうはんかくへんかん
     type: 'func',
     josi: [['の', 'を']],
     pure: true,
     fn: function(s: string): string {
-      return String(s).replace(/[\u3000\uFF00-\uFF5F]/g, function(v: string) {
+      return String(s).replace(/[\u3000\uFF01-\uFF5E]/g, function(v: string) {
         if (v === '　') { return ' ' } // 全角スペース(U+3000)を半角スペース(U+0020)
         return String.fromCharCode(v.charCodeAt(0) - 0xFEE0)
       })
@@ -512,21 +547,27 @@ export default {
       const han1 = sys.__getSysVar('半角カナ一覧')
       const zen2 = sys.__getSysVar('全角カナ濁音一覧')
       const han2 = sys.__getSysVar('半角カナ濁音一覧')
+      // 濁音・半濁音は、変換表に含まれる2文字ペアでのみ全角1文字に変換する
+      const zen2Map = new Map<string, string>()
+      for (let k = 0; k + 1 < han2.length; k += 2) {
+        const zen = zen2.charAt(k / 2)
+        if (zen !== '') { zen2Map.set(han2.substring(k, k + 2), zen) }
+      }
       let str = ''
       let i = 0
       while (i < s.length) {
-        // 濁点の変換
-        const c2 = s.substring(i, i + 2)
-        const n2 = (c2.length === 2) ? han2.indexOf(c2) : -1
-        if (n2 >= 0) {
-          str += zen2.charAt(n2 / 2)
+        // 濁点の変換(有効な2文字ペアのみ)
+        const z2 = zen2Map.get(s.substring(i, i + 2))
+        if (z2 !== undefined) {
+          str += z2
           i += 2
           continue
         }
         // 濁点以外の変換
         const c = s.charAt(i)
         const n = han1.indexOf(c)
-        if (n >= 0) {
+        // 対応する全角文字がない単独の濁点・半濁点などは、そのまま残す
+        if (n >= 0 && n < zen1.length) {
           str += zen1.charAt(n)
           i++
           continue
@@ -583,9 +624,9 @@ export default {
     }
   },
   '全角カナ一覧': { type: 'const', value: 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンァィゥェォャュョッ、。ー「」' }, // @ぜんかくかないちらん
-  '全角カナ濁音一覧': { type: 'const', value: 'ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ' }, // @ぜんかくかなだくおんいちらん
+  '全角カナ濁音一覧': { type: 'const', value: 'ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポヴ' }, // @ぜんかくかなだくおんいちらん
   '半角カナ一覧': { type: 'const', value: 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝｧｨｩｪｫｬｭｮｯ､｡ｰ｢｣ﾞﾟ' }, // @はんかくかないちらん
-  '半角カナ濁音一覧': { type: 'const', value: 'ｶﾞｷﾞｸﾞｹﾞｺﾞｻﾞｼﾞｽﾞｾﾞｿﾞﾀﾞﾁﾞﾂﾞﾃﾞﾄﾞﾊﾞﾋﾞﾌﾞﾍﾞﾎﾞﾊﾟﾋﾟﾌﾟﾍﾟﾎﾟ' }, // @はんかくかなだくおんいちらん
+  '半角カナ濁音一覧': { type: 'const', value: 'ｶﾞｷﾞｸﾞｹﾞｺﾞｻﾞｼﾞｽﾞｾﾞｿﾞﾀﾞﾁﾞﾂﾞﾃﾞﾄﾞﾊﾞﾋﾞﾌﾞﾍﾞﾎﾞﾊﾟﾋﾟﾌﾟﾍﾟﾎﾟｳﾞ' }, // @はんかくかなだくおんいちらん
 
   // @指定形式
   '通貨形式': { // @数値Vを三桁ごとにカンマで区切る // @つうかけいしき
@@ -601,15 +642,11 @@ export default {
     josi: [['を'], ['で']],
     pure: true,
     fn: function(v: any, a: any): string {
+      a = normalizePadWidth(a, 'ゼロ埋')
       v = String(v)
-      let z = '0'
-      for (let i = 0; i < a; i++) { z += '0' }
-      a = parseInt(a)
       const vLength = Array.from(v).length
-      if (a < vLength) { a = vLength }
-      const s = z + String(v)
-      const chars = Array.from(s)
-      return chars.slice(chars.length - a).join('')
+      if (a <= vLength) { return v }
+      return '0'.repeat(a - vLength) + v
     }
   },
   '空白埋': { // @文字列VをA桁の空白で埋める // @くうはくうめ
@@ -617,15 +654,11 @@ export default {
     josi: [['を'], ['で']],
     pure: true,
     fn: function(v: any, a: any): string {
+      a = normalizePadWidth(a, '空白埋')
       v = String(v)
-      let z = ' '
-      for (let i = 0; i < a; i++) { z += ' ' }
-      a = parseInt(a)
       const vLength = Array.from(v).length
-      if (a < vLength) { a = vLength }
-      const s = z + String(v)
-      const chars = Array.from(s)
-      return chars.slice(chars.length - a).join('')
+      if (a <= vLength) { return v }
+      return ' '.repeat(a - vLength) + v
     }
   },
 
@@ -662,7 +695,7 @@ export default {
     josi: [['を', 'が']],
     pure: true,
     fn: function(s: any): boolean {
-      const checkerRE = /^[+\-＋－]?([0-9０-９]*)(([.．][0-9０-９]+)?|([.．][0-9０-９]+[eEｅＥ][+\-＋－]?[0-9０-９]+)?)$/
+      const checkerRE = /^[+\-＋－]?(([0-9０-９]+([.．][0-9０-９]*)?)|([.．][0-9０-９]+))([eEｅＥ][+\-＋－]?[0-9０-９]+)?$/
       if (s === '') { return false } // 空文字列はfalse
       return String(s).match(checkerRE) !== null
     }

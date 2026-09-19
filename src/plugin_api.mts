@@ -23,7 +23,7 @@ export interface NakoSystem {
   __getSysVar(name: string, defaultValue?: NakoValue): any; // システム変数の参照
   __setSysVar(name: string, value: NakoValue): void; // システム変数の設定
   __findVar(name: NakoCallback, defaultValue?: NakoValue): any; // 変数を探す
-  __findFunc(nameStr: string, parentFunc: string): NakoCallback | any;
+  __findFunc(nameStr: any, parentFunc: string): NakoCallback | any;
   __exec(func: string, params: NakoValue[]): any; // プラグイン関数の実行
   __setSore(v: any): void; // Soreに値を設定する
   __getSore(): any; // Soreから値を取得する
@@ -38,6 +38,7 @@ export interface NakoSystem {
   __formatTime (t: Date): string;
   __str2date(s: string): Date;
   __parseFloatOrBigint(v: NakoValue): number | bigint;
+  __incValue(a: NakoValue, b: NakoValue, isDec: boolean): number | bigint; // 増減文の加算/減算。実体はコア(NakoGlobal / standalone)に常設 (#2488)
   __evalJS(code: string, sys?: NakoSystem): NakoValue;
   __evalSafe(code: string): NakoValue;
   josiList: string[];

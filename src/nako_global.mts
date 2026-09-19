@@ -3,6 +3,9 @@ import { NakoColors } from './nako_colors.mjs'
 import { NakoGen } from './nako_gen.mjs'
 import { NakoLogger } from './nako_logger.mjs'
 import { CompilerOptions, NakoVars } from './nako_types.mjs'
+import { NakoValue } from './plugin_api.mjs'
+import { incValue } from './nako_inc_value.mjs'
+import { dnclEnsureArray } from './nako_dncl_ensure_array.mjs'
 
 /**
  * コンパイルされたなでしこのプログラムで、グローバル空間のthisが指すオブジェクト
@@ -29,6 +32,10 @@ export class NakoGlobal {
   lastJSCode: string
   public josiList: string[]
   public reservedWords: string[]
+  // 増減文の加算/減算 (#2488)
+  __incValue: (a: NakoValue, b: NakoValue, isDec: boolean) => number | bigint
+  // DNCLモードの多次元配列の中間要素の自動初期化 (#1140)
+  __dncl_ensure_array: (base: any, idx: any) => any
   /**
    * @param compiler
    * @param gen
@@ -68,6 +75,11 @@ export class NakoGlobal {
     this.compiler = compiler
     this.josiList = compiler.josiList
     this.reservedWords = compiler.reservedWords
+    // 増減文の加算/減算。単体JavaScript(standalone)にも同じ実装を埋め込む (#2488)
+    this.__incValue = incValue
+    // DNCLモードの多次元配列の中間要素の自動初期化。
+    // 単体JavaScript(standalone)にも同じ実装を埋め込む (#1140)
+    this.__dncl_ensure_array = dnclEnsureArray
   }
 
   clearLog() {
