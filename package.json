@@ -44,6 +44,6 @@
   },
   "dependencies": {
     "cross-env": "^10.0.0",
-    "smol-toml": "1.8.0"
+    "smol-toml": "1.9.0"
   }
 }
